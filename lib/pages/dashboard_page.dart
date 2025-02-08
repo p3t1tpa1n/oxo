@@ -4,6 +4,7 @@ import '../widgets/side_menu.dart';
 import '../widgets/dashboard_card.dart';
 import '../widgets/calendar_widget.dart';
 import 'calendar_page.dart'; // Page du calendrier en grand
+import 'package:intl/intl.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -157,10 +158,139 @@ class _DashboardPageState extends State<DashboardPage> {
                                                 ),
                                                 child: CalendarWidget(
                                                   showTitle: true,
-                                                  title: 'Planning Personnel',
+                                                  title: 'Timesheet Personnel',
                                                   onDaySelected: (date) {
-                                                    debugPrint('Jour sélectionné: ${date.toString()}');
+                                                    // Afficher une boîte de dialogue pour saisir les heures
+                                                    showDialog(
+                                                      context: context,
+                                                      builder: (context) {
+                                                        TimeOfDay startTime = TimeOfDay.now();
+                                                        TimeOfDay endTime = TimeOfDay.now();
+                                                        
+                                                        return StatefulBuilder(
+                                                          builder: (context, setState) => AlertDialog(
+                                                            title: Text('Saisie des heures - ${DateFormat('dd/MM/yyyy').format(date)}'),
+                                                            content: SingleChildScrollView(
+                                                              child: Column(
+                                                                mainAxisSize: MainAxisSize.min,
+                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                children: [
+                                                                  // Projet
+                                                                  DropdownButtonFormField<String>(
+                                                                    decoration: const InputDecoration(
+                                                                      labelText: 'Projet',
+                                                                      border: OutlineInputBorder(),
+                                                                    ),
+                                                                    items: const [
+                                                                      DropdownMenuItem(value: 'projet1', child: Text('Projet 1')),
+                                                                      DropdownMenuItem(value: 'projet2', child: Text('Projet 2')),
+                                                                      DropdownMenuItem(value: 'projet3', child: Text('Projet 3')),
+                                                                    ],
+                                                                    onChanged: (value) {},
+                                                                  ),
+                                                                  const SizedBox(height: 16),
+                                                                  
+                                                                  // Tâche
+                                                                  DropdownButtonFormField<String>(
+                                                                    decoration: const InputDecoration(
+                                                                      labelText: 'Tâche',
+                                                                      border: OutlineInputBorder(),
+                                                                    ),
+                                                                    items: const [
+                                                                      DropdownMenuItem(value: 'tache1', child: Text('Développement')),
+                                                                      DropdownMenuItem(value: 'tache2', child: Text('Design')),
+                                                                      DropdownMenuItem(value: 'tache3', child: Text('Tests')),
+                                                                      DropdownMenuItem(value: 'tache4', child: Text('Documentation')),
+                                                                    ],
+                                                                    onChanged: (value) {},
+                                                                  ),
+                                                                  const SizedBox(height: 16),
+                                                                  
+                                                                  // Heures de début et fin
+                                                                  Row(
+                                                                    children: [
+                                                                      Expanded(
+                                                                        child: InkWell(
+                                                                          onTap: () async {
+                                                                            final TimeOfDay? picked = await showTimePicker(
+                                                                              context: context,
+                                                                              initialTime: startTime,
+                                                                            );
+                                                                            if (picked != null) {
+                                                                              setState(() => startTime = picked);
+                                                                            }
+                                                                          },
+                                                                          child: InputDecorator(
+                                                                            decoration: const InputDecoration(
+                                                                              labelText: 'Début',
+                                                                              border: OutlineInputBorder(),
+                                                                            ),
+                                                                            child: Text(startTime.format(context)),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                      const SizedBox(width: 16),
+                                                                      Expanded(
+                                                                        child: InkWell(
+                                                                          onTap: () async {
+                                                                            final TimeOfDay? picked = await showTimePicker(
+                                                                              context: context,
+                                                                              initialTime: endTime,
+                                                                            );
+                                                                            if (picked != null) {
+                                                                              setState(() => endTime = picked);
+                                                                            }
+                                                                          },
+                                                                          child: InputDecorator(
+                                                                            decoration: const InputDecoration(
+                                                                              labelText: 'Fin',
+                                                                              border: OutlineInputBorder(),
+                                                                            ),
+                                                                            child: Text(endTime.format(context)),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                  const SizedBox(height: 16),
+                                                                  
+                                                                  // Description
+                                                                  const TextField(
+                                                                    decoration: InputDecoration(
+                                                                      labelText: 'Description',
+                                                                      hintText: 'Description de l\'activité',
+                                                                      border: OutlineInputBorder(),
+                                                                    ),
+                                                                    maxLines: 3,
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () => Navigator.pop(context),
+                                                                child: const Text('Annuler'),
+                                                              ),
+                                                              ElevatedButton(
+                                                                onPressed: () {
+                                                                  // TODO: Sauvegarder les données
+                                                                  Navigator.pop(context);
+                                                                },
+                                                                style: ElevatedButton.styleFrom(
+                                                                  backgroundColor: const Color(0xFF1784af),
+                                                                ),
+                                                                child: const Text(
+                                                                  'Enregistrer',
+                                                                  style: TextStyle(color: Colors.white),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      },
+                                                    );
                                                   },
+                                                  isTimesheet: true,
                                                 ),
                                               ),
                                             ),

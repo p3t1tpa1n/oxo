@@ -8,6 +8,7 @@ class CalendarWidget extends StatefulWidget {
   final bool isExpanded;
   final VoidCallback? onExpandToggle;
   final String? title;
+  final bool isTimesheet;
 
   const CalendarWidget({
     super.key,
@@ -17,6 +18,7 @@ class CalendarWidget extends StatefulWidget {
     this.isExpanded = false,
     this.onExpandToggle,
     this.title,
+    this.isTimesheet = false,
   });
 
   @override
@@ -103,6 +105,7 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
                               onDaySelected: widget.onDaySelected,
                               isExpanded: true,
                               onExpandToggle: () => Navigator.of(context).pop(),
+                              isTimesheet: widget.isTimesheet,
                             ),
                           );
                         },
@@ -214,11 +217,73 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
   }) {
     final bool isWeekend = date?.weekday == DateTime.saturday || date?.weekday == DateTime.sunday;
     
+    if (widget.isTimesheet && isCurrentMonth) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isCurrentMonth ? onTap : null,
+          borderRadius: BorderRadius.circular(4),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? const Color(0xFF007AFF)
+                  : isToday
+                      ? const Color(0xFFE3F2FD)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: isWeekend ? Colors.grey.shade300 : const Color(0xFF1784af),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  day.toString(),
+                  style: TextStyle(
+                    color: isCurrentMonth
+                        ? isSelected
+                            ? Colors.white
+                            : isWeekend
+                                ? const Color(0xFF999999)
+                                : const Color(0xFF333333)
+                        : const Color(0xFFCCCCCC),
+                    fontWeight: isToday || isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontSize: 11,
+                  ),
+                ),
+                if (!isWeekend) ...[
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE3F2FD),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    child: const Text(
+                      '0h',
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: Color(0xFF1784af),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: isCurrentMonth ? onTap : null,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(4),
         child: Container(
           decoration: BoxDecoration(
             color: isSelected
@@ -226,7 +291,7 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
                 : isToday
                     ? const Color(0xFFE3F2FD)
                     : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(4),
           ),
           child: Center(
             child: Text(
@@ -240,7 +305,7 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
                             : const Color(0xFF333333)
                     : const Color(0xFFCCCCCC),
                 fontWeight: isToday || isSelected ? FontWeight.w600 : FontWeight.normal,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
           ),
