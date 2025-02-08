@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:window_manager/window_manager.dart';
 
 // Import des modèles
 import 'models/profile.dart';
@@ -22,6 +23,28 @@ import 'pages/calendar_page.dart'; // Import de la page calendrier
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('fr_FR', null);
+  
+  // Configuration pour gérer les événements clavier
+  ServicesBinding.instance.keyboard.clearState();
+
+  // Initialisation de window_manager
+  await windowManager.ensureInitialized();
+
+  // Configuration de la fenêtre
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(1200, 800),
+    minimumSize: Size(1200, 800),
+    center: true,
+    backgroundColor: Colors.white,
+    skipTaskbar: false,
+    titleBarStyle: TitleBarStyle.normal,
+  );
+
+  await windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+  
   runApp(const MainApp());
 }
 
