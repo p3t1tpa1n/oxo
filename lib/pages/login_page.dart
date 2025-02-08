@@ -1,0 +1,224 @@
+// lib/pages/login_page.dart
+import 'package:flutter/material.dart';
+import '../models/profile.dart';
+
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  String _errorMessage = '';
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _login() {
+    setState(() {
+      _errorMessage = '';
+    });
+
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // Vérifier les identifiants
+    final matchedProfile = profilesList.firstWhere(
+      (profile) => profile.username == username && profile.password == password,
+      orElse: () => Profile(
+        username: '',
+        password: '',
+        displayName: '',
+        email: '',
+      ),
+    );
+
+    if (matchedProfile.username.isNotEmpty) {
+      currentProfile = matchedProfile;
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    } else {
+      setState(() {
+        _errorMessage = 'Identifiants incorrects';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Logo
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/oxo_logo.png',
+                        height: 80,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.business,
+                                size: 80,
+                                color: Color(0xFF122b35),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'OXO',
+                                style: TextStyle(
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF122b35),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 48),
+                  const Text(
+                    'Bienvenue',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF122b35),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Veuillez entrer vos identifiants',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  // Champ Username
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Icon(
+                            Icons.person_outline,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _usernameController,
+                            decoration: const InputDecoration(
+                              hintText: 'Nom d\'utilisateur',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Champ Password
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Icon(
+                            Icons.lock_outline,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _passwordController,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              hintText: 'Mot de passe',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_errorMessage.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        _errorMessage,
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                  // Bouton Connexion
+                  ElevatedButton(
+                    onPressed: _login,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1784af),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Se connecter',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
