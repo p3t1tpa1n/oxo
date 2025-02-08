@@ -474,7 +474,7 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
                             // Calculer la taille idéale d'une cellule
                             final cellWidth = availableWidth / 7;
                             // Ajuster la hauteur des cellules en fonction de l'espace disponible
-                            final cellHeight = (availableHeight - 24) / 6; // 24 pour la hauteur des jours de la semaine
+                            final cellHeight = availableHeight / 6; // Simplifié pour éviter les calculs qui peuvent causer des erreurs
                             
                             return GridView.count(
                               padding: const EdgeInsets.all(2),

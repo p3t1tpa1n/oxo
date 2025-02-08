@@ -10,7 +10,7 @@ class DashboardCard extends StatelessWidget {
   const DashboardCard({
     super.key,
     required this.label,
-    required this.description,
+    required this.description,  
     required this.icon,
     required this.onTap,
   });
