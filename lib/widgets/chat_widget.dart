@@ -13,11 +13,29 @@ class _ChatWidgetState extends State<ChatWidget> {
   final _messageController = TextEditingController();
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = false;
+  late final Stream<List<Map<String, dynamic>>> _messagesStream;
 
   @override
   void initState() {
     super.initState();
     _loadMessages();
+    _initializeMessageStream();
+  }
+
+  void _initializeMessageStream() {
+    _messagesStream = SupabaseService.client
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .map((maps) => maps);
+
+    _messagesStream.listen((List<Map<String, dynamic>> data) {
+      if (mounted) {
+        setState(() {
+          _messages = data;
+        });
+      }
+    });
   }
 
   Future<void> _loadMessages() async {
@@ -32,15 +50,19 @@ class _ChatWidgetState extends State<ChatWidget> {
           .order('created_at', ascending: false)
           .limit(50);
       
-      setState(() {
-        _messages = List<Map<String, dynamic>>.from(response);
-      });
+      if (mounted) {
+        setState(() {
+          _messages = List<Map<String, dynamic>>.from(response);
+        });
+      }
     } catch (e) {
       debugPrint('Erreur lors du chargement des messages: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -48,15 +70,15 @@ class _ChatWidgetState extends State<ChatWidget> {
     if (_messageController.text.trim().isEmpty) return;
 
     try {
+      final messageContent = _messageController.text.trim();
+      _messageController.clear();
+
       await SupabaseService.client.from('messages').insert({
-        'content': _messageController.text.trim(),
+        'content': messageContent,
         'sender_id': SupabaseService.currentUser!.id,
-        'receiver_id': null, // Pour un message global
+        'receiver_id': null,
         'is_read': false,
       });
-
-      _messageController.clear();
-      await _loadMessages();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

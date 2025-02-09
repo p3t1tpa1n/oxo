@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../services/supabase_service.dart';
 
 class CalendarWidget extends StatefulWidget {
   final bool showTitle;
@@ -29,6 +30,7 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
   final List<String> _weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  Map<String, double> _dailyHours = {};
 
   @override
   void initState() {
@@ -41,12 +43,47 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_animationController);
     _animationController.forward();
+    if (widget.isTimesheet) {
+      _loadMonthlyHours();
+    }
+  }
+
+  Future<void> _loadMonthlyHours() async {
+    try {
+      final startOfMonth = DateTime(_currentMonth.year, _currentMonth.month, 1);
+      final endOfMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
+
+      final response = await SupabaseService.client
+          .from('timesheet_entries')
+          .select('date, hours')
+          .eq('user_id', SupabaseService.currentUser!.id)
+          .gte('date', startOfMonth.toIso8601String())
+          .lte('date', endOfMonth.toIso8601String());
+
+      final entries = List<Map<String, dynamic>>.from(response);
+      final Map<String, double> newDailyHours = {};
+
+      for (var entry in entries) {
+        final date = DateTime.parse(entry['date']).toIso8601String().split('T')[0];
+        newDailyHours[date] = (newDailyHours[date] ?? 0) + (entry['hours'] as num).toDouble();
+      }
+
+      if (mounted) {
+        setState(() {
+          _dailyHours = newDailyHours;
+        });
+      }
+    } catch (e) {
+      debugPrint('Erreur lors du chargement des heures: $e');
+    }
   }
 
   @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
+  void didUpdateWidget(CalendarWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isTimesheet && _currentMonth != oldWidget) {
+      _loadMonthlyHours();
+    }
   }
 
   void _toggleExpanded() {
@@ -133,6 +170,9 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
       _animationController.reset();
       _animationController.forward();
+      if (widget.isTimesheet) {
+        _loadMonthlyHours();
+      }
     });
   }
 
@@ -141,6 +181,9 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
       _animationController.reset();
       _animationController.forward();
+      if (widget.isTimesheet) {
+        _loadMonthlyHours();
+      }
     });
   }
 
@@ -216,7 +259,10 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
   }) {
     final bool isWeekend = date?.weekday == DateTime.saturday || date?.weekday == DateTime.sunday;
     
-    if (widget.isTimesheet && isCurrentMonth) {
+    if (widget.isTimesheet && isCurrentMonth && date != null) {
+      final dateString = date.toIso8601String().split('T')[0];
+      final hours = _dailyHours[dateString] ?? 0;
+      
       return Material(
         color: Colors.transparent,
         child: InkWell(
@@ -262,9 +308,9 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
                       color: const Color(0xFFE3F2FD),
                       borderRadius: BorderRadius.circular(2),
                     ),
-                    child: const Text(
-                      '0h',
-                      style: TextStyle(
+                    child: Text(
+                      '${hours.toStringAsFixed(1)}h',
+                      style: const TextStyle(
                         fontSize: 9,
                         color: Color(0xFF1784af),
                       ),
