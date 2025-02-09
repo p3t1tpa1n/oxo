@@ -1,6 +1,6 @@
 // lib/pages/login_page.dart
 import 'package:flutter/material.dart';
-import '../models/profile.dart';
+import '../services/supabase_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -10,43 +10,57 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String _errorMessage = '';
+  bool _isLoading = false;
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _login() {
+  Future<void> _login() async {
     setState(() {
       _errorMessage = '';
+      _isLoading = true;
     });
 
-    final username = _usernameController.text.trim();
-    final password = _passwordController.text.trim();
+    try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
 
-    // Vérifier les identifiants
-    final matchedProfile = profilesList.firstWhere(
-      (profile) => profile.username == username && profile.password == password,
-      orElse: () => Profile(
-        username: '',
-        password: '',
-        displayName: '',
-        email: '',
-      ),
-    );
+      print('Tentative de connexion avec: $email'); // Debug
 
-    if (matchedProfile.username.isNotEmpty) {
-      currentProfile = matchedProfile;
-      Navigator.pushReplacementNamed(context, '/dashboard');
-    } else {
+      final response = await SupabaseService.signIn(
+        email: email,
+        password: password,
+      );
+
+      print('Réponse de Supabase: ${response.user}'); // Debug
+
+      if (response.user != null) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
+      } else {
+        setState(() {
+          _errorMessage = 'Erreur de connexion: Utilisateur non trouvé';
+        });
+      }
+    } catch (e) {
+      print('Erreur de connexion: $e'); // Debug
       setState(() {
-        _errorMessage = 'Identifiants incorrects';
+        _errorMessage = 'Erreur de connexion: ${e.toString()}';
       });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -114,7 +128,7 @@ class _LoginPageState extends State<LoginPage> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
-                  // Champ Username
+                  // Champ Email
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.grey[50],
@@ -129,15 +143,16 @@ class _LoginPageState extends State<LoginPage> {
                         const Padding(
                           padding: EdgeInsets.all(12),
                           child: Icon(
-                            Icons.person_outline,
+                            Icons.email_outlined,
                             color: Colors.grey,
                           ),
                         ),
                         Expanded(
                           child: TextField(
-                            controller: _usernameController,
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
                             decoration: const InputDecoration(
-                              hintText: 'Nom d\'utilisateur',
+                              hintText: 'Email',
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.symmetric(horizontal: 8),
                             ),
@@ -195,7 +210,7 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 24),
                   // Bouton Connexion
                   ElevatedButton(
-                    onPressed: _login,
+                    onPressed: _isLoading ? null : _login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1784af),
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -204,14 +219,23 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
-                      'Se connecter',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          'Se connecter',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                   ),
                 ],
               ),

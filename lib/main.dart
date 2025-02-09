@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:window_manager/window_manager.dart';
+import 'services/supabase_service.dart';
 
 // Import des modèles
 import 'models/profile.dart';
@@ -21,31 +22,37 @@ import 'pages/calendar_page.dart'; // Import de la page calendrier
 
 // lib/main.dart
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('fr_FR', null);
-  
-  // Configuration pour gérer les événements clavier
-  ServicesBinding.instance.keyboard.clearState();
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    await initializeDateFormatting('fr_FR', null);
+    
+    print('Initialisation de Supabase...'); // Debug
+    await SupabaseService.initialize();
+    print('Supabase initialisé avec succès'); // Debug
 
-  // Initialisation de window_manager
-  await windowManager.ensureInitialized();
+    // Initialisation de window_manager
+    await windowManager.ensureInitialized();
 
-  // Configuration de la fenêtre
-  WindowOptions windowOptions = const WindowOptions(
-    size: Size(1200, 800),
-    minimumSize: Size(1200, 800),
-    center: true,
-    backgroundColor: Colors.white,
-    skipTaskbar: false,
-    titleBarStyle: TitleBarStyle.normal,
-  );
+    // Configuration de la fenêtre
+    WindowOptions windowOptions = const WindowOptions(
+      size: Size(1200, 800),
+      minimumSize: Size(1200, 800),
+      center: true,
+      backgroundColor: Colors.white,
+      skipTaskbar: false,
+      titleBarStyle: TitleBarStyle.normal,
+    );
 
-  await windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-  });
-  
-  runApp(const MainApp());
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+    
+    runApp(const MainApp());
+  } catch (e) {
+    print('Erreur lors de l\'initialisation: $e'); // Debug
+    rethrow;
+  }
 }
 
 class MainApp extends StatelessWidget {

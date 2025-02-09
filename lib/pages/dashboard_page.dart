@@ -5,6 +5,8 @@ import '../widgets/dashboard_card.dart';
 import '../widgets/calendar_widget.dart';
 import 'calendar_page.dart'; // Page du calendrier en grand
 import 'package:intl/intl.dart';
+import '../services/supabase_service.dart';
+import '../widgets/chat_widget.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -14,69 +16,261 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  // Liste des tâches avec leur statut
-  final List<Map<String, dynamic>> _tasks = [
-    {
-      'title': 'Mise à jour documentation',
-      'description': 'Mettre à jour la documentation technique',
-      'dueDate': DateTime.now().add(const Duration(days: 2)),
-      'status': 'todo',
-      'isDone': false,
-    },
-    {
-      'title': 'Revue de code',
-      'description': 'Revue du code de la nouvelle fonctionnalité',
-      'dueDate': DateTime.now().add(const Duration(days: 1)),
-      'status': 'todo',
-      'isDone': false,
-    },
-    {
-      'title': 'Développement interface',
-      'description': 'Développement de l\'interface utilisateur',
-      'dueDate': DateTime.now().add(const Duration(days: 3)),
-      'status': 'in_progress',
-      'isDone': false,
-    },
-    {
-      'title': 'Tests unitaires',
-      'description': 'Écriture des tests unitaires',
-      'dueDate': DateTime.now(),
-      'status': 'done',
-      'isDone': true,
-    },
-    {
-      'title': 'Configuration CI/CD',
-      'description': 'Mise en place de l\'intégration continue',
-      'dueDate': DateTime.now(),
-      'status': 'done',
-      'isDone': true,
-    },
-    {
-      'title': 'Analyse des besoins',
-      'description': 'Analyse des besoins du client',
-      'dueDate': DateTime.now(),
-      'status': 'done',
-      'isDone': true,
-    },
-  ];
+  List<Map<String, dynamic>> _tasks = [];
 
-  // Obtenir les tâches filtrées par statut
-  List<Map<String, dynamic>> _getTasksByStatus(String status) {
-    return _tasks.where((task) => task['status'] == status).toList();
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+    _createTestProjectIfNeeded();
+  }
+
+  Future<void> _loadTasks() async {
+    try {
+      final response = await SupabaseService.client
+          .from('tasks')
+          .select()
+          .eq('user_id', SupabaseService.currentUser!.id)
+          .order('created_at', ascending: false);
+      
+      setState(() {
+        _tasks = List<Map<String, dynamic>>.from(response.map((task) => {
+          ...task,
+          'isDone': task['status'] == 'done',
+        }));
+      });
+    } catch (e) {
+      debugPrint('Erreur lors du chargement des tâches: $e');
+    }
+  }
+
+  Future<void> _createTestProjectIfNeeded() async {
+    try {
+      // Vérifier si des projets existent déjà
+      final projects = await SupabaseService.client
+          .from('projects')
+          .select()
+          .limit(1);
+
+      if (projects.isEmpty) {
+        // Créer un projet de test
+        final projectResponse = await SupabaseService.client
+            .from('projects')
+            .insert({
+              'name': 'Projet Test',
+              'description': 'Un projet de test',
+              'status': 'en_cours',
+              'start_date': DateTime.now().toIso8601String(),
+              'end_date': DateTime.now().add(const Duration(days: 30)).toIso8601String(),
+              'created_at': DateTime.now().toIso8601String(),
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .select()
+            .single();
+
+        // Créer quelques tâches de test
+        await SupabaseService.client
+            .from('tasks')
+            .insert([
+              {
+                'title': 'Tâche 1',
+                'description': 'Description de la tâche 1',
+                'status': 'todo',
+                'due_date': DateTime.now().add(const Duration(days: 7)).toIso8601String(),
+                'project_id': projectResponse['id'],
+                'user_id': SupabaseService.currentUser!.id,
+                'created_at': DateTime.now().toIso8601String(),
+                'updated_at': DateTime.now().toIso8601String(),
+              },
+              {
+                'title': 'Tâche 2',
+                'description': 'Description de la tâche 2',
+                'status': 'in_progress',
+                'due_date': DateTime.now().add(const Duration(days: 14)).toIso8601String(),
+                'project_id': projectResponse['id'],
+                'user_id': SupabaseService.currentUser!.id,
+                'created_at': DateTime.now().toIso8601String(),
+                'updated_at': DateTime.now().toIso8601String(),
+              }
+            ]);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Projet et tâches de test créés avec succès')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de la création des données de test: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de la création des données de test: ${e.toString()}')),
+        );
+      }
+    }
   }
 
   // Mettre à jour le statut d'une tâche
-  void _updateTaskStatus(Map<String, dynamic> taskData, String newStatus) {
-    setState(() {
-      final taskIndex = _tasks.indexWhere((task) =>
-          task['title'] == taskData['title'] &&
-          task['description'] == taskData['description']);
+  Future<void> _updateTaskStatus(Map<String, dynamic> taskData, String newStatus) async {
+    try {
+      await SupabaseService.client
+          .from('tasks')
+          .update({
+            'status': newStatus,
+          })
+          .eq('id', taskData['id']);
       
-      if (taskIndex != -1) {
-        _tasks[taskIndex]['status'] = newStatus;
-        _tasks[taskIndex]['isDone'] = newStatus == 'done';
+      await _loadTasks();
+    } catch (e) {
+      debugPrint('Erreur lors de la mise à jour du statut: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de la mise à jour: ${e.toString()}')),
+        );
       }
-    });
+    }
+  }
+
+  void _showAddTaskDialog() {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final dueDateController = TextEditingController();
+    DateTime? selectedDate;
+    String? selectedProject;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Nouvelle tâche'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Sélecteur de projet
+              FutureBuilder<List<dynamic>>(
+                future: SupabaseService.client
+                  .from('projects')
+                  .select()
+                  .order('name'),
+                builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
+                  }
+
+                  if (snapshot.hasError) {
+                    return Text('Erreur: ${snapshot.error}');
+                  }
+
+                  final projects = List<Map<String, dynamic>>.from(snapshot.data ?? []);
+
+                  return DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Projet',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: selectedProject,
+                    items: projects.map((project) => DropdownMenuItem<String>(
+                      value: project['id'].toString(),
+                      child: Text(project['name'] as String),
+                    )).toList(),
+                    onChanged: (String? value) {
+                      setState(() {
+                        selectedProject = value;
+                      });
+                    },
+                    validator: (value) => value == null ? 'Veuillez sélectionner un projet' : null,
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Titre',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descriptionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (date != null) {
+                    selectedDate = date;
+                    dueDateController.text = DateFormat('dd/MM/yyyy').format(date);
+                  }
+                },
+                child: IgnorePointer(
+                  child: TextField(
+                    controller: dueDateController,
+                    decoration: const InputDecoration(
+                      labelText: 'Date d\'échéance',
+                      border: OutlineInputBorder(),
+                      suffixIcon: Icon(Icons.calendar_today),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (titleController.text.isNotEmpty && selectedDate != null && selectedProject != null) {
+                try {
+                  await SupabaseService.client
+                      .from('tasks')
+                      .insert({
+                        'title': titleController.text,
+                        'description': descriptionController.text,
+                        'due_date': selectedDate!.toIso8601String(),
+                        'status': 'todo',
+                        'project_id': int.parse(selectedProject!),
+                        'user_id': SupabaseService.currentUser!.id,
+                      });
+                  
+                  if (mounted) {
+                    Navigator.pop(context);
+                    await _loadTasks();
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Erreur: ${e.toString()}')),
+                    );
+                  }
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1784af),
+            ),
+            child: const Text(
+              'Ajouter',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -156,9 +350,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                                 ),
                                                 IconButton(
                                                   icon: const Icon(Icons.add, color: Color(0xFF1784af)),
-                                                  onPressed: () {
-                                                    // TODO: Ajouter une nouvelle tâche
-                                                  },
+                                                  onPressed: _showAddTaskDialog,
                                                 ),
                                               ],
                                             ),
@@ -177,10 +369,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                                             color: const Color(0xFFE3F2FD),
                                                             borderRadius: BorderRadius.circular(8),
                                                           ),
-                                                          child: const Row(
+                                                          child: Row(
                                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                             children: [
-                                                              Text(
+                                                              const Text(
                                                                 'À faire',
                                                                 style: TextStyle(
                                                                   fontWeight: FontWeight.bold,
@@ -188,8 +380,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                                                 ),
                                                               ),
                                                               Text(
-                                                                '2',
-                                                                style: TextStyle(
+                                                                _tasks.where((task) => task['status'] == 'todo').length.toString(),
+                                                                style: const TextStyle(
                                                                   color: Color(0xFF1784af),
                                                                   fontWeight: FontWeight.bold,
                                                                 ),
@@ -206,19 +398,18 @@ class _DashboardPageState extends State<DashboardPage> {
                                                             },
                                                             builder: (context, candidateData, rejectedData) {
                                                               return ListView(
-                                                                children: _getTasksByStatus('todo')
-                                                                    .map((task) => Column(
-                                                                      children: [
-                                                                        _buildTaskCard(
-                                                                          task['title'],
-                                                                          task['description'],
-                                                                          task['dueDate'],
-                                                                          isDone: task['isDone'],
-                                                                        ),
-                                                                        const SizedBox(height: 8),
-                                                                      ],
-                                                                    ))
-                                                                    .toList(),
+                                                                children: _tasks.where((task) => task['status'] == 'todo').map((task) => Column(
+                                                                  children: [
+                                                                    _buildTaskCard(
+                                                                      task['title'],
+                                                                      task['description'],
+                                                                      DateTime.parse(task['due_date']),
+                                                                      isDone: task['isDone'],
+                                                                    ),
+                                                                    const SizedBox(height: 8),
+                                                                  ],
+                                                                ))
+                                                                .toList(),
                                                               );
                                                             },
                                                           ),
@@ -237,10 +428,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                                             color: const Color(0xFFFFF3E0),
                                                             borderRadius: BorderRadius.circular(8),
                                                           ),
-                                                          child: const Row(
+                                                          child: Row(
                                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                             children: [
-                                                              Text(
+                                                              const Text(
                                                                 'En cours',
                                                                 style: TextStyle(
                                                                   fontWeight: FontWeight.bold,
@@ -248,8 +439,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                                                 ),
                                                               ),
                                                               Text(
-                                                                '1',
-                                                                style: TextStyle(
+                                                                _tasks.where((task) => task['status'] == 'in_progress').length.toString(),
+                                                                style: const TextStyle(
                                                                   color: Color(0xFFFF9800),
                                                                   fontWeight: FontWeight.bold,
                                                                 ),
@@ -266,19 +457,18 @@ class _DashboardPageState extends State<DashboardPage> {
                                                             },
                                                             builder: (context, candidateData, rejectedData) {
                                                               return ListView(
-                                                                children: _getTasksByStatus('in_progress')
-                                                                    .map((task) => Column(
-                                                                      children: [
-                                                                        _buildTaskCard(
-                                                                          task['title'],
-                                                                          task['description'],
-                                                                          task['dueDate'],
-                                                                          isDone: task['isDone'],
-                                                                        ),
-                                                                        const SizedBox(height: 8),
-                                                                      ],
-                                                                    ))
-                                                                    .toList(),
+                                                                children: _tasks.where((task) => task['status'] == 'in_progress').map((task) => Column(
+                                                                  children: [
+                                                                    _buildTaskCard(
+                                                                      task['title'],
+                                                                      task['description'],
+                                                                      DateTime.parse(task['due_date']),
+                                                                      isDone: task['isDone'],
+                                                                    ),
+                                                                    const SizedBox(height: 8),
+                                                                  ],
+                                                                ))
+                                                                .toList(),
                                                               );
                                                             },
                                                           ),
@@ -297,10 +487,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                                             color: const Color(0xFFE8F5E9),
                                                             borderRadius: BorderRadius.circular(8),
                                                           ),
-                                                          child: const Row(
+                                                          child: Row(
                                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                             children: [
-                                                              Text(
+                                                              const Text(
                                                                 'Fait',
                                                                 style: TextStyle(
                                                                   fontWeight: FontWeight.bold,
@@ -308,8 +498,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                                                 ),
                                                               ),
                                                               Text(
-                                                                '3',
-                                                                style: TextStyle(
+                                                                _tasks.where((task) => task['status'] == 'done').length.toString(),
+                                                                style: const TextStyle(
                                                                   color: Color(0xFF4CAF50),
                                                                   fontWeight: FontWeight.bold,
                                                                 ),
@@ -326,19 +516,18 @@ class _DashboardPageState extends State<DashboardPage> {
                                                             },
                                                             builder: (context, candidateData, rejectedData) {
                                                               return ListView(
-                                                                children: _getTasksByStatus('done')
-                                                                    .map((task) => Column(
-                                                                      children: [
-                                                                        _buildTaskCard(
-                                                                          task['title'],
-                                                                          task['description'],
-                                                                          task['dueDate'],
-                                                                          isDone: task['isDone'],
-                                                                        ),
-                                                                        const SizedBox(height: 8),
-                                                                      ],
-                                                                    ))
-                                                                    .toList(),
+                                                                children: _tasks.where((task) => task['status'] == 'done').map((task) => Column(
+                                                                  children: [
+                                                                    _buildTaskCard(
+                                                                      task['title'],
+                                                                      task['description'],
+                                                                      DateTime.parse(task['due_date']),
+                                                                      isDone: task['isDone'],
+                                                                    ),
+                                                                    const SizedBox(height: 8),
+                                                                  ],
+                                                                ))
+                                                                .toList(),
                                                               );
                                                             },
                                                           ),
@@ -356,21 +545,20 @@ class _DashboardPageState extends State<DashboardPage> {
                                   ),
                                 const SizedBox(height: 16),
                                 Expanded(
-                        child: Column(
-                          children: [
+                                  child: Column(
+                                    children: [
                                       Expanded(
-                                        flex: 4, // Augmenté de 3 à 4 pour donner plus d'espace aux calendriers
+                                        flex: 4,
                                         child: GridView.custom(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
+                                          shrinkWrap: true,
+                                          physics: const NeverScrollableScrollPhysics(),
                                           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: crossAxisCount,
-                              mainAxisSpacing: 16,
-                              crossAxisSpacing: 16,
+                                            crossAxisCount: crossAxisCount,
+                                            mainAxisSpacing: 16,
+                                            crossAxisSpacing: 16,
                                             childAspectRatio: (constraints.maxWidth / crossAxisCount) / ((constraints.maxHeight * 1.0) / 2),
                                           ),
                                           childrenDelegate: SliverChildListDelegate([
-                                            // Planning Global détaillé
                                             Card(
                                               elevation: 4,
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -388,13 +576,13 @@ class _DashboardPageState extends State<DashboardPage> {
                                                     debugPrint('Jour sélectionné: ${date.toString()}');
                                                   },
                                                   isExpanded: false,
-                                                  onExpandToggle: null,
+                                                  onExpandToggle: () {},
+                                                  isTimesheet: false,
                                                 ),
                                               ),
                                             ),
-                                            // Planning Personnel
-                                Card(
-                                  elevation: 4,
+                                            Card(
+                                              elevation: 4,
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                               child: Container(
                                                 padding: const EdgeInsets.all(4),
@@ -406,137 +594,247 @@ class _DashboardPageState extends State<DashboardPage> {
                                                 child: CalendarWidget(
                                                   showTitle: true,
                                                   title: 'Timesheet Personnel',
-                                                  onDaySelected: (date) {
+                                                  onDaySelected: (date) async {
                                                     // Afficher une boîte de dialogue pour saisir les heures
                                                     showDialog(
                                                       context: context,
                                                       builder: (context) {
                                                         TimeOfDay startTime = TimeOfDay.now();
                                                         TimeOfDay endTime = TimeOfDay.now();
-                                                        
-                                                        return StatefulBuilder(
-                                                          builder: (context, setState) => AlertDialog(
-                                                            title: Text('Saisie des heures - ${DateFormat('dd/MM/yyyy').format(date)}'),
-                                                            content: SingleChildScrollView(
-                                                              child: Column(
-                                                                mainAxisSize: MainAxisSize.min,
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                                children: [
-                                                                  // Projet
-                                                                  DropdownButtonFormField<String>(
-                                                                    decoration: const InputDecoration(
-                                                                      labelText: 'Projet',
-                                                                      border: OutlineInputBorder(),
-                                                                    ),
-                                                                    items: const [
-                                                                      DropdownMenuItem(value: 'projet1', child: Text('Projet 1')),
-                                                                      DropdownMenuItem(value: 'projet2', child: Text('Projet 2')),
-                                                                      DropdownMenuItem(value: 'projet3', child: Text('Projet 3')),
-                                                                    ],
-                                                                    onChanged: (value) {},
-                                                                  ),
-                                                                  const SizedBox(height: 16),
-                                                                  
-                                                                  // Tâche
-                                                                  DropdownButtonFormField<String>(
-                                                                    decoration: const InputDecoration(
-                                                                      labelText: 'Tâche',
-                                                                      border: OutlineInputBorder(),
-                                                                    ),
-                                                                    items: const [
-                                                                      DropdownMenuItem(value: 'tache1', child: Text('Développement')),
-                                                                      DropdownMenuItem(value: 'tache2', child: Text('Design')),
-                                                                      DropdownMenuItem(value: 'tache3', child: Text('Tests')),
-                                                                      DropdownMenuItem(value: 'tache4', child: Text('Documentation')),
-                                                                    ],
-                                                                    onChanged: (value) {},
-                                                                  ),
-                                                                  const SizedBox(height: 16),
-                                                                  
-                                                                  // Heures de début et fin
-                                                                  Row(
+                                                        String? selectedProject;
+                                                        String? selectedTask;
+                                                        final descriptionController = TextEditingController();
+
+                                                        return FutureBuilder<List<dynamic>>(
+                                                          future: SupabaseService.client
+                                                            .from('projects')
+                                                            .select()
+                                                            .order('name'),
+                                                          builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
+                                                            if (snapshot.connectionState == ConnectionState.waiting) {
+                                                              return const AlertDialog(
+                                                                content: Center(child: CircularProgressIndicator()),
+                                                              );
+                                                            }
+
+                                                            if (snapshot.hasError) {
+                                                              return AlertDialog(
+                                                                content: Center(
+                                                                  child: Text('Erreur: ${snapshot.error}'),
+                                                                ),
+                                                              );
+                                                            }
+
+                                                            final projects = List<Map<String, dynamic>>.from(snapshot.data ?? []);
+
+                                                            return StatefulBuilder(
+                                                              builder: (context, setState) => AlertDialog(
+                                                                title: Text('Saisie des heures - ${DateFormat('dd/MM/yyyy').format(date)}'),
+                                                                content: SingleChildScrollView(
+                                                                  child: Column(
+                                                                    mainAxisSize: MainAxisSize.min,
+                                                                    crossAxisAlignment: CrossAxisAlignment.start,
                                                                     children: [
-                                                                      Expanded(
-                                                                        child: InkWell(
-                                                                          onTap: () async {
-                                                                            final TimeOfDay? picked = await showTimePicker(
-                                                                              context: context,
-                                                                              initialTime: startTime,
-                                                                            );
-                                                                            if (picked != null) {
-                                                                              setState(() => startTime = picked);
-                                                                            }
-                                                                          },
-                                                                          child: InputDecorator(
-                                                                            decoration: const InputDecoration(
-                                                                              labelText: 'Début',
-                                                                              border: OutlineInputBorder(),
-                                                                            ),
-                                                                            child: Text(startTime.format(context)),
-                                                                          ),
+                                                                      // Projet
+                                                                      DropdownButtonFormField<String>(
+                                                                        decoration: const InputDecoration(
+                                                                          labelText: 'Projet',
+                                                                          border: OutlineInputBorder(),
                                                                         ),
+                                                                        value: selectedProject,
+                                                                        items: projects.map((project) => DropdownMenuItem<String>(
+                                                                          value: project['id'].toString(),
+                                                                          child: Text(project['name'] as String),
+                                                                        )).toList(),
+                                                                        onChanged: (String? value) {
+                                                                          setState(() {
+                                                                            selectedProject = value;
+                                                                            selectedTask = null;
+                                                                          });
+                                                                        },
                                                                       ),
-                                                                      const SizedBox(width: 16),
-                                                                      Expanded(
-                                                                        child: InkWell(
-                                                                          onTap: () async {
-                                                                            final TimeOfDay? picked = await showTimePicker(
-                                                                              context: context,
-                                                                              initialTime: endTime,
+                                                                      const SizedBox(height: 16),
+                                                                      
+                                                                      // Tâche
+                                                                      if (selectedProject?.isNotEmpty == true)
+                                                                        FutureBuilder<List<dynamic>>(
+                                                                          future: SupabaseService.client
+                                                                              .from('tasks')
+                                                                              .select()
+                                                                              .eq('project_id', int.parse(selectedProject!))
+                                                                              .order('title'),
+                                                                          builder: (context, AsyncSnapshot<List<dynamic>> taskSnapshot) {
+                                                                            final tasks = List<Map<String, dynamic>>.from(taskSnapshot.data ?? []);
+                                                                            
+                                                                            return DropdownButtonFormField<String>(
+                                                                              decoration: const InputDecoration(
+                                                                                labelText: 'Tâche',
+                                                                                border: OutlineInputBorder(),
+                                                                              ),
+                                                                              value: selectedTask,
+                                                                              items: tasks.map((task) => DropdownMenuItem<String>(
+                                                                                value: task['id'].toString(),
+                                                                                child: Text(task['title'] as String),
+                                                                              )).toList(),
+                                                                              onChanged: (String? value) {
+                                                                                setState(() => selectedTask = value);
+                                                                              },
                                                                             );
-                                                                            if (picked != null) {
-                                                                              setState(() => endTime = picked);
-                                                                            }
                                                                           },
-                                                                          child: InputDecorator(
-                                                                            decoration: const InputDecoration(
-                                                                              labelText: 'Fin',
-                                                                              border: OutlineInputBorder(),
-                                                                            ),
-                                                                            child: Text(endTime.format(context)),
-                                                                          ),
                                                                         ),
+                                                                      const SizedBox(height: 16),
+                                                                      
+                                                                      // Heures de début et fin
+                                                                      Row(
+                                                                        children: [
+                                                                          Expanded(
+                                                                            child: InkWell(
+                                                                              onTap: () async {
+                                                                                final TimeOfDay? picked = await showTimePicker(
+                                                                                  context: context,
+                                                                                  initialTime: startTime,
+                                                                                );
+                                                                                if (picked != null) {
+                                                                                  setState(() => startTime = picked);
+                                                                                }
+                                                                              },
+                                                                              child: InputDecorator(
+                                                                                decoration: const InputDecoration(
+                                                                                  labelText: 'Début',
+                                                                                  border: OutlineInputBorder(),
+                                                                                ),
+                                                                                child: Text(startTime.format(context)),
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                          const SizedBox(width: 16),
+                                                                          Expanded(
+                                                                            child: InkWell(
+                                                                              onTap: () async {
+                                                                                final TimeOfDay? picked = await showTimePicker(
+                                                                                  context: context,
+                                                                                  initialTime: endTime,
+                                                                                );
+                                                                                if (picked != null) {
+                                                                                  setState(() => endTime = picked);
+                                                                                }
+                                                                              },
+                                                                              child: InputDecorator(
+                                                                                decoration: const InputDecoration(
+                                                                                  labelText: 'Fin',
+                                                                                  border: OutlineInputBorder(),
+                                                                                ),
+                                                                                child: Text(endTime.format(context)),
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                      const SizedBox(height: 16),
+                                                                      
+                                                                      // Description
+                                                                      TextField(
+                                                                        controller: descriptionController,
+                                                                        decoration: const InputDecoration(
+                                                                          labelText: 'Description',
+                                                                          hintText: 'Description de l\'activité',
+                                                                          border: OutlineInputBorder(),
+                                                                        ),
+                                                                        maxLines: 3,
                                                                       ),
                                                                     ],
                                                                   ),
-                                                                  const SizedBox(height: 16),
-                                                                  
-                                                                  // Description
-                                                                  const TextField(
-                                                                    decoration: InputDecoration(
-                                                                      labelText: 'Description',
-                                                                      hintText: 'Description de l\'activité',
-                                                                      border: OutlineInputBorder(),
+                                                                ),
+                                                                actions: [
+                                                                  TextButton(
+                                                                    onPressed: () => Navigator.pop(context),
+                                                                    child: const Text('Annuler'),
+                                                                  ),
+                                                                  ElevatedButton(
+                                                                    onPressed: () async {
+                                                                      if (selectedProject != null && selectedTask != null) {
+                                                                        // Calculer le nombre d'heures
+                                                                        final startDateTime = DateTime(
+                                                                          date.year,
+                                                                          date.month,
+                                                                          date.day,
+                                                                          startTime.hour,
+                                                                          startTime.minute,
+                                                                        );
+                                                                        final endDateTime = DateTime(
+                                                                          date.year,
+                                                                          date.month,
+                                                                          date.day,
+                                                                          endTime.hour,
+                                                                          endTime.minute,
+                                                                        );
+                                                                        
+                                                                        // Vérifier que l'heure de fin est après l'heure de début
+                                                                        if (endDateTime.isBefore(startDateTime)) {
+                                                                          ScaffoldMessenger.of(context).showSnackBar(
+                                                                            const SnackBar(
+                                                                              content: Text('L\'heure de fin doit être après l\'heure de début'),
+                                                                            ),
+                                                                          );
+                                                                          return;
+                                                                        }
+
+                                                                        final hours = endDateTime.difference(startDateTime).inMinutes / 60.0;
+                                                                        
+                                                                        // Vérifier que le nombre d'heures est valide
+                                                                        if (hours <= 0 || hours > 24) {
+                                                                          ScaffoldMessenger.of(context).showSnackBar(
+                                                                            const SnackBar(
+                                                                              content: Text('Le nombre d\'heures doit être entre 0 et 24'),
+                                                                            ),
+                                                                          );
+                                                                          return;
+                                                                        }
+
+                                                                        try {
+                                                                          await SupabaseService.client
+                                                                              .from('timesheet_entries')
+                                                                              .insert({
+                                                                            'user_id': SupabaseService.currentUser!.id,
+                                                                            'task_id': int.parse(selectedTask!),
+                                                                            'date': date.toIso8601String(),
+                                                                            'hours': hours,
+                                                                            'description': descriptionController.text,
+                                                                          });
+
+                                                                          if (mounted) {
+                                                                            Navigator.pop(context);
+                                                                            ScaffoldMessenger.of(context).showSnackBar(
+                                                                              const SnackBar(content: Text('Heures enregistrées avec succès')),
+                                                                            );
+                                                                          }
+                                                                        } catch (e) {
+                                                                          if (mounted) {
+                                                                            ScaffoldMessenger.of(context).showSnackBar(
+                                                                              SnackBar(content: Text('Erreur: ${e.toString()}')),
+                                                                            );
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    },
+                                                                    style: ElevatedButton.styleFrom(
+                                                                      backgroundColor: const Color(0xFF1784af),
                                                                     ),
-                                                                    maxLines: 3,
+                                                                    child: const Text(
+                                                                      'Enregistrer',
+                                                                      style: TextStyle(color: Colors.white),
+                                                                    ),
                                                                   ),
                                                                 ],
                                                               ),
-                                                            ),
-                                                            actions: [
-                                                              TextButton(
-                                                                onPressed: () => Navigator.pop(context),
-                                                                child: const Text('Annuler'),
-                                                              ),
-                                                              ElevatedButton(
-                                                                onPressed: () {
-                                                                  // TODO: Sauvegarder les données
-                                                                  Navigator.pop(context);
-                                                                },
-                                                                style: ElevatedButton.styleFrom(
-                                                                  backgroundColor: const Color(0xFF1784af),
-                                                                ),
-                                                                child: const Text(
-                                                                  'Enregistrer',
-                                                                  style: TextStyle(color: Colors.white),
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
+                                                            );
+                                                          },
                                                         );
                                                       },
                                                     );
                                                   },
+                                                  isExpanded: false,
+                                                  onExpandToggle: () {},
                                                   isTimesheet: true,
                                                 ),
                                               ),
@@ -544,135 +842,55 @@ class _DashboardPageState extends State<DashboardPage> {
                                           ]),
                                         ),
                                       ),
-                                      if (constraints.maxHeight > 600) // On affiche les événements seulement si l'écran est assez grand
-                                        Expanded(
-                                          flex: 1, // 25% de l'espace pour les événements
-                                  child: Padding(
-                                            padding: const EdgeInsets.only(top: 16),
-                                            child: Row(
-                                              children: [
-                                                // Section événements Planning Global
-                                                Expanded(
-                                                  child: Container(
+                                      if (constraints.maxHeight > 600)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 16.0),
+                                          child: SizedBox(
+                                            height: 85,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(16),
+                                                border: Border.all(color: const Color(0xFF1784af), width: 2),
+                                              ),
+                                              child: Column(
+                                                children: [
+                                                  Container(
+                                                    padding: const EdgeInsets.all(8),
                                                     decoration: BoxDecoration(
-                                                      color: Colors.white,
-                                                      borderRadius: BorderRadius.circular(16),
-                                                      border: Border.all(color: const Color(0xFF1784af), width: 2),
+                                                      color: const Color(0xFF1784af).withOpacity(0.1),
+                                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
                                                     ),
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                    child: const Row(
                                                       children: [
-                                                        Container(
-                                                          padding: const EdgeInsets.all(8),
-                                                          decoration: BoxDecoration(
-                                                            color: const Color(0xFF1784af).withOpacity(0.1),
-                                                            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                                                          ),
-                                                          child: Row(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            children: [
-                                                              SizedBox(
-                                                                width: 14,
-                                                                height: 14,
-                                                                child: Icon(Icons.event, size: 12, color: Color(0xFF1784af)),
-                                                              ),
-                                                              const SizedBox(width: 4),
-                                                              Expanded(
-                                                                child: Text(
-                                                                  'Événements Planning Global',
-                                                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                                                    fontSize: 10,
-                                                                    fontWeight: FontWeight.w600,
-                                                                    color: const Color(0xFF122b35),
-                                                                  ),
-                                                                  overflow: TextOverflow.ellipsis,
-                                                                  maxLines: 1,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                        Expanded(
-                                                          child: ListView(
-                                                            padding: const EdgeInsets.all(8),
-                                                            children: const [
-                                                              Text(
-                                                                'Aucun événement',
-                                                                style: TextStyle(
-                                                                  fontSize: 12,
-                                                                  color: Color(0xFF666666),
-                                                                  fontStyle: FontStyle.italic,
-                                                                ),
-                                                              ),
-                                                            ],
+                                                        Icon(Icons.event, size: 16, color: Color(0xFF1784af)),
+                                                        SizedBox(width: 8),
+                                                        Text(
+                                                          'Événements',
+                                                          style: TextStyle(
+                                                            fontWeight: FontWeight.bold,
+                                                            color: Color(0xFF122b35),
                                                           ),
                                                         ),
                                                       ],
                                                     ),
                                                   ),
-                                                ),
-                                                const SizedBox(width: 16),
-                                                // Section événements Planning Personnel
-                                                Expanded(
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.white,
-                                                      borderRadius: BorderRadius.circular(16),
-                                                      border: Border.all(color: const Color(0xFF1784af), width: 2),
-                                                    ),
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        Container(
-                                                          padding: const EdgeInsets.all(8),
-                                                          decoration: BoxDecoration(
-                                                            color: const Color(0xFF1784af).withOpacity(0.1),
-                                                            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                                                          ),
-                                                          child: Row(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            children: [
-                                                              SizedBox(
-                                                                width: 14,
-                                                                height: 14,
-                                                                child: Icon(Icons.event, size: 12, color: Color(0xFF1784af)),
-                                                              ),
-                                                              const SizedBox(width: 4),
-                                                              Expanded(
-                                                                child: Text(
-                                                                  'Événements Planning Personnel',
-                                                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                                                    fontSize: 10,
-                                                                    fontWeight: FontWeight.w600,
-                                                                    color: const Color(0xFF122b35),
-                                                                  ),
-                                                                  overflow: TextOverflow.ellipsis,
-                                                                  maxLines: 1,
-                                                                ),
-                                                              ),
-                                                            ],
+                                                  const Expanded(
+                                                    child: Padding(
+                                                      padding: EdgeInsets.all(8.0),
+                                                      child: Center(
+                                                        child: Text(
+                                                          'Aucun événement',
+                                                          style: TextStyle(
+                                                            color: Colors.grey,
+                                                            fontStyle: FontStyle.italic,
                                                           ),
                                                         ),
-                                                        Expanded(
-                                                          child: ListView(
-                                                            padding: const EdgeInsets.all(8),
-                                                            children: const [
-                                                              Text(
-                                                                'Aucun événement',
-                                                                style: TextStyle(
-                                                                  fontSize: 12,
-                                                                  color: Color(0xFF666666),
-                                                                  fontStyle: FontStyle.italic,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      ],
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -698,9 +916,9 @@ class _DashboardPageState extends State<DashboardPage> {
   // ✅ Menu Déroulant en haut pour petit écran
   Widget _buildDropdownMenu() {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.menu, color: Colors.white), // ✅ Icône du menu
+      icon: const Icon(Icons.menu, color: Colors.white),
       onSelected: (String route) {
-        Navigator.pushNamed(context, route);
+        Navigator.of(context).pushNamed(route);
       },
       itemBuilder: (BuildContext context) {
         return [
@@ -724,13 +942,20 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildTaskCard(String title, String description, DateTime dueDate, {bool isDone = false}) {
-    return Draggable<Map<String, dynamic>>(
-      data: {
+    final task = _tasks.firstWhere(
+      (task) => task['title'] == title && 
+                task['description'] == description && 
+                DateTime.parse(task['due_date']).isAtSameMomentAs(dueDate),
+      orElse: () => {
         'title': title,
         'description': description,
-        'dueDate': dueDate,
-        'isDone': isDone,
+        'due_date': dueDate.toIso8601String(),
+        'status': isDone ? 'done' : 'todo',
       },
+    );
+
+    return Draggable<Map<String, dynamic>>(
+      data: task,
       feedback: Material(
         elevation: 4,
         borderRadius: BorderRadius.circular(8),

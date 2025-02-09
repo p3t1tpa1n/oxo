@@ -1,5 +1,6 @@
 // lib/widgets/side_menu.dart
 import 'package:flutter/material.dart';
+import '../widgets/chat_widget.dart';
 
 class SideMenu extends StatelessWidget {
   const SideMenu({super.key});
@@ -9,76 +10,59 @@ class SideMenu extends StatelessWidget {
     return Container(
       width: 250,
       color: Colors.white,
-      child: SingleChildScrollView(
-        child: IntrinsicHeight(
-          child: Column(
-            children: [
-              Material(
-                color: const Color(0xFF1784af),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Menu',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: const Color(0xFF122b35),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildMenuButton(context, Icons.person, 'Fiche Associé', '/associate'),
-                      _buildMenuButton(context, Icons.calendar_today, 'Planning Global', '/planning'),
-                      _buildMenuButton(context, Icons.handshake, 'Partenaires', '/partners'),
-                      _buildMenuButton(context, Icons.message, 'Messagerie', '/messaging'),
-                      _buildMenuButton(context, Icons.business, 'Actions Commerciales', '/actions'),
-                      _buildMenuButton(context, Icons.bar_chart, 'Chiffres Entreprise', '/figures'),
-                    ],
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Material(
-                  color: Colors.grey[100],
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Messages',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: const Color(0xFF122b35),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: Material(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            elevation: 1,
-                            clipBehavior: Clip.antiAlias,
-                            child: Center(
-                              child: Text(
-                                'Bloc de messages',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: const Color(0xFF122b35),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+      child: Column(
+        children: [
+          Material(
+            color: const Color(0xFF1784af),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Menu',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: const Color(0xFF122b35),
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  _buildMenuButton(context, Icons.person, 'Fiche Associé', '/associate'),
+                  _buildMenuButton(context, Icons.calendar_today, 'Planning Global', '/planning'),
+                  _buildMenuButton(context, Icons.handshake, 'Partenaires', '/partners'),
+                  _buildMenuButton(context, Icons.message, 'Messagerie', '/messaging'),
+                  _buildMenuButton(context, Icons.business, 'Actions Commerciales', '/actions'),
+                  _buildMenuButton(context, Icons.bar_chart, 'Chiffres Entreprise', '/figures'),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Material(
+              color: Colors.grey[100],
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Messages',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: const Color(0xFF122b35),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Expanded(
+                      child: ChatWidget(),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

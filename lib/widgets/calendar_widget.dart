@@ -3,21 +3,19 @@ import 'package:intl/intl.dart';
 
 class CalendarWidget extends StatefulWidget {
   final bool showTitle;
-  final Function(DateTime)? onDaySelected;
-  final double? height;
+  final String title;
+  final Function(DateTime) onDaySelected;
   final bool isExpanded;
-  final VoidCallback? onExpandToggle;
-  final String? title;
+  final Function? onExpandToggle;
   final bool isTimesheet;
 
   const CalendarWidget({
     super.key,
-    this.showTitle = true,
-    this.onDaySelected,
-    this.height,
-    this.isExpanded = false,
+    required this.showTitle,
+    required this.title,
+    required this.onDaySelected,
+    required this.isExpanded,
     this.onExpandToggle,
-    this.title,
     this.isTimesheet = false,
   });
 
@@ -102,6 +100,7 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
                             height: size,
                             child: CalendarWidget(
                               showTitle: true,
+                              title: 'Calendrier',
                               onDaySelected: widget.onDaySelected,
                               isExpanded: true,
                               onExpandToggle: () => Navigator.of(context).pop(),
@@ -374,7 +373,7 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
                               Flexible(
                                 flex: 1,
                                 child: Text(
-                                  widget.title!,
+                                  widget.title,
                                   style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
