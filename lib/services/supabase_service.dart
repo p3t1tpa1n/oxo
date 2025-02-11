@@ -1,8 +1,14 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+enum UserRole {
+  associe,
+  partenaire,
+}
+
 class SupabaseService {
   static SupabaseClient? _client;
+  static UserRole? _currentUserRole;
   
   static Future<void> initialize() async {
     try {
@@ -35,28 +41,82 @@ class SupabaseService {
     return _client!;
   }
 
-  // Méthode pour l'authentification
+  static Future<UserRole?> getCurrentUserRole() async {
+    try {
+      if (currentUser == null) return null;
+
+      final response = await client
+          .from('profiles')
+          .select('role')
+          .eq('id', currentUser!.id)
+          .maybeSingle();
+
+      if (response != null && response['role'] != null) {
+        final roleStr = response['role'].toString().toLowerCase();
+        if (roleStr == 'associe') {
+          _currentUserRole = UserRole.associe;
+        } else {
+          _currentUserRole = UserRole.partenaire;
+        }
+        return _currentUserRole;
+      }
+
+      await client.from('profiles').upsert({
+        'id': currentUser!.id,
+        'email': currentUser!.email,
+        'role': 'partenaire',
+      });
+      
+      _currentUserRole = UserRole.partenaire;
+      return _currentUserRole;
+    } catch (e) {
+      print('Erreur lors de la récupération du rôle: $e');
+      _currentUserRole = UserRole.partenaire;
+      return _currentUserRole;
+    }
+  }
+
+  static UserRole? get currentUserRole => _currentUserRole;
+
+  static Future<void> setUserRole(String userId, UserRole role) async {
+    try {
+      await client
+          .from('profiles')
+          .update({'role': role.toString().split('.').last})
+          .eq('id', userId);
+    } catch (e) {
+      print('Erreur lors de la modification du rôle: $e');
+      rethrow;
+    }
+  }
+
+  // Méthode pour l'authentification modifiée pour inclure le rôle
   static Future<AuthResponse> signIn({
     required String email,
     required String password,
   }) async {
     try {
-      print('Tentative de connexion pour: $email'); // Debug
+      print('Tentative de connexion pour: $email');
       final response = await client.auth.signInWithPassword(
         email: email,
         password: password,
       );
-      print('Réponse de connexion reçue'); // Debug
+
+      if (response.user != null) {
+        _currentUserRole = await getCurrentUserRole();
+      }
+
       return response;
     } catch (e) {
-      print('Erreur lors de la connexion: $e'); // Debug
+      print('Erreur lors de la connexion: $e');
       rethrow;
     }
   }
 
-  // Méthode pour la déconnexion
+  // Méthode pour la déconnexion modifiée
   static Future<void> signOut() async {
     await client.auth.signOut();
+    _currentUserRole = null;
   }
 
   // Méthode pour vérifier l'état de la session

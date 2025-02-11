@@ -43,7 +43,23 @@ class _LoginPageState extends State<LoginPage> {
 
       if (response.user != null) {
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/dashboard');
+          final userRole = await SupabaseService.getCurrentUserRole();
+          
+          if (userRole == null) {
+            setState(() {
+              _errorMessage = 'Erreur: Rôle utilisateur non défini';
+            });
+            return;
+          }
+
+          switch (userRole) {
+            case UserRole.associe:
+              Navigator.pushReplacementNamed(context, '/dashboard');
+              break;
+            case UserRole.partenaire:
+              Navigator.pushReplacementNamed(context, '/partners');
+              break;
+          }
         }
       } else {
         setState(() {
