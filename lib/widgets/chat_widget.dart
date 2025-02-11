@@ -78,7 +78,7 @@ class _ChatWidgetState extends State<ChatWidget> {
 
   void _initializeRealtimeSubscription() {
     _channel = SupabaseService.client
-        .channel('messages')
+        .channel('public:messages')
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
@@ -88,15 +88,23 @@ class _ChatWidgetState extends State<ChatWidget> {
             column: 'receiver_id',
             value: null,
           ),
-          callback: (payload) => _handleRealtimeMessage(payload),
+          callback: (payload) {
+            if (!mounted) return;
+            _handleRealtimeMessage(payload.newRecord);
+          },
         )
-        .subscribe();
+        .subscribe((status, [err]) {
+          if (err != null) {
+            debugPrint('Erreur de souscription Realtime: $err');
+          } else {
+            debugPrint('Souscription Realtime réussie avec statut: $status');
+          }
+        });
   }
 
-  void _handleRealtimeMessage(PostgresChangePayload payload) async {
+  void _handleRealtimeMessage(Map<String, dynamic> newMessage) async {
     if (!mounted) return;
 
-    final newMessage = payload.newRecord;
     try {
       final profile = await SupabaseService.client
           .from('profiles')
@@ -183,12 +191,31 @@ class _ChatWidgetState extends State<ChatWidget> {
 
       final encryptedContent = _encryptMessage(messageContent);
 
-      await SupabaseService.client.from('messages').insert({
+      final response = await SupabaseService.client.from('messages').insert({
         'content': encryptedContent,
         'sender_id': SupabaseService.currentUser!.id,
         'receiver_id': null,
         'is_read': false,
-      });
+      }).select().single();
+
+      // Ajouter le message localement immédiatement
+      final profile = await SupabaseService.client
+          .from('profiles')
+          .select('email, role')
+          .eq('id', SupabaseService.currentUser!.id)
+          .single();
+
+      final newMessage = {
+        ...response,
+        'content': messageContent, // On utilise le contenu non chiffré
+        'profiles': profile,
+      };
+
+      if (mounted) {
+        setState(() {
+          _messages.insert(0, newMessage);
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
