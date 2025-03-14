@@ -8,19 +8,9 @@ on:
 
 jobs:
   build:
-    name: Build and Release
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
-        include:
-          - os: macos-latest
-            output_name: oxo.dmg
-          - os: windows-latest
-            output_name: oxo.exe
-          - os: ubuntu-latest
-            output_name: oxo.AppImage
-
+    name: Build and Release macOS
+    runs-on: macos-latest
+    
     steps:
       - uses: actions/checkout@v4
       
@@ -29,30 +19,21 @@ jobs:
         with:
           flutter-version: '3.27.3'
           channel: 'stable'
+          cache: true
           
       - name: Install dependencies
-        run: flutter pub get
+        run: |
+          flutter pub get
+          flutter doctor -v
         
       - name: Build macOS App
-        if: matrix.os == 'macos-latest'
         run: |
           flutter config --enable-macos-desktop
-          flutter build macos --release
-          
-      - name: Build Windows App
-        if: matrix.os == 'windows-latest'
-        run: |
-          flutter config --enable-windows-desktop
-          flutter build windows --release
-          
-      - name: Build Linux App
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          flutter config --enable-linux-desktop
-          flutter build linux --release
+          flutter clean
+          flutter pub get
+          flutter build macos --release --verbose
           
       - name: Package macOS App
-        if: matrix.os == 'macos-latest'
         run: |
           brew install create-dmg
           cd build/macos/Build/Products/Release
@@ -62,14 +43,14 @@ jobs:
             --window-size 800 400 \
             --icon-size 100 \
             --app-drop-link 600 185 \
-            oxo.dmg \
+            "oxo.dmg" \
             "oxo.app"
             
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: build/**/${{ matrix.output_name }}
+          files: build/macos/Build/Products/Release/oxo.dmg
           token: ${{ secrets.GITHUB_TOKEN }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
