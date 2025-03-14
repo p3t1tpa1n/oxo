@@ -52,6 +52,7 @@ jobs:
       - name: Package macOS App
         if: matrix.os == 'macos-latest'
         run: |
+          brew install create-dmg
           cd build/macos/Build/Products/Release
           create-dmg \
             --volname "OXO" \
@@ -66,5 +67,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: build/**/${{ matrix.output_name }}
+          token: ${{ secrets.GH_TOKEN }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }} 
