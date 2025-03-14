@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
-import 'dart:typed_data';
 
 class ChatWidget extends StatefulWidget {
   const ChatWidget({super.key});
@@ -43,9 +42,8 @@ class _ChatWidgetState extends State<ChatWidget> {
         final Map<String, dynamic> combined = json.decode(encryptedMessage);
         if (combined.containsKey('iv') && combined.containsKey('content')) {
           final iv = encrypt.IV(base64Decode(combined['iv']));
-          final encryptedBytes = base64Decode(combined['content']);
           final encrypter = encrypt.Encrypter(encrypt.AES(_encryptionKey));
-          return encrypter.decrypt(encrypt.Encrypted(encryptedBytes), iv: iv);
+          return encrypter.decrypt(encrypt.Encrypted(base64Decode(combined['content'])), iv: iv);
         }
       } catch (jsonError) {
         debugPrint('Message au format non-JSON: $jsonError');
@@ -53,7 +51,6 @@ class _ChatWidgetState extends State<ChatWidget> {
       
       // Essayer de déchiffrer comme un message encodé en base64 (format intermédiaire)
       try {
-        final encryptedBytes = base64Decode(encryptedMessage);
         final encrypter = encrypt.Encrypter(encrypt.AES(_encryptionKey));
         return encrypter.decrypt64(encryptedMessage);
       } catch (base64Error) {
@@ -238,22 +235,22 @@ class _ChatWidgetState extends State<ChatWidget> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF1784af).withOpacity(0.1),
+              color: const Color(0xFF1784af).withValues(red: 23, green: 132, blue: 175, alpha: 25),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(Icons.message, size: 16, color: Color(0xFF1784af)),
-                const SizedBox(width: 8),
-                const Text(
+                Icon(Icons.message, size: 16, color: Color(0xFF1784af)),
+                SizedBox(width: 8),
+                Text(
                   'Messages',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF122b35),
                   ),
                 ),
-                const Spacer(),
-                const Icon(Icons.lock, size: 14, color: Color(0xFF1784af)),
+                Spacer(),
+                Icon(Icons.lock, size: 14, color: Color(0xFF1784af)),
               ],
             ),
           ),

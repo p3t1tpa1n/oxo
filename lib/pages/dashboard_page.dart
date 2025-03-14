@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
-import '../widgets/top_bar.dart';
-import '../widgets/side_menu.dart';
-import '../widgets/dashboard_card.dart';
-import '../widgets/calendar_widget.dart';
-import 'calendar_page.dart'; // Page du calendrier en grand
 import 'package:intl/intl.dart';
 import '../services/supabase_service.dart';
-import '../widgets/chat_widget.dart';
+import '../widgets/top_bar.dart';
+import '../widgets/side_menu.dart';
+import '../widgets/calendar_widget.dart';
+import 'calendar_page.dart'; // Page du calendrier en grand
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
   @override
-  _DashboardPageState createState() => _DashboardPageState();
+  State<DashboardPage> createState() => _DashboardPageState();
 }
 
 class _DashboardPageState extends State<DashboardPage> {
@@ -45,15 +43,15 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _createTestProjectIfNeeded() async {
+    if (!mounted) return;
+    final localContext = context;
     try {
-      // Vérifier si des projets existent déjà
       final projects = await SupabaseService.client
           .from('projects')
           .select()
           .limit(1);
 
       if (projects.isEmpty) {
-        // Créer un projet de test
         final projectResponse = await SupabaseService.client
             .from('projects')
             .insert({
@@ -68,7 +66,6 @@ class _DashboardPageState extends State<DashboardPage> {
             .select()
             .single();
 
-        // Créer quelques tâches de test
         await SupabaseService.client
             .from('tasks')
             .insert([
@@ -95,7 +92,7 @@ class _DashboardPageState extends State<DashboardPage> {
             ]);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(localContext).showSnackBar(
             const SnackBar(content: Text('Projet et tâches de test créés avec succès')),
           );
         }
@@ -103,15 +100,16 @@ class _DashboardPageState extends State<DashboardPage> {
     } catch (e) {
       debugPrint('Erreur lors de la création des données de test: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(localContext).showSnackBar(
           SnackBar(content: Text('Erreur lors de la création des données de test: ${e.toString()}')),
         );
       }
     }
   }
 
-  // Mettre à jour le statut d'une tâche
   Future<void> _updateTaskStatus(Map<String, dynamic> taskData, String newStatus) async {
+    if (!mounted) return;
+    final localContext = context;
     try {
       await SupabaseService.client
           .from('tasks')
@@ -121,156 +119,164 @@ class _DashboardPageState extends State<DashboardPage> {
           .eq('id', taskData['id']);
       
       await _loadTasks();
+      if (mounted) {
+        ScaffoldMessenger.of(localContext).showSnackBar(
+          const SnackBar(content: Text('Statut mis à jour avec succès')),
+        );
+      }
     } catch (e) {
       debugPrint('Erreur lors de la mise à jour du statut: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(localContext).showSnackBar(
           SnackBar(content: Text('Erreur lors de la mise à jour: ${e.toString()}')),
         );
       }
     }
   }
 
-  void _showAddTaskDialog() {
+  Future<void> _showAddTaskDialog() async {
+    if (!mounted) return;
+    final dialogContext = context;
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
     final dueDateController = TextEditingController();
     DateTime? selectedDate;
     String? selectedProject;
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Nouvelle tâche'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Sélecteur de projet
-              FutureBuilder<List<dynamic>>(
-                future: SupabaseService.client
-                  .from('projects')
-                  .select()
-                  .order('name'),
-                builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  }
+    try {
+      await showDialog(
+        context: dialogContext,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('Nouvelle tâche'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FutureBuilder<List<dynamic>>(
+                  future: SupabaseService.client
+                    .from('projects')
+                    .select()
+                    .order('name'),
+                  builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    }
 
-                  if (snapshot.hasError) {
-                    return Text('Erreur: ${snapshot.error}');
-                  }
+                    if (snapshot.hasError) {
+                      return Text('Erreur: ${snapshot.error}');
+                    }
 
-                  final projects = List<Map<String, dynamic>>.from(snapshot.data ?? []);
+                    final projects = List<Map<String, dynamic>>.from(snapshot.data ?? []);
 
-                  return DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Projet',
-                      border: OutlineInputBorder(),
-                    ),
-                    value: selectedProject,
-                    items: projects.map((project) => DropdownMenuItem<String>(
-                      value: project['id'].toString(),
-                      child: Text(project['name'] as String),
-                    )).toList(),
-                    onChanged: (String? value) {
-                      setState(() {
+                    return DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'Projet',
+                        border: OutlineInputBorder(),
+                      ),
+                      value: selectedProject,
+                      items: projects.map((project) => DropdownMenuItem<String>(
+                        value: project['id'].toString(),
+                        child: Text(project['name'] as String),
+                      )).toList(),
+                      onChanged: (String? value) {
                         selectedProject = value;
-                      });
-                    },
-                    validator: (value) => value == null ? 'Veuillez sélectionner un projet' : null,
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Titre',
-                  border: OutlineInputBorder(),
+                      },
+                      validator: (value) => value == null ? 'Veuillez sélectionner un projet' : null,
+                    );
+                  },
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descriptionController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Titre',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: () async {
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (date != null) {
-                    selectedDate = date;
-                    dueDateController.text = DateFormat('dd/MM/yyyy').format(date);
-                  }
-                },
-                child: IgnorePointer(
-                  child: TextField(
-                    controller: dueDateController,
-                    decoration: const InputDecoration(
-                      labelText: 'Date d\'échéance',
-                      border: OutlineInputBorder(),
-                      suffixIcon: Icon(Icons.calendar_today),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (date != null) {
+                      selectedDate = date;
+                      dueDateController.text = DateFormat('dd/MM/yyyy').format(date);
+                    }
+                  },
+                  child: IgnorePointer(
+                    child: TextField(
+                      controller: dueDateController,
+                      decoration: const InputDecoration(
+                        labelText: 'Date d\'échéance',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (titleController.text.isNotEmpty && selectedDate != null && selectedProject != null) {
-                try {
-                  await SupabaseService.client
-                      .from('tasks')
-                      .insert({
-                        'title': titleController.text,
-                        'description': descriptionController.text,
-                        'due_date': selectedDate!.toIso8601String(),
-                        'status': 'todo',
-                        'project_id': int.parse(selectedProject!),
-                        'user_id': SupabaseService.currentUser!.id,
-                      });
-                  
-                  if (mounted) {
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (titleController.text.isNotEmpty && selectedDate != null && selectedProject != null) {
+                  try {
+                    await SupabaseService.client
+                        .from('tasks')
+                        .insert({
+                          'title': titleController.text,
+                          'description': descriptionController.text,
+                          'due_date': selectedDate!.toIso8601String(),
+                          'status': 'todo',
+                          'project_id': int.parse(selectedProject!),
+                          'user_id': SupabaseService.currentUser!.id,
+                        });
+                    
+                    if (!mounted) return;
                     Navigator.pop(context);
                     await _loadTasks();
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
                       SnackBar(content: Text('Erreur: ${e.toString()}')),
                     );
                   }
                 }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1784af),
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1784af),
+              ),
+              child: const Text(
+                'Ajouter',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
-            child: const Text(
-              'Ajouter',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    } finally {
+      titleController.dispose();
+      descriptionController.dispose();
+      dueDateController.dispose();
+    }
   }
 
   @override
@@ -365,9 +371,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                                       children: [
                                                         Container(
                                                           padding: const EdgeInsets.all(8),
-                                                          decoration: BoxDecoration(
-                                                            color: const Color(0xFFE3F2FD),
-                                                            borderRadius: BorderRadius.circular(8),
+                                                          decoration: const BoxDecoration(
+                                                            color: Color(0xFFE3F2FD),
+                                                            borderRadius: BorderRadius.all(Radius.circular(8)),
                                                           ),
                                                           child: Row(
                                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -392,9 +398,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                                         const SizedBox(height: 8),
                                                         Expanded(
                                                           child: DragTarget<Map<String, dynamic>>(
-                                                            onWillAccept: (data) => true,
-                                                            onAccept: (data) {
-                                                              _updateTaskStatus(data, 'todo');
+                                                            onWillAcceptWithDetails: (details) => true,
+                                                            onAcceptWithDetails: (details) {
+                                                              _updateTaskStatus(details.data, 'todo');
                                                             },
                                                             builder: (context, candidateData, rejectedData) {
                                                               return ListView(
@@ -424,9 +430,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                                       children: [
                                                         Container(
                                                           padding: const EdgeInsets.all(8),
-                                                          decoration: BoxDecoration(
-                                                            color: const Color(0xFFFFF3E0),
-                                                            borderRadius: BorderRadius.circular(8),
+                                                          decoration: const BoxDecoration(
+                                                            color: Color(0xFFFFF3E0),
+                                                            borderRadius: BorderRadius.all(Radius.circular(8)),
                                                           ),
                                                           child: Row(
                                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -451,9 +457,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                                         const SizedBox(height: 8),
                                                         Expanded(
                                                           child: DragTarget<Map<String, dynamic>>(
-                                                            onWillAccept: (data) => true,
-                                                            onAccept: (data) {
-                                                              _updateTaskStatus(data, 'in_progress');
+                                                            onWillAcceptWithDetails: (details) => true,
+                                                            onAcceptWithDetails: (details) {
+                                                              _updateTaskStatus(details.data, 'in_progress');
                                                             },
                                                             builder: (context, candidateData, rejectedData) {
                                                               return ListView(
@@ -510,9 +516,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                                         const SizedBox(height: 8),
                                                         Expanded(
                                                           child: DragTarget<Map<String, dynamic>>(
-                                                            onWillAccept: (data) => true,
-                                                            onAccept: (data) {
-                                                              _updateTaskStatus(data, 'done');
+                                                            onWillAcceptWithDetails: (details) => true,
+                                                            onAcceptWithDetails: (details) {
+                                                              _updateTaskStatus(details.data, 'done');
                                                             },
                                                             builder: (context, candidateData, rejectedData) {
                                                               return ListView(
@@ -545,17 +551,17 @@ class _DashboardPageState extends State<DashboardPage> {
                                   ),
                                 const SizedBox(height: 16),
                                 Expanded(
-                                  child: Column(
-                                    children: [
+                        child: Column(
+                          children: [
                                       Expanded(
                                         flex: 4,
                                         child: GridView.custom(
-                                          shrinkWrap: true,
-                                          physics: const NeverScrollableScrollPhysics(),
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
                                           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount: crossAxisCount,
-                                            mainAxisSpacing: 16,
-                                            crossAxisSpacing: 16,
+                              crossAxisCount: crossAxisCount,
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 16,
                                             childAspectRatio: (constraints.maxWidth / crossAxisCount) / ((constraints.maxHeight * 1.0) / 2),
                                           ),
                                           childrenDelegate: SliverChildListDelegate([
@@ -580,9 +586,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                                   isTimesheet: false,
                                                 ),
                                               ),
-                                            ),
-                                            Card(
-                                              elevation: 4,
+                                ),
+                                Card(
+                                  elevation: 4,
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                               child: Container(
                                                 padding: const EdgeInsets.all(4),
@@ -858,7 +864,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                                   Container(
                                                     padding: const EdgeInsets.all(8),
                                                     decoration: BoxDecoration(
-                                                      color: const Color(0xFF1784af).withOpacity(0.1),
+                                                      color: const Color(0xFF1784af).withValues(red: 23, green: 132, blue: 175, alpha: 25),
                                                       borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
                                                     ),
                                                     child: const Row(
@@ -876,7 +882,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                                     ),
                                                   ),
                                                   const Expanded(
-                                                    child: Padding(
+                                  child: Padding(
                                                       padding: EdgeInsets.all(8.0),
                                                       child: Center(
                                                         child: Text(

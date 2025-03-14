@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:window_manager/window_manager.dart';
 import 'services/supabase_service.dart';
+import 'services/update_service.dart';
+import 'widgets/update_dialog.dart';
 
 // Import des modèles
 import 'models/profile.dart';
@@ -55,8 +57,47 @@ void main() async {
   }
 }
 
-class MainApp extends StatelessWidget {
+class MainApp extends StatefulWidget {
   const MainApp({super.key});
+
+  @override
+  State<MainApp> createState() => _MainAppState();
+}
+
+class _MainAppState extends State<MainApp> {
+  @override
+  void initState() {
+    super.initState();
+    _checkForUpdates();
+  }
+
+  Future<void> _checkForUpdates() async {
+    try {
+      final updateInfo = await UpdateService.checkForUpdates();
+      if (updateInfo != null && mounted) {
+        // Attendre un peu pour que l'application soit complètement chargée
+        await Future.delayed(const Duration(seconds: 2));
+        if (!mounted) return;
+
+        final shouldUpdate = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => UpdateDialog(
+            newVersion: updateInfo['version'],
+            description: updateInfo['description'],
+            downloadUrl: updateInfo['downloadUrl'],
+          ),
+        );
+
+        if (shouldUpdate == true) {
+          // L'utilisateur a choisi de mettre à jour, l'application se fermera après l'installation
+          SystemNavigator.pop();
+        }
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de la vérification des mises à jour: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

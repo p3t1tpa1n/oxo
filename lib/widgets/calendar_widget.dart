@@ -81,7 +81,7 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
   @override
   void didUpdateWidget(CalendarWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isTimesheet && _currentMonth != oldWidget) {
+    if (widget.isTimesheet) {
       _loadMonthlyHours();
     }
   }
@@ -369,7 +369,7 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(red: 0, green: 0, blue: 0, alpha: 13),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -386,7 +386,7 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(red: 0, green: 0, blue: 0, alpha: 13),
                         blurRadius: 4,
                         offset: const Offset(0, 1),
                       ),

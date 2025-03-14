@@ -1,0 +1,70 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        include:
+          - os: macos-latest
+            output_name: oxo.dmg
+          - os: windows-latest
+            output_name: oxo.exe
+          - os: ubuntu-latest
+            output_name: oxo.AppImage
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+          
+      - name: Install dependencies
+        run: flutter pub get
+        
+      - name: Build macOS App
+        if: matrix.os == 'macos-latest'
+        run: |
+          flutter config --enable-macos-desktop
+          flutter build macos
+          
+      - name: Build Windows App
+        if: matrix.os == 'windows-latest'
+        run: |
+          flutter config --enable-windows-desktop
+          flutter build windows
+          
+      - name: Build Linux App
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          flutter config --enable-linux-desktop
+          flutter build linux
+          
+      - name: Package macOS App
+        if: matrix.os == 'macos-latest'
+        run: |
+          cd build/macos/Build/Products/Release
+          create-dmg \
+            --volname "OXO" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --app-drop-link 600 185 \
+            oxo.dmg \
+            "oxo.app"
+            
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/**/${{ matrix.output_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
