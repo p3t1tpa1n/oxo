@@ -12,99 +12,112 @@ class SideMenu extends StatelessWidget {
 
     return Container(
       width: 250,
-      color: Colors.white,
+      color: const Color(0xFF2A4B63),
       child: Column(
         children: [
-          Material(
-            color: const Color(0xFF1784af),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Menu',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: const Color(0xFF122b35),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (userRole == UserRole.associe) ...[
-                    _buildMenuButton(context, Icons.person, 'Fiche Associé', '/associate'),
-                    _buildMenuButton(context, Icons.calendar_today, 'Planning Global', '/planning'),
-                    _buildMenuButton(context, Icons.handshake, 'Partenaires', '/partners'),
-                    _buildMenuButton(context, Icons.message, 'Messagerie', '/messaging'),
-                    _buildMenuButton(context, Icons.business, 'Actions Commerciales', '/actions'),
-                    _buildMenuButton(context, Icons.bar_chart, 'Chiffres Entreprise', '/figures'),
-                  ] else if (userRole == UserRole.partenaire) ...[
-                    _buildMenuButton(context, Icons.calendar_today, 'Planning', '/planning'),
-                    _buildMenuButton(context, Icons.message, 'Messagerie', '/messaging'),
-                    _buildMenuButton(context, Icons.business, 'Mes Projets', '/partners'),
-                  ],
-                ],
-              ),
-            ),
+          const SizedBox(height: 16),
+          _buildMenuButton(
+            context,
+            Icons.person,
+            'Fiche Associé',
+            '/associate',
           ),
-          if (userRole != null) // N'affiche le chat que si l'utilisateur est connecté
-            Expanded(
-              child: Material(
-                color: Colors.grey[100],
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Messages',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: const Color(0xFF122b35),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Expanded(
-                        child: ChatWidget(),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          const SizedBox(height: 12),
+          _buildMenuButton(
+            context,
+            Icons.dashboard,
+            'Dashboard',
+            '/',
+            isSelected: true,
+          ),
+          const SizedBox(height: 12),
+          _buildMenuButton(
+            context,
+            Icons.calendar_month,
+            'Planning',
+            '/planning',
+          ),
+          const SizedBox(height: 12),
+          _buildMenuButton(
+            context,
+            Icons.access_time,
+            'Timesheet',
+            '/timesheet',
+          ),
+          const SizedBox(height: 12),
+          _buildMenuButton(
+            context,
+            Icons.group,
+            'Partenaires',
+            '/partners',
+          ),
+          const SizedBox(height: 12),
+          _buildMenuButton(
+            context,
+            Icons.business_center,
+            'Actions Commerciales',
+            '/actions',
+          ),
+          const SizedBox(height: 12),
+          _buildMenuButton(
+            context,
+            Icons.insert_chart,
+            'Chiffres Entreprise',
+            '/figures',
+          ),
+          const Spacer(),
         ],
       ),
     );
   }
 
-  Widget _buildMenuButton(BuildContext context, IconData icon, String label, String route) {
+  Widget _buildMenuButton(BuildContext context, IconData icon, String label, String route, {bool isSelected = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => Navigator.pushNamed(context, route),
-          child: SizedBox(
-            height: 36,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                children: [
-                  Icon(icon, size: 18, color: const Color(0xFF122b35)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF122b35),
-                      ),
-                      overflow: TextOverflow.ellipsis,
+          borderRadius: BorderRadius.circular(8),
+          hoverColor: Colors.white.withOpacity(0.15),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected ? Colors.white.withOpacity(0.3) : Colors.transparent,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: Colors.white.withOpacity(isSelected ? 1 : 0.85),
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(isSelected ? 1 : 0.85),
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+                if (isSelected) ...[
+                  const Spacer(),
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
           ),
         ),

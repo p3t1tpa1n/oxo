@@ -282,27 +282,24 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
-
-    // Définition dynamique des colonnes : 1 seule colonne si trop petit
     int crossAxisCount = screenWidth < 500 ? 1 : 2;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1784af),
+      backgroundColor: const Color(0xFF122b35),
       body: SafeArea(
         child: ConstrainedBox(
           constraints: const BoxConstraints(
-            minWidth: 1200,  // Largeur minimum augmentée
-            minHeight: 800, // Hauteur minimum augmentée
+            minWidth: 1200,
+            minHeight: 800,
           ),
-        child: Column(
-          children: [
-              // TopBar + Menu Déroulant si l'écran est trop petit
+          child: Column(
+            children: [
               SizedBox(
                 height: 56,
                 child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
+                  children: [
                     const Expanded(child: TopBar()),
                     if (screenWidth < 700) 
                       Padding(
@@ -311,639 +308,389 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                   ],
                 ),
-            ),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (screenWidth > 700) const SideMenu(), // ✅ Cache le menu latéral si écran trop petit
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
+              ),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (screenWidth > 700) const SideMenu(),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
                         child: LayoutBuilder(
                           builder: (context, constraints) {
-                            final availableHeight = constraints.maxHeight;
-                            final cardHeight = availableHeight * 0.35; // Réduit de 0.45 à 0.35 pour le bloc de tâches
-                            
                             return Column(
                               children: [
-                                if (crossAxisCount > 1)
-                                  SizedBox(
-                                    height: cardHeight,
-                                    child: Card(
-                                      elevation: 4,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(16),
-                                          color: Colors.white,
-                                          border: Border.all(color: const Color(0xFF1784af), width: 2),
-                                        ),
-                                        width: double.infinity,
-                                        child: Column(
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                const Text(
-                                                  'Tâches',
-                                                  style: TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Color(0xFF122b35),
-                                                  ),
-                                                ),
-                                                IconButton(
-                                                  icon: const Icon(Icons.add, color: Color(0xFF1784af)),
-                                                  onPressed: _showAddTaskDialog,
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Expanded(
-                                              child: Row(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  // Colonne "À faire"
-                                                  Expanded(
-                                                    child: Column(
-                                                      children: [
-                                                        Container(
-                                                          padding: const EdgeInsets.all(8),
-                                                          decoration: const BoxDecoration(
-                                                            color: Color(0xFFE3F2FD),
-                                                            borderRadius: BorderRadius.all(Radius.circular(8)),
-                                                          ),
-                                                          child: Row(
-                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                            children: [
-                                                              const Text(
-                                                                'À faire',
-                                                                style: TextStyle(
-                                                                  fontWeight: FontWeight.bold,
-                                                                  color: Color(0xFF1784af),
-                                                                ),
-                                                              ),
-                                                              Text(
-                                                                _tasks.where((task) => task['status'] == 'todo').length.toString(),
-                                                                style: const TextStyle(
-                                                                  color: Color(0xFF1784af),
-                                                                  fontWeight: FontWeight.bold,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                        const SizedBox(height: 8),
-                                                        Expanded(
-                                                          child: DragTarget<Map<String, dynamic>>(
-                                                            onWillAcceptWithDetails: (details) => true,
-                                                            onAcceptWithDetails: (details) {
-                                                              _updateTaskStatus(details.data, 'todo');
-                                                            },
-                                                            builder: (context, candidateData, rejectedData) {
-                                                              return ListView(
-                                                                children: _tasks.where((task) => task['status'] == 'todo').map((task) => Column(
-                                                                  children: [
-                                                                    _buildTaskCard(
-                                                                      task['title'],
-                                                                      task['description'],
-                                                                      DateTime.parse(task['due_date']),
-                                                                      isDone: task['isDone'],
-                                                                    ),
-                                                                    const SizedBox(height: 8),
-                                                                  ],
-                                                                ))
-                                                                .toList(),
-                                                              );
-                                                            },
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 16),
-                                                  // Colonne "En cours"
-                                                  Expanded(
-                                                    child: Column(
-                                                      children: [
-                                                        Container(
-                                                          padding: const EdgeInsets.all(8),
-                                                          decoration: const BoxDecoration(
-                                                            color: Color(0xFFFFF3E0),
-                                                            borderRadius: BorderRadius.all(Radius.circular(8)),
-                                                          ),
-                                                          child: Row(
-                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                            children: [
-                                                              const Text(
-                                                                'En cours',
-                                                                style: TextStyle(
-                                                                  fontWeight: FontWeight.bold,
-                                                                  color: Color(0xFFFF9800),
-                                                                ),
-                                                              ),
-                                                              Text(
-                                                                _tasks.where((task) => task['status'] == 'in_progress').length.toString(),
-                                                                style: const TextStyle(
-                                                                  color: Color(0xFFFF9800),
-                                                                  fontWeight: FontWeight.bold,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                        const SizedBox(height: 8),
-                                                        Expanded(
-                                                          child: DragTarget<Map<String, dynamic>>(
-                                                            onWillAcceptWithDetails: (details) => true,
-                                                            onAcceptWithDetails: (details) {
-                                                              _updateTaskStatus(details.data, 'in_progress');
-                                                            },
-                                                            builder: (context, candidateData, rejectedData) {
-                                                              return ListView(
-                                                                children: _tasks.where((task) => task['status'] == 'in_progress').map((task) => Column(
-                                                                  children: [
-                                                                    _buildTaskCard(
-                                                                      task['title'],
-                                                                      task['description'],
-                                                                      DateTime.parse(task['due_date']),
-                                                                      isDone: task['isDone'],
-                                                                    ),
-                                                                    const SizedBox(height: 8),
-                                                                  ],
-                                                                ))
-                                                                .toList(),
-                                                              );
-                                                            },
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 16),
-                                                  // Colonne "Fait"
-                                                  Expanded(
-                                                    child: Column(
-                                                      children: [
-                                                        Container(
-                                                          padding: const EdgeInsets.all(8),
-                                                          decoration: BoxDecoration(
-                                                            color: const Color(0xFFE8F5E9),
-                                                            borderRadius: BorderRadius.circular(8),
-                                                          ),
-                                                          child: Row(
-                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                            children: [
-                                                              const Text(
-                                                                'Fait',
-                                                                style: TextStyle(
-                                                                  fontWeight: FontWeight.bold,
-                                                                  color: Color(0xFF4CAF50),
-                                                                ),
-                                                              ),
-                                                              Text(
-                                                                _tasks.where((task) => task['status'] == 'done').length.toString(),
-                                                                style: const TextStyle(
-                                                                  color: Color(0xFF4CAF50),
-                                                                  fontWeight: FontWeight.bold,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                        const SizedBox(height: 8),
-                                                        Expanded(
-                                                          child: DragTarget<Map<String, dynamic>>(
-                                                            onWillAcceptWithDetails: (details) => true,
-                                                            onAcceptWithDetails: (details) {
-                                                              _updateTaskStatus(details.data, 'done');
-                                                            },
-                                                            builder: (context, candidateData, rejectedData) {
-                                                              return ListView(
-                                                                children: _tasks.where((task) => task['status'] == 'done').map((task) => Column(
-                                                                  children: [
-                                                                    _buildTaskCard(
-                                                                      task['title'],
-                                                                      task['description'],
-                                                                      DateTime.parse(task['due_date']),
-                                                                      isDone: task['isDone'],
-                                                                    ),
-                                                                    const SizedBox(height: 8),
-                                                                  ],
-                                                                ))
-                                                                .toList(),
-                                                              );
-                                                            },
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
+                                SizedBox(
+                                  height: constraints.maxHeight * 0.45,
+                                  child: _buildTasksSection(),
+                                ),
                                 const SizedBox(height: 16),
                                 Expanded(
-                        child: Column(
-                          children: [
-                                      Expanded(
-                                        flex: 4,
-                                        child: GridView.custom(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: crossAxisCount,
-                              mainAxisSpacing: 16,
-                              crossAxisSpacing: 16,
-                                            childAspectRatio: (constraints.maxWidth / crossAxisCount) / ((constraints.maxHeight * 1.0) / 2),
-                                          ),
-                                          childrenDelegate: SliverChildListDelegate([
-                                            Card(
-                                              elevation: 4,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                              child: Container(
-                                                padding: const EdgeInsets.all(4),
-                                                decoration: BoxDecoration(
-                                                  borderRadius: BorderRadius.circular(16),
-                                                  color: Colors.white,
-                                                  border: Border.all(color: const Color(0xFF1784af), width: 2),
-                                                ),
-                                                child: CalendarWidget(
-                                                  showTitle: true,
-                                                  title: 'Planning Global',
-                                                  onDaySelected: (date) {
-                                                    debugPrint('Jour sélectionné: ${date.toString()}');
-                                                  },
-                                                  isExpanded: false,
-                                                  onExpandToggle: () {},
-                                                  isTimesheet: false,
-                                                ),
-                                              ),
-                                ),
-                                Card(
-                                  elevation: 4,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                              child: Container(
-                                                padding: const EdgeInsets.all(4),
-                                                decoration: BoxDecoration(
-                                                  borderRadius: BorderRadius.circular(16),
-                                                  color: Colors.white,
-                                                  border: Border.all(color: const Color(0xFF1784af), width: 2),
-                                                ),
-                                                child: CalendarWidget(
-                                                  showTitle: true,
-                                                  title: 'Timesheet Personnel',
-                                                  onDaySelected: (date) async {
-                                                    // Afficher une boîte de dialogue pour saisir les heures
-                                                    showDialog(
-                                                      context: context,
-                                                      builder: (context) {
-                                                        TimeOfDay startTime = TimeOfDay.now();
-                                                        TimeOfDay endTime = TimeOfDay.now();
-                                                        String? selectedProject;
-                                                        String? selectedTask;
-                                                        final descriptionController = TextEditingController();
-
-                                                        return FutureBuilder<List<dynamic>>(
-                                                          future: SupabaseService.client
-                                                            .from('projects')
-                                                            .select()
-                                                            .order('name'),
-                                                          builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
-                                                            if (snapshot.connectionState == ConnectionState.waiting) {
-                                                              return const AlertDialog(
-                                                                content: Center(child: CircularProgressIndicator()),
-                                                              );
-                                                            }
-
-                                                            if (snapshot.hasError) {
-                                                              return AlertDialog(
-                                                                content: Center(
-                                                                  child: Text('Erreur: ${snapshot.error}'),
-                                                                ),
-                                                              );
-                                                            }
-
-                                                            final projects = List<Map<String, dynamic>>.from(snapshot.data ?? []);
-
-                                                            return StatefulBuilder(
-                                                              builder: (context, setState) => AlertDialog(
-                                                                title: Text('Saisie des heures - ${DateFormat('dd/MM/yyyy').format(date)}'),
-                                                                content: SingleChildScrollView(
-                                                                  child: Column(
-                                                                    mainAxisSize: MainAxisSize.min,
-                                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                                    children: [
-                                                                      // Projet
-                                                                      DropdownButtonFormField<String>(
-                                                                        decoration: const InputDecoration(
-                                                                          labelText: 'Projet',
-                                                                          border: OutlineInputBorder(),
-                                                                        ),
-                                                                        value: selectedProject,
-                                                                        items: projects.map((project) => DropdownMenuItem<String>(
-                                                                          value: project['id'].toString(),
-                                                                          child: Text(project['name'] as String),
-                                                                        )).toList(),
-                                                                        onChanged: (String? value) {
-                                                                          setState(() {
-                                                                            selectedProject = value;
-                                                                            selectedTask = null;
-                                                                          });
-                                                                        },
-                                                                      ),
-                                                                      const SizedBox(height: 16),
-                                                                      
-                                                                      // Tâche
-                                                                      if (selectedProject?.isNotEmpty == true)
-                                                                        FutureBuilder<List<dynamic>>(
-                                                                          future: SupabaseService.client
-                                                                              .from('tasks')
-                                                                              .select()
-                                                                              .eq('project_id', int.parse(selectedProject!))
-                                                                              .order('title'),
-                                                                          builder: (context, AsyncSnapshot<List<dynamic>> taskSnapshot) {
-                                                                            final tasks = List<Map<String, dynamic>>.from(taskSnapshot.data ?? []);
-                                                                            
-                                                                            return DropdownButtonFormField<String>(
-                                                                              decoration: const InputDecoration(
-                                                                                labelText: 'Tâche',
-                                                                                border: OutlineInputBorder(),
-                                                                              ),
-                                                                              value: selectedTask,
-                                                                              items: tasks.map((task) => DropdownMenuItem<String>(
-                                                                                value: task['id'].toString(),
-                                                                                child: Text(task['title'] as String),
-                                                                              )).toList(),
-                                                                              onChanged: (String? value) {
-                                                                                setState(() => selectedTask = value);
-                                                                              },
-                                                                            );
-                                                                          },
-                                                                        ),
-                                                                      const SizedBox(height: 16),
-                                                                      
-                                                                      // Heures de début et fin
-                                                                      Row(
-                                                                        children: [
-                                                                          Expanded(
-                                                                            child: InkWell(
-                                                                              onTap: () async {
-                                                                                final TimeOfDay? picked = await showTimePicker(
-                                                                                  context: context,
-                                                                                  initialTime: startTime,
-                                                                                );
-                                                                                if (picked != null) {
-                                                                                  setState(() => startTime = picked);
-                                                                                }
-                                                                              },
-                                                                              child: InputDecorator(
-                                                                                decoration: const InputDecoration(
-                                                                                  labelText: 'Début',
-                                                                                  border: OutlineInputBorder(),
-                                                                                ),
-                                                                                child: Text(startTime.format(context)),
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                          const SizedBox(width: 16),
-                                                                          Expanded(
-                                                                            child: InkWell(
-                                                                              onTap: () async {
-                                                                                final TimeOfDay? picked = await showTimePicker(
-                                                                                  context: context,
-                                                                                  initialTime: endTime,
-                                                                                );
-                                                                                if (picked != null) {
-                                                                                  setState(() => endTime = picked);
-                                                                                }
-                                                                              },
-                                                                              child: InputDecorator(
-                                                                                decoration: const InputDecoration(
-                                                                                  labelText: 'Fin',
-                                                                                  border: OutlineInputBorder(),
-                                                                                ),
-                                                                                child: Text(endTime.format(context)),
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                      const SizedBox(height: 16),
-                                                                      
-                                                                      // Description
-                                                                      TextField(
-                                                                        controller: descriptionController,
-                                                                        decoration: const InputDecoration(
-                                                                          labelText: 'Description',
-                                                                          hintText: 'Description de l\'activité',
-                                                                          border: OutlineInputBorder(),
-                                                                        ),
-                                                                        maxLines: 3,
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                ),
-                                                                actions: [
-                                                                  TextButton(
-                                                                    onPressed: () => Navigator.pop(context),
-                                                                    child: const Text('Annuler'),
-                                                                  ),
-                                                                  ElevatedButton(
-                                                                    onPressed: () async {
-                                                                      if (selectedProject != null && selectedTask != null) {
-                                                                        // Calculer le nombre d'heures
-                                                                        final startDateTime = DateTime(
-                                                                          date.year,
-                                                                          date.month,
-                                                                          date.day,
-                                                                          startTime.hour,
-                                                                          startTime.minute,
-                                                                        );
-                                                                        final endDateTime = DateTime(
-                                                                          date.year,
-                                                                          date.month,
-                                                                          date.day,
-                                                                          endTime.hour,
-                                                                          endTime.minute,
-                                                                        );
-                                                                        
-                                                                        // Vérifier que l'heure de fin est après l'heure de début
-                                                                        if (endDateTime.isBefore(startDateTime)) {
-                                                                          ScaffoldMessenger.of(context).showSnackBar(
-                                                                            const SnackBar(
-                                                                              content: Text('L\'heure de fin doit être après l\'heure de début'),
-                                                                            ),
-                                                                          );
-                                                                          return;
-                                                                        }
-
-                                                                        final hours = endDateTime.difference(startDateTime).inMinutes / 60.0;
-                                                                        
-                                                                        // Vérifier que le nombre d'heures est valide
-                                                                        if (hours <= 0 || hours > 24) {
-                                                                          ScaffoldMessenger.of(context).showSnackBar(
-                                                                            const SnackBar(
-                                                                              content: Text('Le nombre d\'heures doit être entre 0 et 24'),
-                                                                            ),
-                                                                          );
-                                                                          return;
-                                                                        }
-
-                                                                        try {
-                                                                          await SupabaseService.client
-                                                                              .from('timesheet_entries')
-                                                                              .insert({
-                                                                            'user_id': SupabaseService.currentUser!.id,
-                                                                            'task_id': int.parse(selectedTask!),
-                                                                            'date': date.toIso8601String(),
-                                                                            'hours': hours,
-                                                                            'description': descriptionController.text,
-                                                                          });
-
-                                                                          if (mounted) {
-                                                                            Navigator.pop(context);
-                                                                            ScaffoldMessenger.of(context).showSnackBar(
-                                                                              const SnackBar(content: Text('Heures enregistrées avec succès')),
-                                                                            );
-                                                                          }
-                                                                        } catch (e) {
-                                                                          if (mounted) {
-                                                                            ScaffoldMessenger.of(context).showSnackBar(
-                                                                              SnackBar(content: Text('Erreur: ${e.toString()}')),
-                                                                            );
-                                                                          }
-                                                                        }
-                                                                      }
-                                                                    },
-                                                                    style: ElevatedButton.styleFrom(
-                                                                      backgroundColor: const Color(0xFF1784af),
-                                                                    ),
-                                                                    child: const Text(
-                                                                      'Enregistrer',
-                                                                      style: TextStyle(color: Colors.white),
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            );
-                                                          },
-                                                        );
-                                                      },
-                                                    );
-                                                  },
-                                                  isExpanded: false,
-                                                  onExpandToggle: () {},
-                                                  isTimesheet: true,
-                                                ),
-                                              ),
-                                            ),
-                                          ]),
-                                        ),
-                                      ),
-                                      if (constraints.maxHeight > 600)
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 16.0),
-                                          child: SizedBox(
-                                            height: 85,
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius: BorderRadius.circular(16),
-                                                border: Border.all(color: const Color(0xFF1784af), width: 2),
-                                              ),
-                                              child: Column(
-                                                children: [
-                                                  Container(
-                                                    padding: const EdgeInsets.all(8),
-                                                    decoration: BoxDecoration(
-                                                      color: const Color(0xFF1784af).withValues(red: 23, green: 132, blue: 175, alpha: 25),
-                                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                                                    ),
-                                                    child: const Row(
-                                                      children: [
-                                                        Icon(Icons.event, size: 16, color: Color(0xFF1784af)),
-                                                        SizedBox(width: 8),
-                                                        Text(
-                                                          'Événements',
-                                                          style: TextStyle(
-                                                            fontWeight: FontWeight.bold,
-                                                            color: Color(0xFF122b35),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  const Expanded(
-                                  child: Padding(
-                                                      padding: EdgeInsets.all(8.0),
-                                                      child: Center(
-                                                        child: Text(
-                                                          'Aucun événement',
-                                                          style: TextStyle(
-                                                            color: Colors.grey,
-                                                            fontStyle: FontStyle.italic,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
+                                  child: _buildCalendarsSection(constraints, crossAxisCount),
                                 ),
                               ],
                             );
                           },
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
           ),
         ),
       ),
     );
   }
 
-  // ✅ Menu Déroulant en haut pour petit écran
-  Widget _buildDropdownMenu() {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.menu, color: Colors.white),
-      onSelected: (String route) {
-        Navigator.of(context).pushNamed(route);
-      },
-      itemBuilder: (BuildContext context) {
-        return [
-          _buildMenuItem('Fiche Associé', '/associate'),
-          _buildMenuItem('Planning Global', '/planning'),
-          _buildMenuItem('Partenaires', '/partners'),
-          _buildMenuItem('Messagerie', '/messaging'),
-          _buildMenuItem('Actions Commerciales', '/actions'),
-          _buildMenuItem('Chiffres Entreprise', '/figures'),
-        ];
-      },
+  Widget _buildTasksSection() {
+    return Card(
+      elevation: 8,
+      shadowColor: Colors.black.withOpacity(0.2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFF1784af), width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Tâches',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF122b35),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add, color: Color(0xFF1784af)),
+                  onPressed: _showAddTaskDialog,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Colonne "À faire"
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE3F2FD),
+                            borderRadius: const BorderRadius.all(Radius.circular(8)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.assignment_outlined,
+                                    size: 20,
+                                    color: Color(0xFF1784af),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'À faire',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1784af),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  _tasks.where((task) => task['status'] == 'todo').length.toString(),
+                                  style: const TextStyle(
+                                    color: Color(0xFF1784af),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child: DragTarget<Map<String, dynamic>>(
+                            onWillAcceptWithDetails: (details) => true,
+                            onAcceptWithDetails: (details) {
+                              _updateTaskStatus(details.data, 'todo');
+                            },
+                            builder: (context, candidateData, rejectedData) {
+                              return ListView(
+                                children: _tasks.where((task) => task['status'] == 'todo').map((task) => Column(
+                                  children: [
+                                    _buildTaskCard(
+                                      task['title'],
+                                      task['description'],
+                                      DateTime.parse(task['due_date']),
+                                      isDone: task['isDone'],
+                                    ),
+                                    const SizedBox(height: 8),
+                                  ],
+                                ))
+                                .toList(),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Colonne "En cours"
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF3E0),
+                            borderRadius: const BorderRadius.all(Radius.circular(8)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.pending_actions,
+                                    size: 20,
+                                    color: Color(0xFFFF9800),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'En cours',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFFF9800),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child: DragTarget<Map<String, dynamic>>(
+                            onWillAcceptWithDetails: (details) => true,
+                            onAcceptWithDetails: (details) {
+                              _updateTaskStatus(details.data, 'in_progress');
+                            },
+                            builder: (context, candidateData, rejectedData) {
+                              return ListView(
+                                children: _tasks.where((task) => task['status'] == 'in_progress').map((task) => Column(
+                                  children: [
+                                    _buildTaskCard(
+                                      task['title'],
+                                      task['description'],
+                                      DateTime.parse(task['due_date']),
+                                      isDone: task['isDone'],
+                                    ),
+                                    const SizedBox(height: 8),
+                                  ],
+                                ))
+                                .toList(),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Colonne "Fait"
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9),
+                            borderRadius: const BorderRadius.all(Radius.circular(8)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.task_alt,
+                                    size: 20,
+                                    color: Color(0xFF4CAF50),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Fait',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF4CAF50),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child: DragTarget<Map<String, dynamic>>(
+                            onWillAcceptWithDetails: (details) => true,
+                            onAcceptWithDetails: (details) {
+                              _updateTaskStatus(details.data, 'done');
+                            },
+                            builder: (context, candidateData, rejectedData) {
+                              return ListView(
+                                children: _tasks.where((task) => task['status'] == 'done').map((task) => Column(
+                                  children: [
+                                    _buildTaskCard(
+                                      task['title'],
+                                      task['description'],
+                                      DateTime.parse(task['due_date']),
+                                      isDone: task['isDone'],
+                                    ),
+                                    const SizedBox(height: 8),
+                                  ],
+                                ))
+                                .toList(),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  // ✅ Fonction pour générer un élément du menu déroulant
-  PopupMenuItem<String> _buildMenuItem(String title, String route) {
-    return PopupMenuItem<String>(
-      value: route,
-      child: Text(title, style: const TextStyle(color: Color(0xFF122b35))),
+  Widget _buildCalendarsSection(BoxConstraints constraints, int crossAxisCount) {
+    return GridView.custom(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: (constraints.maxWidth / crossAxisCount) / ((constraints.maxHeight * 0.5)),
+      ),
+      childrenDelegate: SliverChildListDelegate([
+        Card(
+          elevation: 8,
+          shadowColor: Colors.black.withOpacity(0.2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: CalendarWidget(
+              showTitle: true,
+              title: 'Planning Global',
+              isExpanded: false,
+              onExpandToggle: () {},
+              isTimesheet: false,
+              onDaySelected: (date) {
+                debugPrint('Selected date: $date');
+              },
+            ),
+          ),
+        ),
+        Card(
+          elevation: 8,
+          shadowColor: Colors.black.withOpacity(0.2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: CalendarWidget(
+              showTitle: true,
+              title: 'Timesheet Personnel',
+              isExpanded: false,
+              onExpandToggle: () {},
+              isTimesheet: true,
+              onDaySelected: (date) async {
+                if (!mounted) return;
+                await showDialog(
+                  context: context,
+                  builder: (context) => TimesheetDialog(selectedDate: date),
+                );
+              },
+            ),
+          ),
+        ),
+      ]),
     );
   }
 
@@ -1004,10 +751,11 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Widget _buildTaskCardContent(String title, String description, DateTime dueDate, {bool isDone = false}) {
     return Card(
-      elevation: 2,
+      elevation: 3,
+      shadowColor: Colors.black.withOpacity(0.1),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
@@ -1024,50 +772,51 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: Text(
                     title,
                     style: TextStyle(
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       decoration: isDone ? TextDecoration.lineThrough : null,
                     ),
                   ),
                 ),
                 Container(
-                  width: 16,
-                  height: 16,
+                  width: 18,
+                  height: 18,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isDone ? const Color(0xFF4CAF50) : Colors.grey[300],
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.check,
-                    size: 12,
+                    size: 14,
                     color: Colors.white,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
               description,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 13,
                 color: Colors.grey[600],
                 decoration: isDone ? TextDecoration.lineThrough : null,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Icon(
                   Icons.calendar_today,
-                  size: 12,
+                  size: 14,
                   color: Colors.grey[600],
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 Text(
                   DateFormat('dd/MM/yyyy').format(dueDate),
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 12,
                     color: Colors.grey[600],
                   ),
                 ),
@@ -1076,6 +825,34 @@ class _DashboardPageState extends State<DashboardPage> {
           ],
         ),
       ),
+    );
+  }
+
+  // ✅ Menu Déroulant en haut pour petit écran
+  Widget _buildDropdownMenu() {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.menu, color: Colors.white),
+      onSelected: (String route) {
+        Navigator.of(context).pushNamed(route);
+      },
+      itemBuilder: (BuildContext context) {
+        return [
+          _buildMenuItem('Fiche Associé', '/associate'),
+          _buildMenuItem('Planning Global', '/planning'),
+          _buildMenuItem('Partenaires', '/partners'),
+          _buildMenuItem('Messagerie', '/messaging'),
+          _buildMenuItem('Actions Commerciales', '/actions'),
+          _buildMenuItem('Chiffres Entreprise', '/figures'),
+        ];
+      },
+    );
+  }
+
+  // ✅ Fonction pour générer un élément du menu déroulant
+  PopupMenuItem<String> _buildMenuItem(String title, String route) {
+    return PopupMenuItem<String>(
+      value: route,
+      child: Text(title, style: const TextStyle(color: Color(0xFF122b35))),
     );
   }
 }
@@ -1203,6 +980,246 @@ class CalendarMiniWidgetState extends State<CalendarMiniWidget> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class TimesheetDialog extends StatefulWidget {
+  final DateTime selectedDate;
+
+  const TimesheetDialog({
+    Key? key,
+    required this.selectedDate,
+  }) : super(key: key);
+
+  @override
+  State<TimesheetDialog> createState() => _TimesheetDialogState();
+}
+
+class _TimesheetDialogState extends State<TimesheetDialog> {
+  TimeOfDay startTime = TimeOfDay.now();
+  TimeOfDay endTime = TimeOfDay.now();
+  String? selectedProject;
+  String? selectedTask;
+  final descriptionController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<dynamic>>(
+      future: SupabaseService.client
+          .from('projects')
+          .select()
+          .order('name'),
+      builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const AlertDialog(
+            content: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return AlertDialog(
+            content: Center(
+              child: Text('Erreur: ${snapshot.error}'),
+            ),
+          );
+        }
+
+        final projects = List<Map<String, dynamic>>.from(snapshot.data ?? []);
+
+        return AlertDialog(
+          title: Text('Saisie des heures - ${DateFormat('dd/MM/yyyy').format(widget.selectedDate)}'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Projet',
+                    border: OutlineInputBorder(),
+                  ),
+                  value: selectedProject,
+                  items: projects.map((project) => DropdownMenuItem<String>(
+                    value: project['id'].toString(),
+                    child: Text(project['name'] as String),
+                  )).toList(),
+                  onChanged: (String? value) {
+                    setState(() {
+                      selectedProject = value;
+                      selectedTask = null;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                if (selectedProject?.isNotEmpty == true)
+                  FutureBuilder<List<dynamic>>(
+                    future: SupabaseService.client
+                        .from('tasks')
+                        .select()
+                        .eq('project_id', int.parse(selectedProject!))
+                        .order('title'),
+                    builder: (context, AsyncSnapshot<List<dynamic>> taskSnapshot) {
+                      final tasks = List<Map<String, dynamic>>.from(taskSnapshot.data ?? []);
+                      
+                      return DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: 'Tâche',
+                          border: OutlineInputBorder(),
+                        ),
+                        value: selectedTask,
+                        items: tasks.map((task) => DropdownMenuItem<String>(
+                          value: task['id'].toString(),
+                          child: Text(task['title'] as String),
+                        )).toList(),
+                        onChanged: (String? value) {
+                          setState(() => selectedTask = value);
+                        },
+                      );
+                    },
+                  ),
+                const SizedBox(height: 16),
+                
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final TimeOfDay? picked = await showTimePicker(
+                            context: context,
+                            initialTime: startTime,
+                          );
+                          if (picked != null) {
+                            setState(() => startTime = picked);
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Début',
+                            border: OutlineInputBorder(),
+                          ),
+                          child: Text(startTime.format(context)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final TimeOfDay? picked = await showTimePicker(
+                            context: context,
+                            initialTime: endTime,
+                          );
+                          if (picked != null) {
+                            setState(() => endTime = picked);
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Fin',
+                            border: OutlineInputBorder(),
+                          ),
+                          child: Text(endTime.format(context)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    hintText: 'Description de l\'activité',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (selectedProject != null && selectedTask != null) {
+                  final startDateTime = DateTime(
+                    widget.selectedDate.year,
+                    widget.selectedDate.month,
+                    widget.selectedDate.day,
+                    startTime.hour,
+                    startTime.minute,
+                  );
+                  final endDateTime = DateTime(
+                    widget.selectedDate.year,
+                    widget.selectedDate.month,
+                    widget.selectedDate.day,
+                    endTime.hour,
+                    endTime.minute,
+                  );
+                  
+                  if (endDateTime.isBefore(startDateTime)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('L\'heure de fin doit être après l\'heure de début'),
+                      ),
+                    );
+                    return;
+                  }
+
+                  final hours = endDateTime.difference(startDateTime).inMinutes / 60.0;
+                  
+                  if (hours <= 0 || hours > 24) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Le nombre d\'heures doit être entre 0 et 24'),
+                      ),
+                    );
+                    return;
+                  }
+
+                  try {
+                    await SupabaseService.client
+                        .from('timesheet_entries')
+                        .insert({
+                      'user_id': SupabaseService.currentUser!.id,
+                      'task_id': int.parse(selectedTask!),
+                      'date': widget.selectedDate.toIso8601String(),
+                      'hours': hours,
+                      'description': descriptionController.text,
+                    });
+
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Heures enregistrées avec succès')),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Erreur: ${e.toString()}')),
+                      );
+                    }
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1784af),
+              ),
+              child: const Text(
+                'Enregistrer',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

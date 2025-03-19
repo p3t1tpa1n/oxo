@@ -272,52 +272,67 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
             padding: const EdgeInsets.symmetric(vertical: 2),
             decoration: BoxDecoration(
               color: isSelected
-                  ? const Color(0xFF007AFF)
+                  ? const Color(0xFF007AFF).withOpacity(0.8)
                   : isToday
-                      ? const Color(0xFFE3F2FD)
+                      ? const Color(0xFFE3F2FD).withOpacity(0.5)
                       : Colors.transparent,
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: isWeekend ? Colors.grey.shade300 : const Color(0xFF1784af),
-                width: 1,
-              ),
+              border: hours > 0
+                  ? Border.all(
+                      color: const Color(0xFF1784af).withOpacity(0.6),
+                      width: 1,
+                    )
+                  : isWeekend
+                      ? Border.all(
+                          color: Colors.grey.shade100,
+                          width: 1,
+                        )
+                      : null,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  day.toString(),
-                  style: TextStyle(
-                    color: isCurrentMonth
-                        ? isSelected
-                            ? Colors.white
-                            : isWeekend
-                                ? const Color(0xFF999999)
-                                : const Color(0xFF333333)
-                        : const Color(0xFFCCCCCC),
-                    fontWeight: isToday || isSelected ? FontWeight.w600 : FontWeight.normal,
-                    fontSize: 11,
-                  ),
-                ),
-                if (!isWeekend) ...[
-                  const SizedBox(height: 2),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE3F2FD),
-                      borderRadius: BorderRadius.circular(2),
+            child: SizedBox(
+              height: 35,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    day.toString(),
+                    style: TextStyle(
+                      color: isCurrentMonth
+                          ? isSelected
+                              ? Colors.white
+                              : isWeekend
+                                  ? const Color(0xFF999999)
+                                  : const Color(0xFF333333)
+                          : const Color(0xFFCCCCCC),
+                      fontWeight: isToday || isSelected ? FontWeight.w600 : FontWeight.normal,
+                      fontSize: 11,
                     ),
-                    child: Text(
-                      '${hours.toStringAsFixed(1)}h',
-                      style: const TextStyle(
-                        fontSize: 9,
-                        color: Color(0xFF1784af),
+                  ),
+                  if (hours > 0) ...[
+                    const SizedBox(height: 2),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: isSelected 
+                            ? Colors.white.withOpacity(0.2) 
+                            : const Color(0xFFE3F2FD).withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '${hours.toStringAsFixed(1)}h',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: isSelected 
+                              ? Colors.white 
+                              : const Color(0xFF1784af).withOpacity(0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -332,9 +347,9 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
         child: Container(
           decoration: BoxDecoration(
             color: isSelected
-                ? const Color(0xFF007AFF)
+                ? const Color(0xFF007AFF).withOpacity(0.8)
                 : isToday
-                    ? const Color(0xFFE3F2FD)
+                    ? const Color(0xFFE3F2FD).withOpacity(0.5)
                     : Colors.transparent,
             borderRadius: BorderRadius.circular(4),
           ),

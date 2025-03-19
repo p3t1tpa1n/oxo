@@ -228,29 +228,28 @@ class _ChatWidgetState extends State<ChatWidget> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF1784af), width: 2),
       ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF1784af).withValues(red: 23, green: 132, blue: 175, alpha: 25),
+              color: const Color(0xFF1784af),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: const Row(
               children: [
-                Icon(Icons.message, size: 16, color: Color(0xFF1784af)),
+                Icon(Icons.message, size: 16, color: Colors.white),
                 SizedBox(width: 8),
                 Text(
                   'Messages',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF122b35),
+                    color: Colors.white,
                   ),
                 ),
                 Spacer(),
-                Icon(Icons.lock, size: 14, color: Color(0xFF1784af)),
+                Icon(Icons.lock, size: 14, color: Colors.white),
               ],
             ),
           ),
