@@ -32,14 +32,14 @@ class _LoginPageState extends State<LoginPage> {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
 
-      print('Tentative de connexion avec: $email'); // Debug
+      debugPrint('Tentative de connexion avec: $email');
 
       final response = await SupabaseService.signIn(
         email: email,
         password: password,
       );
 
-      print('Réponse de Supabase: ${response.user}'); // Debug
+      debugPrint('Réponse de Supabase: ${response.user}');
 
       if (response.user != null) {
         if (mounted) {
@@ -48,35 +48,33 @@ class _LoginPageState extends State<LoginPage> {
           if (userRole == null) {
             setState(() {
               _errorMessage = 'Erreur: Rôle utilisateur non défini';
+              _isLoading = false;
             });
             return;
           }
 
+          debugPrint('Rôle utilisateur: $userRole');
           switch (userRole) {
             case UserRole.associe:
-              Navigator.pushReplacementNamed(context, '/dashboard');
+              Navigator.pushReplacementNamed(context, '/');
               break;
             case UserRole.partenaire:
-              Navigator.pushReplacementNamed(context, '/partners');
+              Navigator.pushReplacementNamed(context, '/dashboard');
               break;
           }
         }
       } else {
         setState(() {
           _errorMessage = 'Erreur de connexion: Utilisateur non trouvé';
-        });
-      }
-    } catch (e) {
-      print('Erreur de connexion: $e'); // Debug
-      setState(() {
-        _errorMessage = 'Erreur de connexion: ${e.toString()}';
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
           _isLoading = false;
         });
       }
+    } catch (e) {
+      debugPrint('Erreur de connexion: $e');
+      setState(() {
+        _errorMessage = 'Erreur de connexion: ${e.toString()}';
+        _isLoading = false;
+      });
     }
   }
 

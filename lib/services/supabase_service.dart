@@ -1,5 +1,6 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 enum UserRole {
   associe,
@@ -12,14 +13,14 @@ class SupabaseService {
   
   static Future<void> initialize() async {
     try {
-      print('Chargement du fichier .env...'); // Debug
+      debugPrint('Chargement du fichier .env...');
       await dotenv.load();
       
       final url = dotenv.env['SUPABASE_URL'];
       final anonKey = dotenv.env['SUPABASE_ANON_KEY'];
       
-      print('URL Supabase: $url'); // Debug
-      print('Clé anonyme chargée: ${anonKey?.substring(0, 10)}...'); // Debug
+      debugPrint('URL Supabase: $url');
+      debugPrint('Clé anonyme chargée: ${anonKey?.substring(0, 10)}...');
       
       await Supabase.initialize(
         url: url!,
@@ -27,9 +28,19 @@ class SupabaseService {
       );
       
       _client = Supabase.instance.client;
-      print('Client Supabase initialisé avec succès'); // Debug
+      debugPrint('Client Supabase initialisé avec succès');
+
+      // Vérifier l'état de la session au démarrage
+      final session = _client?.auth.currentSession;
+      if (session != null) {
+        debugPrint('Session existante trouvée');
+        _currentUserRole = await getCurrentUserRole();
+      } else {
+        debugPrint('Aucune session existante');
+        await signOut();
+      }
     } catch (e) {
-      print('Erreur lors de l\'initialisation de Supabase: $e'); // Debug
+      debugPrint('Erreur lors de l\'initialisation de Supabase: $e');
       rethrow;
     }
   }
@@ -43,36 +54,50 @@ class SupabaseService {
 
   static Future<UserRole?> getCurrentUserRole() async {
     try {
-      if (currentUser == null) return null;
-
-      final response = await client
-          .from('profiles')
-          .select('role')
-          .eq('id', currentUser!.id)
-          .maybeSingle();
-
-      if (response != null && response['role'] != null) {
-        final roleStr = response['role'].toString().toLowerCase();
-        if (roleStr == 'associe') {
-          _currentUserRole = UserRole.associe;
-        } else {
-          _currentUserRole = UserRole.partenaire;
-        }
-        return _currentUserRole;
+      if (currentUser == null) {
+        debugPrint('getCurrentUserRole: Aucun utilisateur connecté');
+        return null;
       }
 
-      await client.from('profiles').upsert({
-        'id': currentUser!.id,
-        'email': currentUser!.email,
-        'role': 'partenaire',
-      });
-      
-      _currentUserRole = UserRole.partenaire;
-      return _currentUserRole;
-    } catch (e) {
-      print('Erreur lors de la récupération du rôle: $e');
-      _currentUserRole = UserRole.partenaire;
-      return _currentUserRole;
+      debugPrint('getCurrentUserRole: Récupération du rôle pour l\'utilisateur ${currentUser!.id}');
+      final List<dynamic> response = await client
+          .rpc('get_users');
+
+      debugPrint('getCurrentUserRole: Réponse reçue: $response');
+
+      if (response.isEmpty) {
+        debugPrint('getCurrentUserRole: Aucun utilisateur trouvé');
+        return null;
+      }
+
+      final userProfile = response.firstWhere(
+        (user) => user['user_id'] == currentUser!.id,
+        orElse: () => null,
+      );
+
+      debugPrint('getCurrentUserRole: Profil trouvé: $userProfile');
+
+      if (userProfile == null) {
+        debugPrint('getCurrentUserRole: Profil non trouvé pour l\'utilisateur ${currentUser!.id}');
+        return null;
+      }
+
+      final role = userProfile['user_role'] as String;
+      debugPrint('getCurrentUserRole: Rôle trouvé: $role');
+
+      switch (role) {
+        case 'associe':
+          return UserRole.associe;
+        case 'partenaire':
+          return UserRole.partenaire;
+        default:
+          debugPrint('getCurrentUserRole: Rôle non reconnu: $role');
+          return null;
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Erreur lors de la récupération du rôle: $e');
+      debugPrint('Stack trace: $stackTrace');
+      return null;
     }
   }
 
@@ -115,13 +140,23 @@ class SupabaseService {
 
   // Méthode pour la déconnexion modifiée
   static Future<void> signOut() async {
-    await client.auth.signOut();
-    _currentUserRole = null;
+    try {
+      debugPrint('Tentative de déconnexion...');
+      await client.auth.signOut();
+      _currentUserRole = null;
+      debugPrint('Déconnexion réussie');
+    } catch (e) {
+      debugPrint('Erreur lors de la déconnexion: $e');
+      rethrow;
+    }
   }
 
   // Méthode pour vérifier l'état de la session
   static bool get isAuthenticated {
-    return client.auth.currentSession != null;
+    final session = client.auth.currentSession;
+    final isValid = session != null && !session.isExpired;
+    debugPrint('Vérification de l\'authentification: ${isValid ? 'Authentifié' : 'Non authentifié'}');
+    return isValid;
   }
 
   // Méthode pour obtenir l'utilisateur courant
@@ -160,5 +195,34 @@ class SupabaseService {
       .from('tasks')
       .delete()
       .eq('id', taskId);
+  }
+
+  static Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    try {
+      final List<dynamic> response = await client
+          .rpc('get_users');
+      
+      return response.firstWhere(
+        (user) => user['user_id'] == userId,
+        orElse: () => null,
+      );
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération du profil: $e');
+      return null;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getPartners() async {
+    try {
+      final List<dynamic> response = await client
+          .rpc('get_users');
+      
+      return List<Map<String, dynamic>>.from(
+        response.where((user) => user['user_role'] == 'partenaire')
+      );
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des partenaires: $e');
+      return [];
+    }
   }
 } 

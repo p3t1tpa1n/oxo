@@ -140,105 +140,181 @@ class _DashboardPageState extends State<DashboardPage> {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
     final dueDateController = TextEditingController();
+    final projectNameController = TextEditingController();
+    final projectDescriptionController = TextEditingController();
     DateTime? selectedDate;
     String? selectedProject;
+    bool isCreatingNewProject = false;
 
     try {
       await showDialog(
         context: dialogContext,
-        builder: (BuildContext context) => AlertDialog(
-          title: const Text('Nouvelle tâche'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FutureBuilder<List<dynamic>>(
-                  future: SupabaseService.client
-                    .from('projects')
-                    .select()
-                    .order('name'),
-                  builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const CircularProgressIndicator();
-                    }
+        builder: (BuildContext context) => StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('Nouvelle tâche'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FutureBuilder<List<dynamic>>(
+                          future: SupabaseService.client
+                            .from('projects')
+                            .select()
+                            .order('name'),
+                          builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const CircularProgressIndicator();
+                            }
 
-                    if (snapshot.hasError) {
-                      return Text('Erreur: ${snapshot.error}');
-                    }
+                            if (snapshot.hasError) {
+                              return Text('Erreur: ${snapshot.error}');
+                            }
 
-                    final projects = List<Map<String, dynamic>>.from(snapshot.data ?? []);
+                            final projects = List<Map<String, dynamic>>.from(snapshot.data ?? []);
 
-                    return DropdownButtonFormField<String>(
+                            return DropdownButtonFormField<String>(
+                              decoration: const InputDecoration(
+                                labelText: 'Projet',
+                                border: OutlineInputBorder(),
+                              ),
+                              value: selectedProject,
+                              items: projects.map((project) => DropdownMenuItem<String>(
+                                value: project['id'].toString(),
+                                child: Text(project['name'] as String),
+                              )).toList(),
+                              onChanged: isCreatingNewProject ? null : (String? value) {
+                                setState(() {
+                                  selectedProject = value;
+                                });
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: Icon(
+                          isCreatingNewProject ? Icons.close : Icons.add_circle,
+                          color: const Color(0xFF1784af),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            isCreatingNewProject = !isCreatingNewProject;
+                            if (!isCreatingNewProject) {
+                              projectNameController.clear();
+                              projectDescriptionController.clear();
+                            }
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  if (isCreatingNewProject) ...[
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: projectNameController,
                       decoration: const InputDecoration(
-                        labelText: 'Projet',
+                        labelText: 'Nom du projet',
                         border: OutlineInputBorder(),
                       ),
-                      value: selectedProject,
-                      items: projects.map((project) => DropdownMenuItem<String>(
-                        value: project['id'].toString(),
-                        child: Text(project['name'] as String),
-                      )).toList(),
-                      onChanged: (String? value) {
-                        selectedProject = value;
-                      },
-                      validator: (value) => value == null ? 'Veuillez sélectionner un projet' : null,
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Titre',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                InkWell(
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (date != null) {
-                      selectedDate = date;
-                      dueDateController.text = DateFormat('dd/MM/yyyy').format(date);
-                    }
-                  },
-                  child: IgnorePointer(
-                    child: TextField(
-                      controller: dueDateController,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: projectDescriptionController,
+                      maxLines: 2,
                       decoration: const InputDecoration(
-                        labelText: 'Date d\'échéance',
+                        labelText: 'Description du projet',
                         border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Titre de la tâche',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descriptionController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Description de la tâche',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  InkWell(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null) {
+                        setState(() {
+                          selectedDate = date;
+                          dueDateController.text = DateFormat('dd/MM/yyyy').format(date);
+                        });
+                      }
+                    },
+                    child: IgnorePointer(
+                      child: TextField(
+                        controller: dueDateController,
+                        decoration: const InputDecoration(
+                          labelText: 'Date d\'échéance',
+                          border: OutlineInputBorder(),
+                          suffixIcon: Icon(Icons.calendar_today),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (titleController.text.isNotEmpty && selectedDate != null && selectedProject != null) {
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (titleController.text.isEmpty || selectedDate == null || 
+                      (isCreatingNewProject && projectNameController.text.isEmpty) ||
+                      (!isCreatingNewProject && selectedProject == null)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Veuillez remplir tous les champs obligatoires')),
+                    );
+                    return;
+                  }
+
                   try {
+                    int projectId;
+                    if (isCreatingNewProject) {
+                      final projectResponse = await SupabaseService.client
+                          .from('projects')
+                          .insert({
+                            'name': projectNameController.text,
+                            'description': projectDescriptionController.text,
+                            'status': 'en_cours',
+                            'start_date': DateTime.now().toIso8601String(),
+                            'end_date': selectedDate!.toIso8601String(),
+                            'created_at': DateTime.now().toIso8601String(),
+                            'updated_at': DateTime.now().toIso8601String(),
+                          })
+                          .select()
+                          .single();
+                      projectId = projectResponse['id'];
+                    } else {
+                      projectId = int.parse(selectedProject!);
+                    }
+
                     await SupabaseService.client
                         .from('tasks')
                         .insert({
@@ -246,36 +322,47 @@ class _DashboardPageState extends State<DashboardPage> {
                           'description': descriptionController.text,
                           'due_date': selectedDate!.toIso8601String(),
                           'status': 'todo',
-                          'project_id': int.parse(selectedProject!),
+                          'project_id': projectId,
                           'user_id': SupabaseService.currentUser!.id,
                         });
                     
                     if (!mounted) return;
                     Navigator.pop(context);
                     await _loadTasks();
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isCreatingNewProject 
+                            ? 'Projet et tâche créés avec succès' 
+                            : 'Tâche créée avec succès'
+                        ),
+                      ),
+                    );
                   } catch (e) {
                     if (!mounted) return;
                     ScaffoldMessenger.of(dialogContext).showSnackBar(
                       SnackBar(content: Text('Erreur: ${e.toString()}')),
                     );
                   }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1784af),
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1784af),
+                ),
+                child: const Text(
+                  'Ajouter',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
-              child: const Text(
-                'Ajouter',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     } finally {
       titleController.dispose();
       descriptionController.dispose();
       dueDateController.dispose();
+      projectNameController.dispose();
+      projectDescriptionController.dispose();
     }
   }
 

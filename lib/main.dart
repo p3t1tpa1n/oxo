@@ -21,6 +21,7 @@ import 'pages/messaging_page.dart';
 import 'pages/actions_page.dart';
 import 'pages/figures_page.dart';
 import 'pages/calendar_page.dart'; // Import de la page calendrier
+import 'pages/partner_dashboard_page.dart';  // Import de la page de tableau de bord
 
 // lib/main.dart
 void main() async {
@@ -28,9 +29,11 @@ void main() async {
     WidgetsFlutterBinding.ensureInitialized();
     await initializeDateFormatting('fr_FR', null);
     
-    print('Initialisation de Supabase...'); // Debug
+    debugPrint('Initialisation de Supabase...');
     await SupabaseService.initialize();
-    print('Supabase initialisé avec succès'); // Debug
+    debugPrint('Supabase initialisé avec succès');
+    debugPrint('État de la session: ${SupabaseService.client.auth.currentSession}');
+    debugPrint('État de l\'utilisateur: ${SupabaseService.currentUser}');
 
     // Initialisation de window_manager
     await windowManager.ensureInitialized();
@@ -52,7 +55,7 @@ void main() async {
     
     runApp(const MainApp());
   } catch (e) {
-    print('Erreur lors de l\'initialisation: $e'); // Debug
+    debugPrint('Erreur critique lors de l\'initialisation: $e');
     rethrow;
   }
 }
@@ -68,51 +71,41 @@ class _MainAppState extends State<MainApp> {
   @override
   void initState() {
     super.initState();
-    _checkForUpdates();
+    _checkInitialRoute();
   }
 
-  Future<void> _checkForUpdates() async {
+  Future<void> _checkInitialRoute() async {
     try {
-      final updateInfo = await UpdateService.checkForUpdates();
-      if (updateInfo != null && mounted) {
-        // Attendre un peu pour que l'application soit complètement chargée
-        await Future.delayed(const Duration(seconds: 2));
-        if (!mounted) return;
-
-        final shouldUpdate = await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => UpdateDialog(
-            newVersion: updateInfo['version'],
-            description: updateInfo['description'],
-            downloadUrl: updateInfo['downloadUrl'],
-          ),
-        );
-
-        if (shouldUpdate == true) {
-          // L'utilisateur a choisi de mettre à jour, l'application se fermera après l'installation
-          SystemNavigator.pop();
-        }
+      debugPrint('Vérification de l\'état de l\'authentification...');
+      final session = SupabaseService.client.auth.currentSession;
+      debugPrint('Session trouvée: ${session != null}');
+      
+      if (session == null && mounted) {
+        debugPrint('Aucune session active, redirection vers la page de connexion');
+        Navigator.of(context).pushReplacementNamed('/login');
       }
     } catch (e) {
-      debugPrint('Erreur lors de la vérification des mises à jour: $e');
+      debugPrint('Erreur lors de la vérification de la session: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Entreprise App',
+      title: 'OXO',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: const Color(0xFF1784af),
-        scaffoldBackgroundColor: Colors.white,
+        primaryColor: const Color(0xFF1E3D54),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF1E3D54),
+        ),
       ),
       initialRoute: '/login',
       routes: {
+        '/': (context) => const DashboardPage(),
         '/login': (context) => const LoginPage(),
-        '/dashboard': (context) => const DashboardPage(),
-        '/profile': (context) => ProfilePage(profile: currentProfile!),
+        '/dashboard': (context) => const PartnerDashboardPage(),
+        '/profile': (context) => const ProfilePage(),
         '/associate': (context) => const AssociatePage(),
         '/planning': (context) => const PlanningPage(),
         '/partners': (context) => const PartnersPage(),

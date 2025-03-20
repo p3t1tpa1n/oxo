@@ -1,18 +1,25 @@
 // lib/pages/profile_page.dart
 import 'package:flutter/material.dart';
-import '../models/profile.dart';
-import '../widgets/custom_app_bar.dart';
-import '../widgets/app_drawer.dart';
+import '../services/supabase_service.dart';
 
 class ProfilePage extends StatelessWidget {
-  final Profile profile;
-  const ProfilePage({super.key, required this.profile});
+  const ProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final user = SupabaseService.currentUser;
+    
+    if (user == null) {
+      Navigator.of(context).pushReplacementNamed('/login');
+      return const SizedBox.shrink();
+    }
+
     return Scaffold(
-      appBar: const CustomAppBar(showBackButton: true, title: 'Mon Profil'),
-      drawer: const AppDrawer(),
+      appBar: AppBar(
+        title: const Text('Mon Profil'),
+        backgroundColor: const Color(0xFF1E3D54),
+        foregroundColor: Colors.white,
+      ),
       body: Center(
         child: Card(
           margin: const EdgeInsets.all(16),
@@ -23,21 +30,55 @@ class ProfilePage extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.account_circle, size: 80, color: Color(0xFF1784af)),
+                const Icon(Icons.account_circle, size: 80, color: Color(0xFF1E3D54)),
                 const SizedBox(height: 16),
                 Text(
-                  profile.displayName,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF122b35)),
+                  user.email?.split('@').first ?? 'Utilisateur',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E3D54),
+                  ),
                 ),
                 const SizedBox(height: 8),
-                Text(profile.email, style: const TextStyle(fontSize: 16, color: Color(0xFF122b35))),
+                Text(
+                  user.email ?? '',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[800],
+                  ),
+                ),
                 const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () {
-                    currentProfile = null;
-                    Navigator.pushReplacementNamed(context, '/login');
+                Text(
+                  'Rôle: ${SupabaseService.currentUserRole?.toString().split('.').last ?? 'Non défini'}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    try {
+                      await SupabaseService.signOut();
+                      if (context.mounted) {
+                        Navigator.pushReplacementNamed(context, '/login');
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Erreur lors de la déconnexion: $e')),
+                        );
+                      }
+                    }
                   },
-                  child: const Text('Déconnexion'),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Déconnexion'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E3D54),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
                 ),
               ],
             ),
