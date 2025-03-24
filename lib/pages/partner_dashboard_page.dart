@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';  // Ajout de l'import pour Timer
+import 'package:url_launcher/url_launcher.dart';
 import '../services/supabase_service.dart';
+import '../services/version_service.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/calendar_widget.dart';
 
@@ -33,6 +35,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
   void initState() {
     super.initState();
     _checkAuthAndLoadData();
+    _checkForUpdates();
   }
 
   @override
@@ -284,6 +287,61 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                       color: Colors.white.withOpacity(0.9),
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  // Bouton de test pour les mises à jour
+                  const SizedBox(height: 16),
+                  PopupMenuButton<String>(
+                    onSelected: (String version) async {
+                      VersionService.setMockVersion(version);
+                      await _checkForUpdates();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Test de mise à jour lancé'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                      const PopupMenuItem<String>(
+                        value: '1.0.0',
+                        child: Text('Tester version égale (1.0.0)'),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: '2.0.0',
+                        child: Text('Tester nouvelle version (2.0.0)'),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: '0.9.0',
+                        child: Text('Tester ancienne version (0.9.0)'),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'test',
+                        child: Text('Lancer tous les tests'),
+                      ),
+                    ],
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.bug_report, color: Colors.white, size: 16),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Tester MàJ',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -1533,6 +1591,76 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
               backgroundColor: const Color(0xFF1E3D54),
             ),
             child: const Text('Créer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _checkForUpdates() async {
+    try {
+      final updateInfo = await VersionService.checkForUpdates();
+      if (updateInfo != null && mounted) {
+        _showUpdateDialog(
+          updateInfo['latest_version'],
+          updateInfo['changelog'],
+          updateInfo['download_url'],
+          updateInfo['is_mandatory'],
+        );
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de la vérification des mises à jour: $e');
+    }
+  }
+
+  void _showUpdateDialog(String version, String? changelog, String downloadUrl, bool isMandatory) {
+    showDialog(
+      context: context,
+      barrierDismissible: !isMandatory,
+      builder: (context) => AlertDialog(
+        title: Text('Nouvelle version disponible (v$version)'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isMandatory 
+                ? 'Une mise à jour obligatoire est disponible.'
+                : 'Une nouvelle version de l\'application est disponible.',
+            ),
+            if (changelog != null) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Nouveautés :',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(changelog),
+            ],
+          ],
+        ),
+        actions: [
+          if (!isMandatory)
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Plus tard'),
+            ),
+          ElevatedButton(
+            onPressed: () async {
+              final url = Uri.parse(downloadUrl);
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
+                if (isMandatory && mounted) {
+                  Navigator.of(context).pushReplacementNamed('/login');
+                } else if (mounted) {
+                  Navigator.of(context).pop();
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E3D54),
+            ),
+            child: const Text('Mettre à jour'),
           ),
         ],
       ),

@@ -19,10 +19,12 @@ dependencies:
   flutter_dotenv: ^5.1.0
   uuid: ^4.5.1
   encrypt: ^5.0.3
-  http: ^1.2.1
+  http: ^1.1.0
   path_provider: ^2.1.2
   package_info_plus: ^8.0.0
   table_calendar: ^3.0.9
+  version: ^3.0.2
+  url_launcher: ^6.2.5
 
 dev_dependencies:
   flutter_test:
