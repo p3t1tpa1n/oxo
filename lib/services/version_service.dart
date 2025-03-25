@@ -6,7 +6,7 @@ import '../config/github_config.dart';
 import 'supabase_service.dart';
 
 class VersionService {
-  static const String currentVersion = '1.0.9';  // À mettre à jour à chaque release
+  static const String currentVersion = '1.1.0';  // À mettre à jour à chaque release
   static const String githubOwner = 'p3t1tpa1n';  // À remplacer par votre nom d'utilisateur GitHub
   static const String githubRepo = 'oxo';  // À remplacer par le nom de votre repo
   static const String githubToken = GitHubConfig.token;
