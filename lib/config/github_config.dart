@@ -1,3 +1,4 @@
 class GitHubConfig {
-  static const String token = String.fromEnvironment('GITHUB_TOKEN');
+  // Token utilisé pour les requêtes à l'API GitHub
+  static const String token = "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";
 } 

@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'services/supabase_service.dart';
-import 'services/update_service.dart';
-import 'widgets/update_dialog.dart';
+import 'services/version_service.dart';
 
 // Import des modèles
 import 'models/profile.dart';
