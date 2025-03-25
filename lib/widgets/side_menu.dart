@@ -9,6 +9,7 @@ class SideMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userRole = SupabaseService.currentUserRole;
+    final bool isAssociate = userRole == UserRole.associe;
 
     return Container(
       width: 250,
@@ -44,13 +45,15 @@ class SideMenu extends StatelessWidget {
             'Timesheet',
             '/timesheet',
           ),
-          const SizedBox(height: 12),
-          _buildMenuButton(
-            context,
-            Icons.group,
-            'Partenaires',
-            '/partners',
-          ),
+          if (!isAssociate) ...[
+            const SizedBox(height: 12),
+            _buildMenuButton(
+              context,
+              Icons.group,
+              'Partenaires',
+              '/partners',
+            ),
+          ],
           const SizedBox(height: 12),
           _buildMenuButton(
             context,
@@ -66,7 +69,56 @@ class SideMenu extends StatelessWidget {
             '/figures',
           ),
           const Spacer(),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: _buildLogoutButton(context),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () async {
+          await SupabaseService.signOut();
+          if (context.mounted) {
+            Navigator.pushReplacementNamed(context, '/login');
+          }
+        },
+        borderRadius: BorderRadius.circular(8),
+        hoverColor: Colors.white.withOpacity(0.15),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.logout,
+                color: Colors.white.withOpacity(0.85),
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Déconnexion',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.85),
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

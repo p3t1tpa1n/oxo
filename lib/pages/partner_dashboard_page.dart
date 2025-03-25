@@ -374,6 +374,45 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                 label: Text('Discussion', style: TextStyle(color: Colors.white)),
               ),
             ],
+            trailing: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
+              child: InkWell(
+                onTap: () async {
+                  await SupabaseService.signOut();
+                  if (mounted) {
+                    Navigator.pushReplacementNamed(context, '/login');
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.logout,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Déconnexion',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
           // Contenu principal
           Expanded(

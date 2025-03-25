@@ -1,6 +1,7 @@
 // lib/widgets/top_bar.dart
 import 'package:flutter/material.dart';
 import '../models/profile.dart';
+import '../services/supabase_service.dart';
 
 class TopBar extends StatelessWidget {
   const TopBar({super.key});
@@ -25,7 +26,7 @@ class TopBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(8),
-                    onTap: () => Navigator.pushReplacementNamed(context, '/dashboard'),
+                    onTap: () => _navigateToRoleDashboard(context),
                     child: const Icon(
                       Icons.home,
                       color: Color(0xFF122b35),
@@ -128,5 +129,16 @@ class TopBar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _navigateToRoleDashboard(BuildContext context) {
+    final userRole = SupabaseService.currentUserRole;
+    if (userRole == UserRole.associe) {
+      // Rediriger vers le tableau de bord des associés
+      Navigator.pushReplacementNamed(context, '/');
+    } else {
+      // Rediriger vers le tableau de bord des partenaires
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    }
   }
 }
