@@ -2,13 +2,14 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:version/version.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../config/github_config.dart';
 import 'supabase_service.dart';
 
 class VersionService {
-  static const String currentVersion = '1.0.';  // À mettre à jour à chaque release
-  static const String githubOwner = 'votre-username';  // À remplacer par votre nom d'utilisateur GitHub
-  static const String githubRepo = 'votre-repo';  // À remplacer par le nom de votre repo
-  static const String githubToken = 'votre-token';  // À remplacer par votre token GitHub
+  static const String currentVersion = '1.0.9';  // À mettre à jour à chaque release
+  static const String githubOwner = 'p3t1tpa1n';  // À remplacer par votre nom d'utilisateur GitHub
+  static const String githubRepo = 'oxo';  // À remplacer par le nom de votre repo
+  static const String githubToken = GitHubConfig.token;
 
   // Pour les tests
   static String? _mockVersion;

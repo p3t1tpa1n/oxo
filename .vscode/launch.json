@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "oxo",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "--dart-define=GITHUB_TOKEN=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"
+            ]
+        }
+    ]
+} 
