@@ -274,6 +274,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
             leading: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const CircleAvatar(
                     radius: 30,
@@ -800,75 +801,116 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
   Widget _buildPlanningPage() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ListView(
         children: [
+          // Calendrier
           Container(
-            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(13),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: CalendarWidget(
-              showTitle: true,
-              title: 'Planning',
-              isExpanded: false,
-              onExpandToggle: null,
-              isTimesheet: false,
-              onDaySelected: (DateTime date) {
-                debugPrint('Date sélectionnée : ${date.toString()}');
-                // TODO: Afficher les tâches du jour sélectionné
-              },
+            child: Column(
+              children: [
+                // Titre du calendrier
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 20, color: Color(0xFF1E3D54)),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Planning',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E3D54),
+                        ),
+                      ),
+                      const Spacer(),
+                      // Bouton optionnel d'expansion (peut être utilisé plus tard)
+                      IconButton(
+                        icon: const Icon(Icons.fullscreen, size: 20, color: Color(0xFF1E3D54)),
+                        onPressed: () {
+                          // TODO: Action d'expansion du calendrier
+                        },
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                // Widget de calendrier
+                CalendarWidget(
+                  showTitle: false, // Le titre est déjà affiché ci-dessus
+                  title: '',
+                  isExpanded: false,
+                  onExpandToggle: null,
+                  isTimesheet: false,
+                  onDaySelected: (DateTime date) {
+                    debugPrint('Date sélectionnée : ${date.toString()}');
+                    // TODO: Afficher les tâches du jour sélectionné
+                  },
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(13),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Tâches du jour',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+          
+          const SizedBox(height: 16),
+          
+          // Tâches du jour
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.task_alt, size: 20, color: Color(0xFF1E3D54)),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Tâches du jour',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E3D54),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: ListView(
-                      children: [
-                        _buildTaskCard(
-                          'Réunion client',
-                          'Présentation du projet',
-                          true,
-                          'Aujourd\'hui',
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildTaskCard(
+                  'Réunion client',
+                  'Présentation du projet',
+                  true,
+                  'Aujourd\'hui',
+                ),
+                const SizedBox(height: 8),
+                _buildTaskCard(
+                  'Mise à jour documentation',
+                  'Mettre à jour les documents du projet',
+                  false,
+                  'À faire',
+                ),
+              ],
             ),
           ),
         ],
@@ -879,8 +921,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
   Widget _buildTimesheetPage() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ListView(
         children: [
           Container(
             width: double.infinity,
@@ -890,7 +931,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(13),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -920,67 +961,67 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
             ),
           ),
           const SizedBox(height: 24),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(13),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Date'),
-                              Text('Mission'),
-                              Text('Heures'),
-                              Text('Status'),
-                            ],
-                          ),
+          Container(
+            height: MediaQuery.of(context).size.height * 0.6,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
                         ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Date'),
+                            Text('Mission'),
+                            Text('Heures'),
+                            Text('Status'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      _buildTimesheetEntry(
+                        date: '12/03/2024',
+                        mission: 'Développement API',
+                        hours: '4h',
+                        status: 'Validé',
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTimesheetEntry(
+                        date: '11/03/2024',
+                        mission: 'Tests unitaires',
+                        hours: '6h',
+                        status: 'En attente',
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: ListView(
-                      children: [
-                        _buildTimesheetEntry(
-                          date: '12/03/2024',
-                          mission: 'Développement API',
-                          hours: '4h',
-                          status: 'Validé',
-                        ),
-                        const SizedBox(height: 8),
-                        _buildTimesheetEntry(
-                          date: '11/03/2024',
-                          mission: 'Tests unitaires',
-                          hours: '6h',
-                          status: 'En attente',
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1030,8 +1071,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
   Widget _buildDiscussionPage() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ListView(
         children: [
           Container(
             width: double.infinity,
@@ -1041,7 +1081,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(13),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -1065,65 +1105,74 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
             ),
           ),
           const SizedBox(height: 24),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(13),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+          Container(
+            height: MediaQuery.of(context).size.height * 0.5,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    reverse: true,
+                    children: [
+                      _buildMessageBubble(
+                        'Bonjour, avez-vous pu avancer sur le dossier client ?',
+                        isMe: false,
+                      ),
+                      _buildMessageBubble(
+                        'Oui, j\'ai terminé la première partie. Je vous envoie le document aujourd\'hui.',
+                        isMe: true,
+                      ),
+                      _buildMessageBubble(
+                        'Parfait, merci !',
+                        isMe: false,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: ListView(
-                      children: [
-                        _buildMessageBubble(
-                          'Bonjour, j\'ai une question concernant la mission de développement API.',
-                          isMe: true,
-                        ),
-                        _buildMessageBubble(
-                          'Bien sûr, je vous écoute.',
-                          isMe: false,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            decoration: const InputDecoration(
-                              hintText: 'Votre message...',
-                              border: InputBorder.none,
-                            ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Écrire un message...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.send),
-                          color: const Color(0xFF1E3D54),
-                          onPressed: () {
-                            // TODO: Envoyer le message
-                          },
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 8),
+                    Container(
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF1E3D54),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        onPressed: () {
+                          // TODO: Envoyer le message
+                        },
+                        icon: const Icon(Icons.send, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],

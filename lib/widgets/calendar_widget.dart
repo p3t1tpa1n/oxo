@@ -259,114 +259,39 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
   }) {
     final bool isWeekend = date?.weekday == DateTime.saturday || date?.weekday == DateTime.sunday;
     
-    if (widget.isTimesheet && isCurrentMonth && date != null) {
-      final dateString = date.toIso8601String().split('T')[0];
-      final hours = _dailyHours[dateString] ?? 0;
-      
-      return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isCurrentMonth ? onTap : null,
+    return InkWell(
+      onTap: isCurrentMonth ? onTap : null,
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF1E3D54).withOpacity(0.8)
+              : isToday
+                  ? const Color(0xFF1E3D54).withOpacity(0.1)
+                  : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? const Color(0xFF007AFF).withOpacity(0.8)
-                  : isToday
-                      ? const Color(0xFFE3F2FD).withOpacity(0.5)
+          border: isCurrentMonth && !isSelected
+              ? Border.all(
+                  color: isToday
+                      ? const Color(0xFF1E3D54).withOpacity(0.5)
                       : Colors.transparent,
-              borderRadius: BorderRadius.circular(4),
-              border: hours > 0
-                  ? Border.all(
-                      color: const Color(0xFF1784af).withOpacity(0.6),
-                      width: 1,
-                    )
-                  : isWeekend
-                      ? Border.all(
-                          color: Colors.grey.shade100,
-                          width: 1,
-                        )
-                      : null,
-            ),
-            child: SizedBox(
-              height: 35,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    day.toString(),
-                    style: TextStyle(
-                      color: isCurrentMonth
-                          ? isSelected
-                              ? Colors.white
-                              : isWeekend
-                                  ? const Color(0xFF999999)
-                                  : const Color(0xFF333333)
-                          : const Color(0xFFCCCCCC),
-                      fontWeight: isToday || isSelected ? FontWeight.w600 : FontWeight.normal,
-                      fontSize: 11,
-                    ),
-                  ),
-                  if (hours > 0) ...[
-                    const SizedBox(height: 2),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: isSelected 
-                            ? Colors.white.withOpacity(0.2) 
-                            : const Color(0xFFE3F2FD).withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        '${hours.toStringAsFixed(1)}h',
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: isSelected 
-                              ? Colors.white 
-                              : const Color(0xFF1784af).withOpacity(0.8),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
+                  width: 0.5,
+                )
+              : null,
         ),
-      );
-    }
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: isCurrentMonth ? onTap : null,
-        borderRadius: BorderRadius.circular(4),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFF007AFF).withOpacity(0.8)
-                : isToday
-                    ? const Color(0xFFE3F2FD).withOpacity(0.5)
-                    : Colors.transparent,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Center(
-            child: Text(
-              day.toString(),
-              style: TextStyle(
-                color: isCurrentMonth
-                    ? isSelected
-                        ? Colors.white
-                        : isWeekend
-                            ? const Color(0xFF999999)
-                            : const Color(0xFF333333)
-                    : const Color(0xFFCCCCCC),
-                fontWeight: isToday || isSelected ? FontWeight.w600 : FontWeight.normal,
-                fontSize: 11,
-              ),
+        child: Center(
+          child: Text(
+            day.toString(),
+            style: TextStyle(
+              color: !isCurrentMonth
+                  ? Colors.grey.withOpacity(0.5)
+                  : isSelected
+                      ? Colors.white
+                      : isWeekend
+                          ? const Color(0xFF666666)
+                          : const Color(0xFF333333),
+              fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+              fontSize: 10,
             ),
           ),
         ),
@@ -376,187 +301,99 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(red: 0, green: 0, blue: 0, alpha: 13),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
+    // Format pour le mois et l'année
+    final monthYear = DateFormat('MMMM yyyy', 'fr_FR').format(_currentMonth);
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
-          child: Column(
-            children: [
-              if (widget.showTitle)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(red: 0, green: 0, blue: 0, alpha: 13),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: IconButton(
-                          icon: const Icon(Icons.chevron_left, color: Color(0xFF007AFF), size: 16),
-                          onPressed: _previousMonth,
-                          padding: EdgeInsets.zero,
-                          splashRadius: 12,
-                          constraints: const BoxConstraints(
-                            minWidth: 24,
-                            minHeight: 24,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (widget.title != null) ...[
-                              Flexible(
-                                flex: 1,
-                                child: Text(
-                                  widget.title,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF333333),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const Text(
-                                ' - ',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.normal,
-                                  color: Color(0xFF333333),
-                                ),
-                              ),
-                            ],
-                            Flexible(
-                              flex: 2,
-                              child: Text(
-                                DateFormat.yMMMM('fr_FR').format(_currentMonth),
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF333333),
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: IconButton(
-                          icon: const Icon(Icons.chevron_right, color: Color(0xFF007AFF), size: 16),
-                          onPressed: _nextMonth,
-                          padding: EdgeInsets.zero,
-                          splashRadius: 12,
-                          constraints: const BoxConstraints(
-                            minWidth: 24,
-                            minHeight: 24,
-                          ),
-                        ),
-                      ),
-                      if (!widget.isExpanded)
-                        SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: IconButton(
-                            icon: const Icon(Icons.open_in_full, color: Color(0xFF007AFF), size: 14),
-                            onPressed: _toggleExpanded,
-                            padding: EdgeInsets.zero,
-                            splashRadius: 12,
-                            constraints: const BoxConstraints(
-                              minWidth: 24,
-                              minHeight: 24,
-                            ),
-                            tooltip: 'Agrandir le calendrier',
-                          ),
-                        ),
-                    ],
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // En-tête du calendrier (mois et contrôles)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                InkWell(
+                  onTap: _previousMonth,
+                  borderRadius: BorderRadius.circular(15),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4.0),
+                    child: Icon(Icons.chevron_left, size: 16, color: Color(0xFF1E3D54)),
                   ),
                 ),
-              Expanded(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 24,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: _weekDays.map((day) => Expanded(
-                            child: Text(
-                              day,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF666666),
-                                fontSize: 12,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          )).toList(),
-                        ),
-                      ),
-                      Expanded(
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            // Calculer l'espace disponible pour la grille
-                            final availableHeight = constraints.maxHeight;
-                            final availableWidth = constraints.maxWidth;
-                            
-                            // Calculer la taille idéale d'une cellule
-                            final cellWidth = availableWidth / 7;
-                            // Ajuster la hauteur des cellules en fonction de l'espace disponible
-                            final cellHeight = availableHeight / 6; // Simplifié pour éviter les calculs qui peuvent causer des erreurs
-                            
-                            return GridView.count(
-                              padding: const EdgeInsets.all(2),
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              crossAxisCount: 7,
-                              mainAxisSpacing: 0,
-                              crossAxisSpacing: 0,
-                              childAspectRatio: cellWidth / cellHeight,
-                              children: _buildCalendarDays(),
-                            );
-                          }
-                        ),
-                      ),
-                    ],
+                Text(
+                  monthYear,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF333333),
                   ),
                 ),
-              ),
-            ],
+                InkWell(
+                  onTap: _nextMonth,
+                  borderRadius: BorderRadius.circular(15),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4.0),
+                    child: Icon(Icons.chevron_right, size: 16, color: Color(0xFF1E3D54)),
+                  ),
+                ),
+              ],
+            ),
           ),
-        );
-      },
+          
+          // Jours de la semaine
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: _weekDays.map((day) => Expanded(
+                child: Text(
+                  day,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF666666),
+                    fontSize: 9,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              )).toList(),
+            ),
+          ),
+          
+          // Grille du calendrier
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              childAspectRatio: 1.2,
+              mainAxisSpacing: 2,
+              crossAxisSpacing: 2,
+            ),
+            itemCount: 35, // 5 semaines de 7 jours
+            itemBuilder: (context, index) {
+              final days = _buildCalendarDays();
+              return index < days.length ? days[index] : Container();
+            },
+          ),
+        ],
+      ),
     );
   }
 } 

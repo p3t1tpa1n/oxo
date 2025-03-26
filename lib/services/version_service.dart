@@ -9,7 +9,7 @@ import 'supabase_service.dart';
 import 'package:flutter/material.dart';
 
 class VersionService {
-  static const String currentVersion = '1.1.1';  // À mettre à jour à chaque release
+  static const String currentVersion = '1.1.2';  // À mettre à jour à chaque release
   static const String githubOwner = 'p3t1tpa1n';  // À remplacer par votre nom d'utilisateur GitHub
   static const String githubRepo = 'oxo';  // À remplacer par le nom de votre repo
   static const String githubToken = GitHubConfig.token;

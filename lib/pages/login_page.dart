@@ -267,11 +267,11 @@ class _LoginPageState extends State<LoginPage> {
               Navigator.pushReplacementNamed(context, '/');
               break;
             case UserRole.partenaire:
-              Navigator.pushReplacementNamed(context, '/dashboard');
+      Navigator.pushReplacementNamed(context, '/dashboard');
               break;
           }
         }
-      } else {
+    } else {
         setState(() {
           _errorMessage = 'Erreur de connexion: Utilisateur non trouvé';
           _isLoading = false;
@@ -306,7 +306,7 @@ class _LoginPageState extends State<LoginPage> {
                 child: SingleChildScrollView(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
-                    child: Column(
+        child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -406,7 +406,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           child: Row(
-                            children: [
+          children: [
                               const Padding(
                                 padding: EdgeInsets.all(12),
                                 child: Icon(
@@ -417,7 +417,7 @@ class _LoginPageState extends State<LoginPage> {
                               Expanded(
                                 child: TextField(
                                   controller: _passwordController,
-                                  obscureText: true,
+              obscureText: true,
                                   decoration: const InputDecoration(
                                     hintText: 'Mot de passe',
                                     border: InputBorder.none,
@@ -442,7 +442,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         const SizedBox(height: 24),
                         // Bouton Connexion
-                        ElevatedButton(
+            ElevatedButton(
                           onPressed: _isLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF1784af),
@@ -474,7 +474,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-              ),
+        ),
       ),
     );
   }
