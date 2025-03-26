@@ -22,6 +22,7 @@ import 'pages/actions_page.dart';
 import 'pages/figures_page.dart';
 import 'pages/calendar_page.dart'; // Import de la page calendrier
 import 'pages/partner_dashboard_page.dart';  // Import de la page de tableau de bord
+import 'pages/timesheet_page.dart';
 
 // lib/main.dart
 void main() async {
@@ -113,6 +114,7 @@ class _MainAppState extends State<MainApp> {
         '/actions': (context) => const ActionsPage(),
         '/figures': (context) => const FiguresPage(),
         '/calendar': (context) => const CalendarPage(),
+        '/timesheet': (context) => const TimesheetPage(),
       },
     );
   }

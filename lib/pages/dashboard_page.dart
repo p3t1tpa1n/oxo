@@ -144,6 +144,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final projectDescriptionController = TextEditingController();
     DateTime? selectedDate;
     String? selectedProject;
+    String? selectedPartnerId;
     bool isCreatingNewProject = false;
 
     try {
@@ -275,6 +276,45 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  FutureBuilder<List<Map<String, dynamic>>>(
+                    future: SupabaseService.getPartners(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const CircularProgressIndicator();
+                      }
+                      
+                      if (snapshot.hasError) {
+                        return Text('Erreur: ${snapshot.error}');
+                      }
+                      
+                      final partners = snapshot.data ?? [];
+                      
+                      return DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: 'Attribuer à un partenaire',
+                          border: OutlineInputBorder(),
+                          helperText: 'Facultatif - Laissez vide pour attribution automatique',
+                        ),
+                        value: selectedPartnerId,
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: null,
+                            child: Text('Attribution automatique'),
+                          ),
+                          ...partners.map((partner) => DropdownMenuItem<String>(
+                            value: partner['user_id'],
+                            child: Text(partner['user_email'] ?? 'Partenaire sans email'),
+                          )).toList(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            selectedPartnerId = value;
+                          });
+                        },
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -324,6 +364,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           'status': 'todo',
                           'project_id': projectId,
                           'user_id': SupabaseService.currentUser!.id,
+                          'partner_id': selectedPartnerId,
                         });
                     
                     if (!mounted) return;
@@ -786,12 +827,6 @@ class _DashboardPageState extends State<DashboardPage> {
       (task) => task['title'] == title && 
                 task['description'] == description && 
                 DateTime.parse(task['due_date']).isAtSameMomentAs(dueDate),
-      orElse: () => {
-        'title': title,
-        'description': description,
-        'due_date': dueDate.toIso8601String(),
-        'status': isDone ? 'done' : 'todo',
-      },
     );
 
     return Draggable<Map<String, dynamic>>(

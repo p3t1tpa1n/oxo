@@ -304,95 +304,97 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
     // Format pour le mois et l'année
     final monthYear = DateFormat('MMMM yyyy', 'fr_FR').format(_currentMonth);
     
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // En-tête du calendrier (mois et contrôles)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+    return SingleChildScrollView(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                InkWell(
-                  onTap: _previousMonth,
-                  borderRadius: BorderRadius.circular(15),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4.0),
-                    child: Icon(Icons.chevron_left, size: 16, color: Color(0xFF1E3D54)),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // En-tête du calendrier (mois et contrôles)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  InkWell(
+                    onTap: _previousMonth,
+                    borderRadius: BorderRadius.circular(15),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4.0),
+                      child: Icon(Icons.chevron_left, size: 16, color: Color(0xFF1E3D54)),
+                    ),
                   ),
-                ),
-                Text(
-                  monthYear,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF333333),
+                  Text(
+                    monthYear,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF333333),
+                    ),
                   ),
-                ),
-                InkWell(
-                  onTap: _nextMonth,
-                  borderRadius: BorderRadius.circular(15),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4.0),
-                    child: Icon(Icons.chevron_right, size: 16, color: Color(0xFF1E3D54)),
+                  InkWell(
+                    onTap: _nextMonth,
+                    borderRadius: BorderRadius.circular(15),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4.0),
+                      child: Icon(Icons.chevron_right, size: 16, color: Color(0xFF1E3D54)),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          
-          // Jours de la semaine
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: _weekDays.map((day) => Expanded(
-                child: Text(
-                  day,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF666666),
-                    fontSize: 9,
+            
+            // Jours de la semaine
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: _weekDays.map((day) => Expanded(
+                  child: Text(
+                    day,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF666666),
+                      fontSize: 9,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              )).toList(),
+                )).toList(),
+              ),
             ),
-          ),
-          
-          // Grille du calendrier
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              childAspectRatio: 1.2,
-              mainAxisSpacing: 2,
-              crossAxisSpacing: 2,
+            
+            // Grille du calendrier
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                childAspectRatio: 1.2,
+                mainAxisSpacing: 2,
+                crossAxisSpacing: 2,
+              ),
+              itemCount: 35, // 5 semaines de 7 jours
+              itemBuilder: (context, index) {
+                final days = _buildCalendarDays();
+                return index < days.length ? days[index] : Container();
+              },
             ),
-            itemCount: 35, // 5 semaines de 7 jours
-            itemBuilder: (context, index) {
-              final days = _buildCalendarDays();
-              return index < days.length ? days[index] : Container();
-            },
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

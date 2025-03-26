@@ -106,80 +106,55 @@ class _LoginPageState extends State<LoginPage> {
               Navigator.of(context).pop(); // Fermer la boîte de dialogue
               
               // Afficher un dialogue de progression avec option d'annulation
-              final completer = _showProgressDialogWithCancel('Téléchargement et installation en cours...');
+              final completer = _showProgressDialogWithCancel('Préparation de la mise à jour...');
               
-              // Télécharger et installer la mise à jour avec un délai maximum
-              bool success = false;
               try {
-                success = await VersionService.downloadAndInstallUpdate(downloadUrl)
-                    .timeout(const Duration(minutes: 2));
-              } catch (e) {
-                debugPrint('Erreur lors du téléchargement: $e');
-                success = false;
-              }
-              
-              // Fermer le dialogue de progression si toujours affiché
-              if (!completer.isCompleted && mounted) {
-                completer.complete();
-                Navigator.of(context).pop();
-              }
-              
-              if (success) {
+                // Au lieu de télécharger automatiquement, on lance simplement le navigateur
+                final url = Uri.parse(downloadUrl);
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+                
+                // Fermer le dialogue de progression
+                if (!completer.isCompleted && mounted) {
+                  completer.complete();
+                  Navigator.of(context).pop();
+                }
+                
                 if (mounted) {
-                  // Montrer un message de succès
+                  // Montrer un message
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Mise à jour installée. Veuillez redémarrer l\'application.'),
+                      content: Text('Le téléchargement a été lancé dans votre navigateur'),
                       backgroundColor: Colors.green,
                     ),
                   );
-                  // Si la mise à jour est obligatoire, quitter l'application
+                  
+                  // Si la mise à jour est obligatoire, déconnecter l'utilisateur
                   if (isMandatory) {
-                    // Attendre un peu pour que l'utilisateur voie le message
                     await Future.delayed(const Duration(seconds: 3));
-                    // Quitter l'application
                     SupabaseService.signOut();
                   }
                 }
-              } else {
+              } catch (e) {
+                debugPrint('Erreur lors du lancement du téléchargement: $e');
+                
+                // Fermer le dialogue de progression si toujours affiché
+                if (!completer.isCompleted && mounted) {
+                  completer.complete();
+                  Navigator.of(context).pop();
+                }
+                
                 if (mounted) {
-                  // Proposer d'ouvrir le lien de téléchargement dans le navigateur
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Échec de la mise à jour automatique'),
-                      content: const Text(
-                        'Le téléchargement ou l\'installation automatique a échoué. '
-                        'Voulez-vous télécharger manuellement la mise à jour dans votre navigateur ?'
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            setState(() {
-                              _isLoading = false;
-                            });
-                          },
-                          child: const Text('Annuler'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () async {
-                            Navigator.of(context).pop();
-                            final url = Uri.parse(downloadUrl);
-                            await launchUrl(url, mode: LaunchMode.externalApplication);
-                            setState(() {
-                              _isLoading = false;
-                            });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1E3D54),
-                          ),
-                          child: const Text('Télécharger manuellement'),
-                        ),
-                      ],
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur: ${e.toString()}'),
+                      backgroundColor: Colors.red,
                     ),
                   );
                 }
+              } finally {
+                setState(() {
+                  _isLoading = false;
+                });
               }
             },
             style: ElevatedButton.styleFrom(

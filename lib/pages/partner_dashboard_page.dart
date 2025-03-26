@@ -166,7 +166,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
               role
             )
           ''')
-          .or('user_id.eq.${SupabaseService.currentUser!.id}')
+          .or('user_id.eq.${SupabaseService.currentUser!.id},partner_id.eq.${SupabaseService.currentUser!.id},assigned_to.eq.${SupabaseService.currentUser!.id}')
           .order('created_at', ascending: false);
 
       debugPrint('_loadTasks: Réponse reçue');
@@ -288,61 +288,6 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                       color: Colors.white.withOpacity(0.9),
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  // Bouton de test pour les mises à jour
-                  const SizedBox(height: 16),
-                  PopupMenuButton<String>(
-                    onSelected: (String version) async {
-                      VersionService.setMockVersion(version);
-                      await _checkForUpdates();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Test de mise à jour lancé'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                    },
-                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                      const PopupMenuItem<String>(
-                        value: '1.0.0',
-                        child: Text('Tester version égale (1.0.0)'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: '2.0.0',
-                        child: Text('Tester nouvelle version (2.0.0)'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: '0.9.0',
-                        child: Text('Tester ancienne version (0.9.0)'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'test',
-                        child: Text('Lancer tous les tests'),
-                      ),
-                    ],
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.bug_report, color: Colors.white, size: 16),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Tester MàJ',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ],
@@ -1688,12 +1633,13 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
   Future<void> _checkForUpdates() async {
     try {
       final updateInfo = await VersionService.checkForUpdates();
-      if (updateInfo != null && mounted) {
+      
+      if (updateInfo != null && updateInfo['updateAvailable'] == true && mounted) {
         _showUpdateDialog(
-          updateInfo['latest_version'],
-          updateInfo['changelog'],
-          updateInfo['download_url'],
-          updateInfo['is_mandatory'],
+          updateInfo['latestVersion'],
+          updateInfo['releaseNotes'],
+          updateInfo['downloadUrl'],
+          updateInfo['isMandatory'],
         );
       }
     } catch (e) {
