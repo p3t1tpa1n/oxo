@@ -18,21 +18,105 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Application de gestion OXO pour les partenaires et associés.">
 
+  <!-- PWA meta tags -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1E3D54">
+  <meta name="apple-touch-fullscreen" content="yes">
+  
   <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="oxo">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OXO">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  
+  <!-- iPhone Xs Max (1242px x 2688px) -->
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="icons/apple-splash-1242-2688.png">
+  <!-- iPhone Xr (828px x 1792px) -->
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="icons/apple-splash-828-1792.png">
+  <!-- iPhone X, Xs (1125px x 2436px) -->
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="icons/apple-splash-1125-2436.png">
+  <!-- iPhone 8 Plus, 7 Plus, 6s Plus, 6 Plus (1242px x 2208px) -->
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="icons/apple-splash-1242-2208.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="shortcut icon" type="image/png" href="favicon.png"/>
 
-  <title>oxo</title>
+  <title>OXO</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      background-color: #1E3D54;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+
+    .center {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      width: 100%;
+    }
+
+    .loader {
+      width: 100px;
+      height: 100px;
+      border-radius: 16px;
+      background-color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .loader span {
+      color: #1E3D54;
+      font-family: Arial, sans-serif;
+      font-size: 24px;
+      font-weight: bold;
+    }
+  </style>
+
+  <script>
+    // Service worker registration for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('flutter-first-frame', function () {
+        navigator.serviceWorker.register('flutter_service_worker.js');
+      });
+    }
+    
+    // Prevent pinch zoom on touch devices
+    document.addEventListener('touchmove', function (event) {
+      if (event.scale !== 1) { event.preventDefault(); }
+    }, { passive: false });
+  </script>
 </head>
 <body>
+  <!-- Loading screen -->
+  <div id="loading" class="center">
+    <div class="loader">
+      <span>OXO</span>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        var loadingElement = document.getElementById('loading');
+        if (loadingElement) {
+          loadingElement.remove();
+        }
+      }, 2000);
+    });
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

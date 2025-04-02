@@ -1,94 +1,55 @@
 import 'package:flutter/material.dart';
-import '../widgets/side_menu.dart';
 import '../widgets/top_bar.dart';
+import '../widgets/side_menu.dart';
 
-class TimesheetPage extends StatefulWidget {
+class TimesheetPage extends StatelessWidget {
   const TimesheetPage({super.key});
 
   @override
-  State<TimesheetPage> createState() => _TimesheetPageState();
-}
-
-class _TimesheetPageState extends State<TimesheetPage> {
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF122b35),
-      body: SafeArea(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            minWidth: 1200,
-            minHeight: 800,
-          ),
-          child: Column(
-            children: [
-              SizedBox(
-                height: 56,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Expanded(child: TopBar()),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SideMenu(),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: const Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Timesheet',
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF122b35),
-                                    ),
-                                  ),
-                                  SizedBox(height: 16),
-                                  Text(
-                                    'Cette page est en cours de développement.',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Color(0xFF666666),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+      body: Row(
+        children: [
+          const SideMenu(selectedRoute: '/timesheet'),
+          Expanded(
+            child: Column(
+              children: [
+                const TopBar(title: 'Feuille de temps'),
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.access_time,
+                          size: 64,
+                          color: Color(0xFF1E3D54),
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Fonctionnalité en développement',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E3D54),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Cette page sera bientôt disponible.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -4,7 +4,12 @@ import '../widgets/chat_widget.dart';
 import '../services/supabase_service.dart';
 
 class SideMenu extends StatelessWidget {
-  const SideMenu({super.key});
+  final String selectedRoute;
+  
+  const SideMenu({
+    super.key,
+    this.selectedRoute = '/',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,14 +27,16 @@ class SideMenu extends StatelessWidget {
             Icons.person,
             'Fiche Associé',
             '/associate',
+            isSelected: selectedRoute == '/associate',
           ),
           const SizedBox(height: 12),
           _buildMenuButton(
             context,
             Icons.dashboard,
             'Dashboard',
-            '/',
-            isSelected: true,
+            isAssociate ? '/' : '/dashboard',
+            isSelected: (isAssociate && selectedRoute == '/') || 
+                        (!isAssociate && selectedRoute == '/dashboard'),
           ),
           const SizedBox(height: 12),
           _buildMenuButton(
@@ -37,6 +44,7 @@ class SideMenu extends StatelessWidget {
             Icons.calendar_month,
             'Planning',
             '/planning',
+            isSelected: selectedRoute == '/planning',
           ),
           const SizedBox(height: 12),
           _buildMenuButton(
@@ -44,6 +52,7 @@ class SideMenu extends StatelessWidget {
             Icons.access_time,
             'Timesheet',
             '/timesheet',
+            isSelected: selectedRoute == '/timesheet',
           ),
           if (!isAssociate) ...[
             const SizedBox(height: 12),
@@ -52,6 +61,7 @@ class SideMenu extends StatelessWidget {
               Icons.group,
               'Partenaires',
               '/partners',
+              isSelected: selectedRoute == '/partners',
             ),
           ],
           const SizedBox(height: 12),
@@ -60,6 +70,7 @@ class SideMenu extends StatelessWidget {
             Icons.business_center,
             'Actions Commerciales',
             '/actions',
+            isSelected: selectedRoute == '/actions',
           ),
           const SizedBox(height: 12),
           _buildMenuButton(
@@ -67,6 +78,7 @@ class SideMenu extends StatelessWidget {
             Icons.insert_chart,
             'Chiffres Entreprise',
             '/figures',
+            isSelected: selectedRoute == '/figures',
           ),
           const Spacer(),
           Padding(

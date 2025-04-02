@@ -15,96 +15,46 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   List<Map<String, dynamic>> _tasks = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _loadTasks();
-    _createTestProjectIfNeeded();
+    _loadEvents();
   }
 
   Future<void> _loadTasks() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
     try {
-      final response = await SupabaseService.client
-          .from('tasks')
-          .select()
-          .eq('user_id', SupabaseService.currentUser!.id)
-          .order('created_at', ascending: false);
+      final response = await SupabaseService.fetchTasks();
       
-      setState(() {
-        _tasks = List<Map<String, dynamic>>.from(response.map((task) => {
-          ...task,
-          'isDone': task['status'] == 'done',
-        }));
-      });
+      if (mounted) {
+        setState(() {
+          _tasks = response.map((task) => task as Map<String, dynamic>).toList();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint('Erreur lors du chargement des tâches: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  Future<void> _createTestProjectIfNeeded() async {
-    if (!mounted) return;
-    final localContext = context;
-    try {
-      final projects = await SupabaseService.client
-          .from('projects')
-          .select()
-          .limit(1);
-
-      if (projects.isEmpty) {
-        final projectResponse = await SupabaseService.client
-            .from('projects')
-            .insert({
-              'name': 'Projet Test',
-              'description': 'Un projet de test',
-              'status': 'en_cours',
-              'start_date': DateTime.now().toIso8601String(),
-              'end_date': DateTime.now().add(const Duration(days: 30)).toIso8601String(),
-              'created_at': DateTime.now().toIso8601String(),
-              'updated_at': DateTime.now().toIso8601String(),
-            })
-            .select()
-            .single();
-
-        await SupabaseService.client
-            .from('tasks')
-            .insert([
-              {
-                'title': 'Tâche 1',
-                'description': 'Description de la tâche 1',
-                'status': 'todo',
-                'due_date': DateTime.now().add(const Duration(days: 7)).toIso8601String(),
-                'project_id': projectResponse['id'],
-                'user_id': SupabaseService.currentUser!.id,
-                'created_at': DateTime.now().toIso8601String(),
-                'updated_at': DateTime.now().toIso8601String(),
-              },
-              {
-                'title': 'Tâche 2',
-                'description': 'Description de la tâche 2',
-                'status': 'in_progress',
-                'due_date': DateTime.now().add(const Duration(days: 14)).toIso8601String(),
-                'project_id': projectResponse['id'],
-                'user_id': SupabaseService.currentUser!.id,
-                'created_at': DateTime.now().toIso8601String(),
-                'updated_at': DateTime.now().toIso8601String(),
-              }
-            ]);
-
-        if (mounted) {
-          ScaffoldMessenger.of(localContext).showSnackBar(
-            const SnackBar(content: Text('Projet et tâches de test créés avec succès')),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Erreur lors de la création des données de test: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(localContext).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la création des données de test: ${e.toString()}')),
-        );
-      }
-    }
+  Future<void> _loadEvents() async {
+    // Cette méthode charge les événements du calendrier
+    // Pour l'instant, elle est vide car nous n'avons pas encore implémenté le calendrier
+    debugPrint('Chargement des événements du calendrier...');
+    // Implémentation à venir
   }
 
   Future<void> _updateTaskStatus(Map<String, dynamic> taskData, String newStatus) async {
@@ -585,7 +535,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                       task['title'],
                                       task['description'],
                                       DateTime.parse(task['due_date']),
-                                      isDone: task['isDone'],
+                                      isDone: task['isDone'] ?? false,
                                     ),
                                     const SizedBox(height: 8),
                                   ],
@@ -654,7 +604,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                       task['title'],
                                       task['description'],
                                       DateTime.parse(task['due_date']),
-                                      isDone: task['isDone'],
+                                      isDone: task['isDone'] ?? false,
                                     ),
                                     const SizedBox(height: 8),
                                   ],
@@ -723,7 +673,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                       task['title'],
                                       task['description'],
                                       DateTime.parse(task['due_date']),
-                                      isDone: task['isDone'],
+                                      isDone: task['isDone'] ?? false,
                                     ),
                                     const SizedBox(height: 8),
                                   ],

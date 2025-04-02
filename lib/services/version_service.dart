@@ -21,20 +21,21 @@ class VersionService {
           .limit(1)
           .single();
       
-      final latestVersion = response['version'] as String;
-      final minVersion = response['min_version'] as String;
-      final downloadUrl = response['download_url'] as String;
-      final releaseNotes = response['release_notes'] as String;
-      final isMandatory = response['is_mandatory'] as bool;
+      // Vérification des valeurs nulles et conversion
+      final latestVersion = response['version'] as String? ?? currentVersion;
+      final minVersion = response['min_version'] as String? ?? '0.0.1';
+      final downloadUrl = response['download_url'] as String? ?? '';
+      final releaseNotes = response['release_notes'] as String? ?? 'Aucune note de version disponible';
+      final isMandatory = response['is_mandatory'] as bool? ?? false;
       
       // Si la version actuelle est inférieure à la version minimale, mise à jour obligatoire
       if (_compareVersions(currentVersion, minVersion) < 0) {
         return {
           'updateAvailable': true,
           'isMandatory': true,
-          'latestVersion': latestVersion,
-          'downloadUrl': downloadUrl,
-          'releaseNotes': releaseNotes,
+          'latest_version': latestVersion,
+          'download_url': downloadUrl,
+          'changelog': releaseNotes,
         };
       }
       
@@ -43,16 +44,14 @@ class VersionService {
         return {
           'updateAvailable': true,
           'isMandatory': isMandatory,
-          'latestVersion': latestVersion,
-          'downloadUrl': downloadUrl,
-          'releaseNotes': releaseNotes,
+          'latest_version': latestVersion,
+          'download_url': downloadUrl,
+          'changelog': releaseNotes,
         };
       }
       
       // Pas de mise à jour nécessaire
-      return {
-        'updateAvailable': false,
-      };
+      return null;
     } catch (e) {
       debugPrint('Erreur lors de la vérification des mises à jour : $e');
       return null;

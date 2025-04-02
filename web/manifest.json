@@ -1,13 +1,34 @@
 {
-    "name": "oxo",
-    "short_name": "oxo",
+    "name": "OXO",
+    "short_name": "OXO",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#1E3D54",
+    "theme_color": "#1E3D54",
+    "description": "Application de gestion OXO",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
+    "shortcuts": [
+        {
+            "name": "Dashboard",
+            "url": "/?page=dashboard",
+            "description": "Accès rapide au tableau de bord"
+        },
+        {
+            "name": "Tâches",
+            "url": "/?page=tasks",
+            "description": "Voir vos tâches en cours"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "screenshots/dashboard.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "platform": "wide",
+            "label": "Tableau de bord OXO"
+        }
+    ],
     "icons": [
         {
             "src": "icons/Icon-192.png",

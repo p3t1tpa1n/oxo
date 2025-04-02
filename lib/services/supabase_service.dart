@@ -1,6 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/foundation.dart';
 
 enum UserRole {
   associe,
@@ -10,27 +10,43 @@ enum UserRole {
 class SupabaseService {
   static SupabaseClient? _client;
   static UserRole? _currentUserRole;
-  
+
   static Future<void> initialize() async {
     try {
-      debugPrint('Chargement du fichier .env...');
-      await dotenv.load();
-      
-      final url = dotenv.env['SUPABASE_URL'];
-      final anonKey = dotenv.env['SUPABASE_ANON_KEY'];
-      
+      final bool isWeb = kIsWeb;
+
+      String? url;
+      String? anonKey;
+
+      if (isWeb) {
+        url = const String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+        anonKey = const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+        
+        if (url.isEmpty || anonKey.isEmpty) {
+          throw Exception('Les variables d\'environnement SUPABASE_URL et SUPABASE_ANON_KEY sont requises pour la version web');
+        }
+      } else {
+        debugPrint('Chargement du fichier .env...');
+        await dotenv.load();
+        url = dotenv.env['SUPABASE_URL'];
+        anonKey = dotenv.env['SUPABASE_ANON_KEY'];
+        
+        if (url == null || anonKey == null) {
+          throw Exception('Les variables SUPABASE_URL et SUPABASE_ANON_KEY sont manquantes dans le fichier .env');
+        }
+      }
+
       debugPrint('URL Supabase: $url');
-      debugPrint('Clé anonyme chargée: ${anonKey?.substring(0, 10)}...');
-      
+      debugPrint('Clé anonyme chargée: ${anonKey.substring(0, 10)}...');
+
       await Supabase.initialize(
-        url: url!,
-        anonKey: anonKey!,
+        url: url,
+        anonKey: anonKey,
       );
-      
+
       _client = Supabase.instance.client;
       debugPrint('Client Supabase initialisé avec succès');
 
-      // Vérifier l'état de la session au démarrage
       final session = _client?.auth.currentSession;
       if (session != null) {
         debugPrint('Session existante trouvée');
@@ -44,7 +60,7 @@ class SupabaseService {
       rethrow;
     }
   }
-  
+
   static SupabaseClient get client {
     if (_client == null) {
       throw Exception('Supabase client not initialized');
@@ -60,8 +76,7 @@ class SupabaseService {
       }
 
       debugPrint('getCurrentUserRole: Récupération du rôle pour l\'utilisateur ${currentUser!.id}');
-      final List<dynamic> response = await client
-          .rpc('get_users');
+      final List<dynamic> response = await client.rpc('get_users');
 
       debugPrint('getCurrentUserRole: Réponse reçue: $response');
 
@@ -115,7 +130,6 @@ class SupabaseService {
     }
   }
 
-  // Méthode pour l'authentification modifiée pour inclure le rôle
   static Future<AuthResponse> signIn({
     required String email,
     required String password,
@@ -138,7 +152,6 @@ class SupabaseService {
     }
   }
 
-  // Méthode pour la déconnexion modifiée
   static Future<void> signOut() async {
     try {
       debugPrint('Tentative de déconnexion...');
@@ -151,7 +164,6 @@ class SupabaseService {
     }
   }
 
-  // Méthode pour vérifier l'état de la session
   static bool get isAuthenticated {
     final session = client.auth.currentSession;
     final isValid = session != null && !session.isExpired;
@@ -159,49 +171,61 @@ class SupabaseService {
     return isValid;
   }
 
-  // Méthode pour obtenir l'utilisateur courant
   static User? get currentUser {
     return client.auth.currentUser;
   }
 
-  // Exemple de méthode pour récupérer des données
   static Future<List<Map<String, dynamic>>> fetchTasks() async {
-    final response = await client
-      .from('tasks')
-      .select()
-      .order('created_at', ascending: false);
-    
-    return List<Map<String, dynamic>>.from(response);
+    try {
+      final response = await client
+        .from('tasks')
+        .select()
+        .order('created_at', ascending: false);
+      
+      if (response == null) {
+        return [];
+      }
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des tâches: $e');
+      return [];
+    }
   }
 
-  // Exemple de méthode pour insérer des données
   static Future<void> insertTask(Map<String, dynamic> taskData) async {
-    await client
-      .from('tasks')
-      .insert(taskData);
+    try {
+      await client.from('tasks').insert(taskData);
+    } catch (e) {
+      debugPrint('Erreur lors de l\'insertion de la tâche: $e');
+      rethrow;
+    }
   }
 
-  // Exemple de méthode pour mettre à jour des données
   static Future<void> updateTask(int taskId, Map<String, dynamic> updates) async {
-    await client
-      .from('tasks')
-      .update(updates)
-      .eq('id', taskId);
+    try {
+      await client.from('tasks').update(updates).eq('id', taskId);
+    } catch (e) {
+      debugPrint('Erreur lors de la mise à jour de la tâche: $e');
+      rethrow;
+    }
   }
 
-  // Exemple de méthode pour supprimer des données
   static Future<void> deleteTask(int taskId) async {
-    await client
-      .from('tasks')
-      .delete()
-      .eq('id', taskId);
+    try {
+      await client.from('tasks').delete().eq('id', taskId);
+    } catch (e) {
+      debugPrint('Erreur lors de la suppression de la tâche: $e');
+      rethrow;
+    }
   }
 
   static Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
-      final List<dynamic> response = await client
-          .rpc('get_users');
-      
+      final List<dynamic> response = await client.rpc('get_users');
+      if (response == null || response.isEmpty) {
+        return null;
+      }
       return response.firstWhere(
         (user) => user['user_id'] == userId,
         orElse: () => null,
@@ -214,9 +238,10 @@ class SupabaseService {
 
   static Future<List<Map<String, dynamic>>> getPartners() async {
     try {
-      final List<dynamic> response = await client
-          .rpc('get_users');
-      
+      final List<dynamic> response = await client.rpc('get_users');
+      if (response == null) {
+        return [];
+      }
       return List<Map<String, dynamic>>.from(
         response.where((user) => user['user_role'] == 'partenaire')
       );
@@ -225,4 +250,4 @@ class SupabaseService {
       return [];
     }
   }
-} 
+}

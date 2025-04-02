@@ -48,7 +48,7 @@ class _LoginPageState extends State<LoginPage> {
           updateInfo['latest_version'],
           updateInfo['changelog'],
           updateInfo['download_url'],
-          updateInfo['is_mandatory'],
+          updateInfo['isMandatory'],
         );
       } else {
         debugPrint('LoginPage: Aucune mise à jour disponible');
@@ -64,145 +64,116 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _showUpdateDialog(String version, String? changelog, String downloadUrl, bool isMandatory) {
+  void _showUpdateDialog(String version, String changelog, String downloadUrl, bool isMandatory) {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: !isMandatory,
       builder: (context) => AlertDialog(
-        title: Text('Nouvelle version disponible (v$version)'),
+        title: Text('Mise à jour disponible (v$version)'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isMandatory 
-                  ? 'Une mise à jour obligatoire est disponible.'
-                  : 'Une nouvelle version de l\'application est disponible.',
+                isMandatory
+                    ? 'Une mise à jour obligatoire est disponible. Veuillez mettre à jour pour continuer.'
+                    : 'Une nouvelle version est disponible. Souhaitez-vous la télécharger ?',
               ),
-              if (changelog != null) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'Nouveautés :',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(changelog),
-              ],
+              const SizedBox(height: 16),
+              const Text(
+                'Notes de version:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(changelog),
             ],
           ),
         ),
         actions: [
           if (!isMandatory)
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
               child: const Text('Plus tard'),
             ),
           ElevatedButton(
             onPressed: () async {
-              setState(() {
-                _isLoading = true;
-              });
-              Navigator.of(context).pop(); // Fermer la boîte de dialogue
+              Navigator.of(context).pop();
               
-              // Afficher un dialogue de progression avec option d'annulation
-              final completer = _showProgressDialogWithCancel('Préparation de la mise à jour...');
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (BuildContext context) {
+                  return const AlertDialog(
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Préparation de la mise à jour...'),
+                      ],
+                    ),
+                  );
+                },
+              );
               
               try {
-                // Au lieu de télécharger automatiquement, on lance simplement le navigateur
-                final url = Uri.parse(downloadUrl);
+                final Uri url = Uri.parse(downloadUrl);
+                
+                // Ouvrir l'URL de téléchargement dans le navigateur
                 await launchUrl(url, mode: LaunchMode.externalApplication);
                 
-                // Fermer le dialogue de progression
-                if (!completer.isCompleted && mounted) {
-                  completer.complete();
-                  Navigator.of(context).pop();
-                }
-                
                 if (mounted) {
-                  // Montrer un message
+                  Navigator.of(context).pop(); // Fermer la boîte de dialogue de progression
+                  
+                  // Afficher une confirmation
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Le téléchargement a été lancé dans votre navigateur'),
-                      backgroundColor: Colors.green,
+                      content: Text('Téléchargement lancé dans votre navigateur'),
+                      duration: Duration(seconds: 3),
                     ),
                   );
                   
                   // Si la mise à jour est obligatoire, déconnecter l'utilisateur
-                  if (isMandatory) {
-                    await Future.delayed(const Duration(seconds: 3));
-                    SupabaseService.signOut();
+                  if (isMandatory && mounted) {
+                    // Attendre un moment avant de déconnecter
+                    Future.delayed(const Duration(seconds: 3), () async {
+                      await SupabaseService.signOut();
+                      if (mounted) {
+                        Navigator.pushReplacementNamed(context, '/login');
+                      }
+                    });
                   }
                 }
               } catch (e) {
-                debugPrint('Erreur lors du lancement du téléchargement: $e');
-                
-                // Fermer le dialogue de progression si toujours affiché
-                if (!completer.isCompleted && mounted) {
-                  completer.complete();
-                  Navigator.of(context).pop();
-                }
-                
+                debugPrint('Erreur lors du lancement de l\'URL: $e');
                 if (mounted) {
+                  Navigator.of(context).pop(); // Fermer la boîte de dialogue de progression
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Erreur: ${e.toString()}'),
+                      content: Text('Erreur lors du téléchargement: $e'),
                       backgroundColor: Colors.red,
                     ),
                   );
                 }
               } finally {
-                setState(() {
-                  _isLoading = false;
-                });
+                // Réinitialiser l'état de chargement
+                if (mounted) {
+                  setState(() {
+                    _isLoading = false;
+                  });
+                }
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E3D54),
-            ),
-            child: const Text('Mettre à jour maintenant'),
+            child: const Text('Télécharger'),
           ),
         ],
       ),
     );
-  }
-  
-  // Affiche un dialogue de progression avec un bouton d'annulation
-  Completer _showProgressDialogWithCancel(String message) {
-    final completer = Completer();
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => WillPopScope(
-        onWillPop: () async => false,
-        child: AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text(message),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  if (!completer.isCompleted) {
-                    completer.complete();
-                    Navigator.of(context).pop();
-                    setState(() {
-                      _isLoading = false;
-                    });
-                  }
-                },
-                child: const Text('Annuler'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    
-    return completer;
   }
 
   Future<void> _login() async {
@@ -279,133 +250,104 @@ class _LoginPageState extends State<LoginPage> {
               )
             : Center(
                 child: SingleChildScrollView(
-                  child: Padding(
+                  child: Container(
                     padding: const EdgeInsets.all(24.0),
-        child: Column(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Logo
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              'assets/oxo_logo.png',
-                              height: 80,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.business,
-                                      size: 80,
-                                      color: Color(0xFF122b35),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'OXO',
-                                      style: TextStyle(
-                                        fontSize: 48,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF122b35),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
+                        // Logo et titre
+                        Center(
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E3D54),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 48),
-                        const Text(
-                          'Bienvenue',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF122b35),
+                            child: const Center(
+                              child: Text(
+                                "OXO",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 24,
+                                ),
+                              ),
+                            ),
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 32),
                         const Text(
-                          'Veuillez entrer vos identifiants',
+                          'Connexion',
                           style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E3D54),
                           ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 32),
-                        // Champ Email
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.grey[50],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.grey[300]!,
-                              width: 1,
+                        
+                        // Champ d'email
+                        TextField(
+                          controller: _emailController,
+                          decoration: InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: const Icon(Icons.email),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFDDDDDD),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3D54),
+                                width: 2,
+                              ),
                             ),
                           ),
-                          child: Row(
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.all(12),
-                                child: Icon(
-                                  Icons.email_outlined,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  controller: _emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Email',
-                                    border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 8),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                          keyboardType: TextInputType.emailAddress,
                         ),
                         const SizedBox(height: 16),
-                        // Champ Password
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.grey[50],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.grey[300]!,
-                              width: 1,
+                        
+                        // Champ de mot de passe
+                        TextField(
+                          controller: _passwordController,
+                          decoration: InputDecoration(
+                            labelText: 'Mot de passe',
+                            prefixIcon: const Icon(Icons.lock),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFDDDDDD),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3D54),
+                                width: 2,
+                              ),
                             ),
                           ),
-                          child: Row(
-          children: [
-                              const Padding(
-                                padding: EdgeInsets.all(12),
-                                child: Icon(
-                                  Icons.lock_outline,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  controller: _passwordController,
-              obscureText: true,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Mot de passe',
-                                    border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 8),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                          obscureText: true,
                         ),
+                        const SizedBox(height: 8),
+                        
+                        // Message d'erreur
                         if (_errorMessage.isNotEmpty)
                           Padding(
-                            padding: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
                             child: Text(
                               _errorMessage,
                               style: const TextStyle(
@@ -416,40 +358,64 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         const SizedBox(height: 24),
-                        // Bouton Connexion
-            ElevatedButton(
-                          onPressed: _isLoading ? null : _login,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1784af),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Text(
-                                'Se connecter',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+                        
+                        // Bouton de connexion
+                        SizedBox(
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _login,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E3D54),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'SE CONNECTER',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Lien de récupération
+                        TextButton(
+                          onPressed: () {
+                            // TODO: Implémenter la récupération de mot de passe
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Fonctionnalité à venir'),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Mot de passe oublié?',
+                            style: TextStyle(
+                              color: Color(0xFF1E3D54),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
-        ),
+              ),
       ),
     );
   }

@@ -4,7 +4,12 @@ import '../models/profile.dart';
 import '../services/supabase_service.dart';
 
 class TopBar extends StatelessWidget {
-  const TopBar({super.key});
+  final String title;
+  
+  const TopBar({
+    super.key,
+    this.title = '',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,9 +20,19 @@ class TopBar extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              if (title.isNotEmpty)
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E3D54),
+                  ),
+                ),
+              const Spacer(),
               SizedBox(
                 width: 36,
                 height: 36,
@@ -36,33 +51,6 @@ class TopBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-              Expanded(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 300),
-                  child: SizedBox(
-                    height: 36,
-                    child: Material(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Center(
-                          child: TextField(
-                            decoration: const InputDecoration(
-                              hintText: 'Recherche...',
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
               SizedBox(
                 width: 36,
                 height: 36,
@@ -72,9 +60,7 @@ class TopBar extends StatelessWidget {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(8),
                     onTap: () {
-                      if (currentProfile != null) {
-                        Navigator.pushNamed(context, '/settings');
-                      }
+                      Navigator.pushNamed(context, '/settings');
                     },
                     child: const Icon(
                       Icons.settings,
@@ -95,8 +81,8 @@ class TopBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     onTap: () {
                       try {
-                        if (currentProfile != null) {
-                          Navigator.pushNamed(context, '/profile', arguments: currentProfile);
+                        if (SupabaseService.currentUser != null) {
+                          Navigator.pushNamed(context, '/profile');
                         } else {
                           Navigator.of(context).pushNamedAndRemoveUntil(
                             '/login',
