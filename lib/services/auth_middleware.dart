@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
+import '../models/user_role.dart';
 
 class AuthMiddleware extends RouteObserver<PageRoute> {
   @override

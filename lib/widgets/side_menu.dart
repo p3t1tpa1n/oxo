@@ -1,6 +1,7 @@
 // lib/widgets/side_menu.dart
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
+import '../models/user_role.dart';
 
 class SideMenu extends StatelessWidget {
   final String selectedRoute;
@@ -100,14 +101,14 @@ class SideMenu extends StatelessWidget {
           }
         },
         borderRadius: BorderRadius.circular(8),
-        hoverColor: Colors.white.withOpacity(0.15),
+        hoverColor: Colors.white.withAlpha(38),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withAlpha(26),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withAlpha(51),
               width: 1,
             ),
           ),
@@ -115,14 +116,14 @@ class SideMenu extends StatelessWidget {
             children: [
               Icon(
                 Icons.logout,
-                color: Colors.white.withOpacity(0.85),
+                color: Colors.white.withAlpha(217),
                 size: 20,
               ),
               const SizedBox(width: 12),
               Text(
                 'Déconnexion',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.85),
+                  color: Colors.white.withAlpha(217),
                   fontSize: 14,
                   fontWeight: FontWeight.normal,
                 ),
@@ -142,14 +143,14 @@ class SideMenu extends StatelessWidget {
         child: InkWell(
           onTap: () => Navigator.pushNamed(context, route),
           borderRadius: BorderRadius.circular(8),
-          hoverColor: Colors.white.withOpacity(0.15),
+          hoverColor: Colors.white.withAlpha(38),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+              color: isSelected ? Colors.white.withAlpha(51) : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isSelected ? Colors.white.withOpacity(0.3) : Colors.transparent,
+                color: isSelected ? Colors.white.withAlpha(77) : Colors.transparent,
                 width: 1,
               ),
             ),
@@ -157,14 +158,14 @@ class SideMenu extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  color: Colors.white.withOpacity(isSelected ? 1 : 0.85),
+                  color: Colors.white.withAlpha(isSelected ? 255 : 217),
                   size: 20,
                 ),
                 const SizedBox(width: 12),
                 Text(
                   label,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(isSelected ? 1 : 0.85),
+                    color: Colors.white.withAlpha(isSelected ? 255 : 217),
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),

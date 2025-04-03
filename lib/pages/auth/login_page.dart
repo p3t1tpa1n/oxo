@@ -1,6 +1,7 @@
 // lib/pages/login_page.dart
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
+import '../../models/user_role.dart';
 import 'dart:async';
 
 class LoginPage extends StatefulWidget {
@@ -43,28 +44,35 @@ class _LoginPageState extends State<LoginPage> {
       debugPrint('Réponse de Supabase: ${response.user}');
 
       if (response.user != null) {
-        if (mounted) {
-          final userRole = await SupabaseService.getCurrentUserRole();
-          
-          if (userRole == null) {
+        if (!mounted) return;
+        
+        final userRole = await SupabaseService.getCurrentUserRole();
+        
+        if (!mounted) return;
+        
+        if (userRole == null) {
+          setState(() {
+            _errorMessage = 'Erreur: Rôle utilisateur non défini';
+            _isLoading = false;
+          });
+          return;
+        }
+
+        debugPrint('Rôle utilisateur: $userRole');
+        switch (userRole) {
+          case UserRole.associe:
+            Navigator.pushReplacementNamed(context, '/');
+            break;
+          case UserRole.partenaire:
+            Navigator.pushReplacementNamed(context, '/dashboard');
+            break;
+          default:
             setState(() {
-              _errorMessage = 'Erreur: Rôle utilisateur non défini';
+              _errorMessage = 'Erreur: Rôle utilisateur non reconnu';
               _isLoading = false;
             });
-            return;
-          }
-
-          debugPrint('Rôle utilisateur: $userRole');
-          switch (userRole) {
-            case UserRole.associe:
-              Navigator.pushReplacementNamed(context, '/');
-              break;
-            case UserRole.partenaire:
-      Navigator.pushReplacementNamed(context, '/dashboard');
-              break;
-          }
         }
-    } else {
+      } else {
         setState(() {
           _errorMessage = 'Erreur de connexion: Utilisateur non trouvé';
           _isLoading = false;

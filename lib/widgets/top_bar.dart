@@ -1,6 +1,7 @@
 // lib/widgets/top_bar.dart
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
+import '../models/user_role.dart';
 
 class TopBar extends StatelessWidget {
   final String title;

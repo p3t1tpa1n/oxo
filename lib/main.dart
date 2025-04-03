@@ -6,6 +6,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:window_manager/window_manager.dart';
 import 'services/supabase_service.dart';
 import 'services/auth_middleware.dart';
+import 'models/user_role.dart';
 import 'pages/auth/login_page.dart';
 import 'pages/dashboard/dashboard_page.dart';
 import 'pages/shared/profile_page.dart';
@@ -133,7 +134,7 @@ class _MainAppState extends State<MainApp> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withAlpha(26),
                         blurRadius: 10,
                         spreadRadius: 2,
                       ),

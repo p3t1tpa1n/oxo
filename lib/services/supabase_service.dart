@@ -7,11 +7,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:version/version.dart';
-
-enum UserRole {
-  associe,
-  partenaire,
-}
+import '../models/user_role.dart';
 
 class SupabaseService {
   static SupabaseClient? _client;
@@ -105,6 +101,12 @@ class SupabaseService {
     return null;
   }
 
+  static UserRole? get currentUserRole => _currentUserRole;
+
+  static User? get currentUser {
+    return client.auth.currentUser;
+  }
+
   static Future<UserRole?> getCurrentUserRole() async {
     try {
       if (currentUser == null) {
@@ -142,6 +144,8 @@ class SupabaseService {
           return UserRole.associe;
         case 'partenaire':
           return UserRole.partenaire;
+        case 'admin':
+          return UserRole.admin;
         default:
           debugPrint('getCurrentUserRole: Rôle non reconnu: $role');
           return null;
@@ -153,8 +157,6 @@ class SupabaseService {
     }
   }
 
-  static UserRole? get currentUserRole => _currentUserRole;
-
   static Future<void> setUserRole(String userId, UserRole role) async {
     try {
       await client
@@ -162,7 +164,7 @@ class SupabaseService {
           .update({'role': role.toString().split('.').last})
           .eq('id', userId);
     } catch (e) {
-      print('Erreur lors de la modification du rôle: $e');
+      debugPrint('Erreur lors de la modification du rôle: $e');
       rethrow;
     }
   }
@@ -172,7 +174,7 @@ class SupabaseService {
     required String password,
   }) async {
     try {
-      print('Tentative de connexion pour: $email');
+      debugPrint('Tentative de connexion pour: $email');
       final response = await client.auth.signInWithPassword(
         email: email,
         password: password,
@@ -184,7 +186,7 @@ class SupabaseService {
 
       return response;
     } catch (e) {
-      print('Erreur lors de la connexion: $e');
+      debugPrint('Erreur lors de la connexion: $e');
       rethrow;
     }
   }
@@ -206,10 +208,6 @@ class SupabaseService {
     final isValid = session != null && !session.isExpired;
     debugPrint('Vérification de l\'authentification: ${isValid ? 'Authentifié' : 'Non authentifié'}');
     return isValid;
-  }
-
-  static User? get currentUser {
-    return client.auth.currentUser;
   }
 
   static Future<List<Map<String, dynamic>>> fetchTasks() async {
