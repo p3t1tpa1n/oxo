@@ -1,10 +1,10 @@
 // lib/pages/login_page.dart
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
+import '../../services/supabase_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
-import 'dashboard_page.dart';
-import 'partner_dashboard_page.dart';
+import '../dashboard/dashboard_page.dart';
+import '../dashboard/partner_dashboard_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -58,15 +58,13 @@ class _LoginPageState extends State<LoginPage> {
           }
 
           debugPrint('Rôle utilisateur: $userRole');
-          if (mounted) {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (context) => userRole == UserRole.associe 
-                  ? const DashboardPage() 
-                  : const PartnerDashboardPage(),
-              ),
-              (route) => false,
-            );
+          switch (userRole) {
+            case UserRole.associe:
+              Navigator.pushReplacementNamed(context, '/');
+              break;
+            case UserRole.partenaire:
+      Navigator.pushReplacementNamed(context, '/dashboard');
+              break;
           }
         }
     } else {

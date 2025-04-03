@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../services/supabase_service.dart';
+import '../../widgets/custom_app_bar.dart';
+import '../../widgets/app_drawer.dart';
+import '../../widgets/top_bar.dart';
+import '../../widgets/side_menu.dart';
+import '../../widgets/calendar_widget.dart';
+import '../shared/profile_page.dart';
+import '../shared/planning_page.dart';
+import '../partner/partners_page.dart';
+import '../shared/messaging_page.dart';
+import '../partner/actions_page.dart';
+import '../shared/calendar_page.dart';
 import 'dart:async';
-import '../services/supabase_service.dart';
-import '../widgets/custom_app_bar.dart';
-import '../widgets/top_bar.dart';
-import '../widgets/calendar_widget.dart';
 
 class PartnerDashboardPage extends StatefulWidget {
   const PartnerDashboardPage({super.key});

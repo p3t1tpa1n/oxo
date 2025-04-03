@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../services/supabase_service.dart';
-import '../widgets/top_bar.dart';
-import '../widgets/side_menu.dart';
-import '../widgets/calendar_widget.dart';
-import 'calendar_page.dart'; // Page du calendrier en grand
+import '../../services/supabase_service.dart';
+import '../../widgets/custom_app_bar.dart';
+import '../../widgets/app_drawer.dart';
+import '../../widgets/top_bar.dart';
+import '../../widgets/side_menu.dart';
+import '../../widgets/calendar_widget.dart';
+import '../shared/profile_page.dart';
+import '../associate/associate_page.dart';
+import '../shared/planning_page.dart';
+import '../partner/partners_page.dart';
+import '../shared/messaging_page.dart';
+import '../partner/actions_page.dart';
+import '../associate/figures_page.dart';
+import '../shared/calendar_page.dart';
+import '../associate/timesheet_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});

@@ -1,9 +1,10 @@
-// lib/pages/planning_page.dart
+// lib/pages/shared/planning_page.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../widgets/custom_app_bar.dart';
-import '../widgets/calendar_widget.dart';
-import '../services/supabase_service.dart';
+import '../../services/supabase_service.dart';
+import '../../widgets/custom_app_bar.dart';
+import '../../widgets/app_drawer.dart';
+import '../../widgets/calendar_widget.dart';
 
 class PlanningPage extends StatefulWidget {
   const PlanningPage({super.key});

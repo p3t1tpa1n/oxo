@@ -1,6 +1,8 @@
-// lib/pages/figures_page.dart
+// lib/pages/associate/figures_page.dart
 import 'package:flutter/material.dart';
-import '../widgets/custom_app_bar.dart'; // Assure-toi que le fichier existe bien
+import '../../services/supabase_service.dart';
+import '../../widgets/custom_app_bar.dart';
+import '../../widgets/app_drawer.dart';
 
 class FiguresPage extends StatelessWidget {
   const FiguresPage({super.key});

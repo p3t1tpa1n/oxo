@@ -7,23 +7,18 @@ import 'package:window_manager/window_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'services/supabase_service.dart';
 import 'services/auth_middleware.dart';
-
-// Import des modèles
-import 'models/profile.dart';
-
-// Import des pages
-import 'pages/login_page.dart';
-import 'pages/dashboard_page.dart';
-import 'pages/profile_page.dart';
-import 'pages/associate_page.dart';
-import 'pages/planning_page.dart';
-import 'pages/partners_page.dart';
-import 'pages/messaging_page.dart';
-import 'pages/actions_page.dart';
-import 'pages/figures_page.dart';
-import 'pages/calendar_page.dart';
-import 'pages/partner_dashboard_page.dart';
-import 'pages/timesheet_page.dart';
+import 'pages/auth/login_page.dart';
+import 'pages/dashboard/dashboard_page.dart';
+import 'pages/shared/profile_page.dart';
+import 'pages/associate/associate_page.dart';
+import 'pages/shared/planning_page.dart';
+import 'pages/partner/partners_page.dart';
+import 'pages/shared/messaging_page.dart';
+import 'pages/partner/actions_page.dart';
+import 'pages/associate/figures_page.dart';
+import 'pages/shared/calendar_page.dart';
+import 'pages/dashboard/partner_dashboard_page.dart';
+import 'pages/associate/timesheet_page.dart';
 
 // lib/main.dart
 void main() async {
@@ -281,6 +276,7 @@ class _MainAppState extends State<MainApp> {
       // Routes pour la navigation
       routes: {
         '/login': (context) => const LoginPage(),
+        '/dashboard': (context) => const PartnerDashboardPage(),
         '/profile': (context) => const ProfilePage(),
         '/associate': (context) => const AssociatePage(),
         '/planning': (context) => const PlanningPage(),
