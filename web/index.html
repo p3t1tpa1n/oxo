@@ -87,9 +87,63 @@
       display: none;
       width: 100%;
       height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+    }
+    
+    .error-message {
+      color: white;
+      text-align: center;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    
+    .browser-warning {
+      display: none;
+      color: white;
+      text-align: center;
+      padding: 20px;
+      font-family: Arial, sans-serif;
     }
   </style>
 
+  <script>
+    // Définition de la version du service worker
+    var serviceWorkerVersion = null;
+    
+    // Vérification de la compatibilité du navigateur
+    function checkBrowserCompatibility() {
+      // Vérifier les fonctionnalités nécessaires
+      var hasRequiredFeatures = 
+        'fetch' in window && 
+        'Promise' in window && 
+        'MutationObserver' in window &&
+        'Symbol' in window &&
+        typeof Uint8Array !== 'undefined';
+      
+      if (!hasRequiredFeatures) {
+        // Masquer l'écran de chargement
+        var loadingElement = document.getElementById('loading');
+        if (loadingElement) {
+          loadingElement.style.display = 'none';
+        }
+        
+        // Afficher un message d'avertissement de navigateur incompatible
+        var warningElement = document.getElementById('browser-warning');
+        if (warningElement) {
+          warningElement.style.display = 'block';
+        }
+        
+        return false;
+      }
+      
+      return true;
+    }
+  </script>
   <script src="flutter.js" defer></script>
   <script>
     // Prevent pinch zoom on touch devices
@@ -98,8 +152,15 @@
     }, { passive: false });
 
     window.addEventListener("load", function(ev) {
+      // Vérifier la compatibilité du navigateur
+      if (!checkBrowserCompatibility()) {
+        console.warn("Browser compatibility check failed");
+        return;
+      }
+      
       // Force hide loading screen after 8 seconds max, even if Flutter doesn't initialize
-      setTimeout(function() {
+      var forcedTimeout = setTimeout(function() {
+        console.log("Forced loading screen timeout");
         var loadingElement = document.getElementById('loading');
         if (loadingElement) {
           loadingElement.style.display = 'none';
@@ -111,30 +172,70 @@
         }
       }, 8000);
       
-      // Download main.dart.js
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        },
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine().then(function(appRunner) {
-            // Hide loading screen when Flutter app is ready
-            appRunner.runApp();
-            
-            setTimeout(function() {
-              var loadingElement = document.getElementById('loading');
-              if (loadingElement) {
-                loadingElement.style.display = 'none';
-              }
-              
-              var flutterAppElement = document.getElementById('flutter-app');
-              if (flutterAppElement) {
-                flutterAppElement.style.display = 'block';
-              }
-            }, 1000);
-          });
+      // Fonction de gestion des erreurs
+      function handleFlutterError(error) {
+        console.error('Flutter initialization error:', error);
+        clearTimeout(forcedTimeout);
+        
+        var loadingElement = document.getElementById('loading');
+        if (loadingElement) {
+          loadingElement.style.display = 'none';
         }
-      });
+        
+        var flutterAppElement = document.getElementById('flutter-app');
+        if (flutterAppElement) {
+          flutterAppElement.innerHTML = '<div style="color: white; text-align: center; padding: 20px;">Une erreur est survenue lors du chargement de l\'application.<br>Veuillez rafraîchir la page ou réessayer plus tard.</div>';
+          flutterAppElement.style.display = 'block';
+        }
+      }
+      
+      try {
+        // Download main.dart.js
+        if (typeof _flutter === 'undefined') {
+          console.error('Flutter.js not loaded correctly');
+          handleFlutterError(new Error('Flutter.js not loaded correctly'));
+          return;
+        }
+        
+        _flutter.loader.loadEntrypoint({
+          serviceWorker: {
+            serviceWorkerVersion: serviceWorkerVersion,
+          },
+          onEntrypointLoaded: function(engineInitializer) {
+            engineInitializer.initializeEngine().then(function(appRunner) {
+              // Hide loading screen when Flutter app is ready
+              try {
+                appRunner.runApp();
+                
+                clearTimeout(forcedTimeout);
+                
+                var loadingElement = document.getElementById('loading');
+                if (loadingElement) {
+                  loadingElement.style.display = 'none';
+                }
+                
+                var flutterAppElement = document.getElementById('flutter-app');
+                if (flutterAppElement) {
+                  flutterAppElement.style.display = 'block';
+                }
+              } catch (runError) {
+                console.error('Error running Flutter app:', runError);
+                handleFlutterError(runError);
+              }
+            }).catch(function(engineError) {
+              console.error('Error initializing Flutter engine:', engineError);
+              handleFlutterError(engineError);
+            });
+          },
+          onError: function(error) {
+            console.error('Error loading entrypoint:', error);
+            handleFlutterError(error);
+          }
+        });
+      } catch (error) {
+        console.error('Top level error in Flutter initialization:', error);
+        handleFlutterError(error);
+      }
     });
   </script>
 </head>
@@ -143,6 +244,14 @@
   <div id="loading" class="center">
     <div class="loader">
       <span>OXO</span>
+    </div>
+  </div>
+
+  <div id="browser-warning" class="center browser-warning">
+    <div>
+      <h2>Navigateur non compatible</h2>
+      <p>Votre navigateur semble ne pas être compatible avec cette application.</p>
+      <p>Veuillez essayer un navigateur récent comme Chrome, Firefox, Safari ou Edge.</p>
     </div>
   </div>
 
