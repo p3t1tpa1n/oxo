@@ -17,19 +17,19 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0' # Utilisez votre version de Flutter
+          flutter-version: '3.16.5'
           channel: 'stable'
-      
-      - name: Install dependencies
-        run: flutter pub get
-        
-      - name: Build Web
-        run: flutter build web --web-renderer canvaskit --release --pwa-strategy offline-first
       
       - name: Create .env file
         run: |
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
           echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
+      
+      - name: Install dependencies
+        run: flutter pub get
+        
+      - name: Build Web
+        run: flutter build web --web-renderer canvaskit --release
       
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
