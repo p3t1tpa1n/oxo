@@ -20,6 +20,13 @@ jobs:
         with:
           flutter-version: '3.19.0'
           channel: 'stable'
+          cache: true
+          cache-key: flutter-:os:-:channel:-:version:-:arch:-:hash:-${{ hashFiles('**/pubspec.lock') }}
+          
+      - name: Display Flutter & Dart versions
+        run: |
+          flutter --version
+          dart --version
           
       - name: Install dependencies
         run: |
