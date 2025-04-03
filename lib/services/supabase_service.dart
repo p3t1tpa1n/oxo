@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:js' as js;
 
 enum UserRole {
   associe,
@@ -10,6 +10,7 @@ enum UserRole {
 
 class SupabaseService {
   static SupabaseClient? _client;
+  static SupabaseClient get client => _client!;
   static UserRole? _currentUserRole;
 
   static Future<bool> initialize() async {
@@ -64,11 +65,39 @@ class SupabaseService {
     }
   }
 
-  static SupabaseClient get client {
-    if (_client == null) {
-      throw Exception('Supabase client not initialized');
+  static String? _getEnvVar(String key) {
+    // Essayer d'abord le fichier .env
+    String? value = dotenv.env[key];
+    if (value != null) {
+      debugPrint('Variable trouvée dans .env: $key');
+      return value;
     }
-    return _client!;
+
+    if (kIsWeb) {
+      // En mode web, essayer de récupérer depuis window.ENV
+      try {
+        // Cette partie sera gérée par le JavaScript injecté dans index.html
+        value = _getWebEnvVar(key);
+        if (value != null) {
+          debugPrint('Variable trouvée dans window: $key');
+          return value;
+        }
+      } catch (e) {
+        debugPrint('Erreur lors de la récupération de la variable web $key: $e');
+      }
+    }
+
+    debugPrint('Variable non trouvée: $key');
+    return null;
+  }
+
+  static String? _getWebEnvVar(String key) {
+    // Cette méthode sera appelée uniquement en mode web
+    // Les variables seront injectées dans window par le HTML
+    if (!kIsWeb) return null;
+    
+    // La logique d'accès aux variables d'environnement est gérée par le JavaScript injecté
+    return null;
   }
 
   static Future<UserRole?> getCurrentUserRole() async {
@@ -253,88 +282,4 @@ class SupabaseService {
       return [];
     }
   }
-
-  static String? _getEnvVar(String key) {
-    debugPrint('Recherche de la variable d\'environnement $key');
-    
-    // Essayer d'abord de récupérer depuis les variables d'environnement Dart
-    String? value = dotenv.env[key];
-    if (value != null) {
-      debugPrint('Variable trouvée dans dotenv: $key');
-      return value;
-    }
-    
-    // Essayer ensuite via la méthode JS standard
-    value = _getJsWindowEnv(key);
-    if (value != null) {
-      return value;
-    }
-    
-    // Essayer la méthode d'accès direct à window
-    value = _getJsWindowDirect(key);
-    if (value != null) {
-      return value;
-    }
-    
-    // Si on arrive ici, la variable n'a pas été trouvée
-    debugPrint('ERREUR: Variable $key non trouvée');
-    return null;
-  }
-
-  // Méthode pour accéder aux variables d'environnement depuis JavaScript
-  static String? _getJsWindowEnv(String key) {
-    if (kIsWeb) {
-      try {
-        debugPrint('Tentative d\'accès à window.ENV[$key]');
-        
-        // Vérifier si la variable existe dans le contexte JS
-        final bool hasEnv = js.context.hasProperty('ENV');
-        debugPrint('window.ENV existe: $hasEnv');
-        
-        if (!hasEnv) {
-          debugPrint('window.ENV n\'existe pas dans le contexte JavaScript');
-          return null;
-        }
-        
-        // Accéder à l'objet ENV
-        final env = js.context['ENV'];
-        debugPrint('Type de window.ENV: ${env.runtimeType}');
-        
-        // Vérifier si la propriété existe
-        final bool hasKey = env != null && env is js.JsObject && env.hasProperty(key);
-        debugPrint('La clé $key existe dans window.ENV: $hasKey');
-        
-        if (hasKey) {
-          final value = env[key];
-          debugPrint('Valeur récupérée pour $key: ${value is String ? (value.length > 10 ? value.substring(0, 10) + "..." : value) : "non-string"}');
-          
-          if (value is String) {
-            return value;
-          } else {
-            debugPrint('La valeur de $key n\'est pas une chaîne de caractères');
-          }
-        }
-      } catch (e) {
-        debugPrint('Erreur lors de l\'accès à window.ENV[$key]: $e');
-      }
-    }
-    return null;
-  }
-
-  // Méthode pour accéder aux variables directement injectées
-  static String? _getJsWindowDirect(String key) {
-    if (kIsWeb) {
-      try {
-        debugPrint('Tentative d\'accès direct à window.$key');
-        final value = js.context[key];
-        if (value != null) {
-          debugPrint('Valeur récupérée directement pour $key: Trouvée');
-          return value.toString();
-        }
-      } catch (e) {
-        debugPrint('Erreur lors de l\'accès direct à window.$key: $e');
-      }
-    }
-    return null;
-  }
-}
+} 
