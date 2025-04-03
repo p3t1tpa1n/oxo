@@ -227,19 +227,19 @@ class _PartnerMissionsPageState extends State<PartnerMissionsPage> {
                       color: const Color(0xFFFF5252).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           Icons.warning,
                           size: 16,
-                          color: const Color(0xFFFF5252),
+                          color: Color(0xFFFF5252),
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: 4),
                         Text(
                           'Urgent',
                           style: TextStyle(
-                            color: const Color(0xFFFF5252),
+                            color: Color(0xFFFF5252),
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),

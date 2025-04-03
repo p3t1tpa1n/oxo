@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../services/supabase_service.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/app_drawer.dart';
-import '../../widgets/calendar_widget.dart';
 import '../../models/day_data.dart';
 
 class CalendarPage extends StatefulWidget {
@@ -45,20 +43,20 @@ class _CalendarPageState extends State<CalendarPage> {
     List<int> nextMonthDays = List.generate(7 - lastWeekday, (index) => 0);
 
     return Scaffold(
-      appBar: CustomAppBar(
+      appBar: const CustomAppBar(
         title: 'Planning Perso',
         showBackButton: true,
       ),
-      drawer: AppDrawer(),
+      drawer: const AppDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             const SizedBox(height: 8),
             // ✅ Jours de la semaine
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: const [
+              children: [
                 Text("L", style: TextStyle(fontWeight: FontWeight.bold)),
                 Text("M", style: TextStyle(fontWeight: FontWeight.bold)),
                 Text("M", style: TextStyle(fontWeight: FontWeight.bold)),

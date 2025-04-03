@@ -1,17 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
-import '../../widgets/custom_app_bar.dart';
-import '../../widgets/app_drawer.dart';
-import '../../widgets/top_bar.dart';
-import '../../widgets/side_menu.dart';
 import '../../widgets/calendar_widget.dart';
-import '../shared/profile_page.dart';
-import '../shared/planning_page.dart';
-import '../partner/partners_page.dart';
-import '../shared/messaging_page.dart';
-import '../partner/actions_page.dart';
-import '../shared/calendar_page.dart';
 import 'dart:async';
 
 class PartnerDashboardPage extends StatefulWidget {
@@ -34,9 +24,9 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
   String? _error;
   
   // Variables pour le chronomètre
-  Map<String, Stopwatch> _stopwatches = {};
-  Map<String, Timer> _timers = {};
-  Map<String, Duration> _elapsedTimes = {};
+  final Map<String, Stopwatch> _stopwatches = {};
+  final Map<String, Timer> _timers = {};
+  final Map<String, Duration> _elapsedTimes = {};
 
   @override
   void initState() {
@@ -320,15 +310,15 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                       width: 1,
                     ),
                   ),
-                  child: Row(
+                  child: const Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.logout,
                         color: Colors.white70,
                         size: 20,
                       ),
-                      const SizedBox(width: 12),
-                      const Text(
+                      SizedBox(width: 12),
+                      Text(
                         'Déconnexion',
                         style: TextStyle(
                           color: Colors.white70,
@@ -808,11 +798,11 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
-                    const Icon(Icons.task_alt, size: 20, color: Color(0xFF1E3D54)),
-                    const SizedBox(width: 8),
-                    const Text(
+                    Icon(Icons.task_alt, size: 20, color: Color(0xFF1E3D54)),
+                    SizedBox(width: 8),
+                    Text(
                       'Tâches du jour',
                       style: TextStyle(
                         fontSize: 18,

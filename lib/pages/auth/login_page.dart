@@ -1,10 +1,7 @@
 // lib/pages/login_page.dart
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
-import '../dashboard/dashboard_page.dart';
-import '../dashboard/partner_dashboard_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

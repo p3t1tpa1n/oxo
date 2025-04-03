@@ -1,6 +1,5 @@
 // lib/widgets/custom_app_bar.dart
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
 import '../services/auth_middleware.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {

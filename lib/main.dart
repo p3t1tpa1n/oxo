@@ -4,13 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'services/supabase_service.dart';
 import 'services/auth_middleware.dart';
 import 'pages/auth/login_page.dart';
 import 'pages/dashboard/dashboard_page.dart';
 import 'pages/shared/profile_page.dart';
-import 'pages/associate/associate_page.dart';
 import 'pages/shared/planning_page.dart';
 import 'pages/partner/partners_page.dart';
 import 'pages/shared/messaging_page.dart';
@@ -39,7 +37,7 @@ void main() async {
       debugPrint('AVERTISSEMENT: Échec de l\'initialisation de Supabase, l\'application fonctionnera sans connexion');
     } else {
       debugPrint('Supabase initialisé avec succès');
-      debugPrint('État de la session: ${SupabaseService.client?.auth.currentSession != null ? 'Active' : 'Inactive'}');
+      debugPrint('État de la session: ${SupabaseService.client.auth.currentSession != null ? 'Active' : 'Inactive'}');
       debugPrint('État de l\'utilisateur: ${SupabaseService.currentUser != null ? 'Connecté' : 'Non connecté'}');
     }
 
@@ -99,7 +97,7 @@ class _MainAppState extends State<MainApp> {
       // Une petite pause pour garantir que l'écran de chargement s'affiche
       await Future.delayed(const Duration(milliseconds: 500));
       
-      final session = SupabaseService.client?.auth.currentSession;
+      final session = SupabaseService.client.auth.currentSession;
       debugPrint('Session trouvée: ${session != null}');
       
       if (session == null && mounted) {

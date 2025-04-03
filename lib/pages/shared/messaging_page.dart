@@ -1,9 +1,5 @@
 // lib/pages/shared/messaging_page.dart
 import 'package:flutter/material.dart';
-import '../../services/supabase_service.dart';
-import '../../widgets/custom_app_bar.dart';
-import '../../widgets/app_drawer.dart';
-import '../../widgets/chat_widget.dart';
 
 class MessagingPage extends StatelessWidget {
   const MessagingPage({super.key});
@@ -14,7 +10,7 @@ class MessagingPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Messaging Page'),
       ),
-      body: Center(
+      body: const Center(
         child: Text('Messaging Page'),
       ),
     );

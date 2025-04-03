@@ -233,9 +233,9 @@ class _ChatWidgetState extends State<ChatWidget> {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1784af),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1784af),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: const Row(
               children: [

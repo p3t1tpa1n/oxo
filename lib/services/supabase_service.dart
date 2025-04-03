@@ -1,12 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:convert';
-import 'package:encrypt/encrypt.dart' as encrypt;
-import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:version/version.dart';
@@ -222,10 +219,6 @@ class SupabaseService {
         .select()
         .order('created_at', ascending: false);
       
-      if (response == null) {
-        return [];
-      }
-      
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Erreur lors de la récupération des tâches: $e');
@@ -263,7 +256,7 @@ class SupabaseService {
   static Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
       final List<dynamic> response = await client.rpc('get_users');
-      if (response == null || response.isEmpty) {
+      if (response.isEmpty) {
         return null;
       }
       return response.firstWhere(
@@ -279,9 +272,6 @@ class SupabaseService {
   static Future<List<Map<String, dynamic>>> getPartners() async {
     try {
       final List<dynamic> response = await client.rpc('get_users');
-      if (response == null) {
-        return [];
-      }
       return List<Map<String, dynamic>>.from(
         response.where((user) => user['user_role'] == 'partenaire')
       );

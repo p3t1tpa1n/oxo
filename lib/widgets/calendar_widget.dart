@@ -227,10 +227,8 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
             setState(() {
               _selectedDate = currentDate;
             });
-            if (widget.onDaySelected != null) {
-              widget.onDaySelected!(currentDate);
-            }
-          },
+            widget.onDaySelected(currentDate);
+                    },
         ),
       );
     }
@@ -323,9 +321,9 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
             // En-tête du calendrier (mois et contrôles)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

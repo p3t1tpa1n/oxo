@@ -1,8 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../services/supabase_service.dart';
-import '../../widgets/custom_app_bar.dart';
-import '../../widgets/app_drawer.dart';
-import '../../widgets/calendar_widget.dart';
 import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
 

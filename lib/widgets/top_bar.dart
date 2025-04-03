@@ -1,6 +1,5 @@
 // lib/widgets/top_bar.dart
 import 'package:flutter/material.dart';
-import '../models/profile.dart';
 import '../services/supabase_service.dart';
 
 class TopBar extends StatelessWidget {

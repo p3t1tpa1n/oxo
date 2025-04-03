@@ -1,6 +1,5 @@
 // lib/widgets/side_menu.dart
 import 'package:flutter/material.dart';
-import '../widgets/chat_widget.dart';
 import '../services/supabase_service.dart';
 
 class SideMenu extends StatelessWidget {
@@ -175,7 +174,7 @@ class SideMenu extends StatelessWidget {
                   Container(
                     width: 6,
                     height: 6,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),

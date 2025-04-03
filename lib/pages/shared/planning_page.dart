@@ -5,7 +5,6 @@ import '../../services/supabase_service.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/app_drawer.dart';
 import '../../widgets/calendar_widget.dart';
-import '../../services/auth_middleware.dart';
 
 class PlanningPage extends StatefulWidget {
   const PlanningPage({super.key});
@@ -168,11 +167,11 @@ class _PlanningPageState extends State<PlanningPage> {
     debugPrint('PlanningPage: Construction du widget, isLoading=$isLoading');
     
     return Scaffold(
-      appBar: CustomAppBar(
+      appBar: const CustomAppBar(
         title: 'Planning',
         showBackButton: true,
       ),
-      drawer: AppDrawer(),
+      drawer: const AppDrawer(),
       body: SafeArea(
         child: Column(
           children: [

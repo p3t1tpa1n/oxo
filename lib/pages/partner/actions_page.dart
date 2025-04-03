@@ -1,6 +1,5 @@
 // lib/pages/partner/actions_page.dart
 import 'package:flutter/material.dart';
-import '../../services/supabase_service.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/app_drawer.dart';
 
@@ -9,7 +8,7 @@ class ActionsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       appBar: CustomAppBar(
         title: 'Actions',
         showBackButton: true,
