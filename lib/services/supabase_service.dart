@@ -2,6 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'package:encrypt/encrypt.dart' as encrypt;
+import 'package:uuid/uuid.dart';
+import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:version/version.dart';
 
 enum UserRole {
   associe,
@@ -280,6 +288,57 @@ class SupabaseService {
     } catch (e) {
       debugPrint('Erreur lors de la récupération des partenaires: $e');
       return [];
+    }
+  }
+
+  Future<void> _checkForUpdates() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = Version.parse(packageInfo.version);
+      
+      final response = await http.get(Uri.parse('https://api.github.com/repos/votre-org/votre-repo/releases/latest'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final latestVersion = Version.parse(data['tag_name'].replaceAll('v', ''));
+        
+        if (latestVersion > currentVersion) {
+          _showUpdateDialog();
+        }
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de la vérification des mises à jour: $e');
+    }
+  }
+
+  void _showUpdateDialog() {
+    // ... existing code ...
+  }
+
+  Future<void> _downloadAndInstallUpdate() async {
+    try {
+      final response = await http.get(Uri.parse('https://api.github.com/repos/votre-org/votre-repo/releases/latest'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final downloadUrl = data['assets'][0]['browser_download_url'];
+        
+        final appDir = await getApplicationDocumentsDirectory();
+        final updateFile = File('${appDir.path}/update.apk');
+        
+        final updateResponse = await http.get(Uri.parse(downloadUrl));
+        await updateFile.writeAsBytes(updateResponse.bodyBytes);
+        
+        // ... existing code ...
+      }
+    } catch (e) {
+      debugPrint('Erreur lors du téléchargement de la mise à jour: $e');
+    }
+  }
+
+  Future<void> _installUpdate(File updateFile) async {
+    try {
+      // ... existing code ...
+    } catch (e) {
+      debugPrint('Erreur lors de l\'installation de la mise à jour: $e');
     }
   }
 } 

@@ -171,126 +171,67 @@ class _MainAppState extends State<MainApp> {
       );
     }
 
-    // Détermine la route initiale en fonction de l'authentification
-    Widget home;
-    if (!SupabaseService.isAuthenticated) {
-      home = const LoginPage();
-    } else {
-      // Selon le rôle, charger la page appropriée
-      final userRole = SupabaseService.currentUserRole;
-      if (userRole == UserRole.associe) {
-        home = const DashboardPage();
-      } else if (userRole == UserRole.partenaire) {
-        home = const PartnerDashboardPage();
-      } else {
-        // En cas de rôle inconnu, charger la page de connexion
-        home = const LoginPage();
-      }
-    }
-
     return MaterialApp(
-      title: 'OXO',
-      debugShowCheckedModeBanner: false,
+      title: 'Oxo',
       theme: ThemeData(
-        primaryColor: const Color(0xFF1E3D54),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1E3D54),
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF1E3D54),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: false,
-          titleTextStyle: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        scaffoldBackgroundColor: Colors.white,
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1E3D54),
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-        cardTheme: CardTheme(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          clipBehavior: Clip.antiAlias,
-        ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color(0xFF1E3D54),
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white70,
-          type: BottomNavigationBarType.fixed,
-          elevation: 8,
+        primarySwatch: Colors.blue,
+        textTheme: Theme.of(context).textTheme.apply(
+          bodyColor: const Color(0xFF122b35),
+          displayColor: const Color(0xFF122b35),
         ),
       ),
-      builder: (context, child) {
-        // Ajout d'un mode plein écran sur web
-        if (kIsWeb) {
-          return MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              textScaleFactor: 1.0,
-              padding: EdgeInsets.zero,
-            ),
-            child: Scaffold(
-              backgroundColor: const Color(0xFFF5F5F5),
-              body: Center(
-                child: Container(
-                  constraints: const BoxConstraints(
-                    maxWidth: 1200,
-                    maxHeight: 800,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                      ),
-                    ],
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: child!,
-                ),
-              ),
-            ),
-          );
-        }
-        return child!;
-      },
-      home: home,
-      // Routes pour la navigation
-      routes: {
-        '/login': (context) => const LoginPage(),
-        '/dashboard': (context) => const PartnerDashboardPage(),
-        '/profile': (context) => const ProfilePage(),
-        '/associate': (context) => const AssociatePage(),
-        '/planning': (context) => const PlanningPage(),
-        '/partners': (context) => const PartnersPage(),
-        '/messaging': (context) => const MessagingPage(),
-        '/actions': (context) => const ActionsPage(),
-        '/figures': (context) => const FiguresPage(),
-        '/calendar': (context) => const CalendarPage(),
-        '/timesheet': (context) => const TimesheetPage(),
-      },
-      // Avant de naviguer, vérifier l'authentification
-      navigatorObservers: [
-        AuthMiddleware(),
-      ],
+      home: _getHomePage(),
+      routes: _getRoutes(),
+      navigatorObservers: [AuthMiddleware()],
     );
+  }
+
+  Widget _getHomePage() {
+    if (!SupabaseService.isAuthenticated) {
+      return const LoginPage();
+    }
+
+    final userRole = SupabaseService.currentUserRole;
+    if (userRole == UserRole.associe) {
+      return const DashboardPage();
+    } else if (userRole == UserRole.partenaire) {
+      return const PartnerDashboardPage();
+    }
+
+    return const LoginPage();
+  }
+
+  Map<String, WidgetBuilder> _getRoutes() {
+    final routes = <String, WidgetBuilder>{
+      '/': (context) => _getHomePage(),
+      '/login': (context) => const LoginPage(),
+    };
+
+    if (SupabaseService.isAuthenticated) {
+      final userRole = SupabaseService.currentUserRole;
+      if (userRole == UserRole.associe) {
+        routes.addAll({
+          '/associate': (context) => const DashboardPage(),
+          '/figures': (context) => const FiguresPage(),
+          '/timesheet': (context) => const TimesheetPage(),
+        });
+      } else if (userRole == UserRole.partenaire) {
+        routes.addAll({
+          '/partner': (context) => const PartnerDashboardPage(),
+          '/partners': (context) => const PartnersPage(),
+          '/actions': (context) => const ActionsPage(),
+        });
+      }
+
+      // Routes communes
+      routes.addAll({
+        '/profile': (context) => const ProfilePage(),
+        '/planning': (context) => const PlanningPage(),
+        '/messaging': (context) => const MessagingPage(),
+        '/calendar': (context) => const CalendarPage(),
+      });
+    }
+
+    return routes;
   }
 }

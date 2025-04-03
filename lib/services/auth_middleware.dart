@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
-import '../pages/auth/login_page.dart';
 
 class AuthMiddleware extends RouteObserver<PageRoute> {
   @override
@@ -18,7 +17,6 @@ class AuthMiddleware extends RouteObserver<PageRoute> {
   }
 
   void _checkAuthentication(Route<dynamic> route) {
-    // Si l'utilisateur n'est pas authentifié et tente d'accéder à une route protégée
     if (!_isLoginRoute(route) && !SupabaseService.isAuthenticated) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (route.navigator?.context.mounted == true) {
@@ -41,15 +39,12 @@ class AuthMiddleware extends RouteObserver<PageRoute> {
     String targetRoute;
 
     // Déterminer la route cible en fonction du rôle de l'utilisateur
-    switch (userRole) {
-      case 'associate':
-        targetRoute = '/associate';
-        break;
-      case 'partner':
-        targetRoute = '/partner';
-        break;
-      default:
-        targetRoute = '/login';
+    if (userRole == UserRole.associe) {
+      targetRoute = '/associate';
+    } else if (userRole == UserRole.partenaire) {
+      targetRoute = '/partner';
+    } else {
+      targetRoute = '/login';
     }
 
     // Si nous sommes déjà sur la page cible, ne rien faire
