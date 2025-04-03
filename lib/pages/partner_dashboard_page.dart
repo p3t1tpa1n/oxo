@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:async';  // Ajout de l'import pour Timer
-import 'package:url_launcher/url_launcher.dart';
+import 'dart:async';
 import '../services/supabase_service.dart';
-import '../services/version_service.dart';
+import '../widgets/custom_app_bar.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/calendar_widget.dart';
 
@@ -34,8 +33,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
   @override
   void initState() {
     super.initState();
-    _checkAuthAndLoadData();
-    _checkForUpdates();
+    _loadData();
   }
 
   @override
@@ -78,48 +76,19 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
     _timers.remove(taskId);
   }
 
-  Future<void> _checkAuthAndLoadData() async {
+  Future<void> _loadData() async {
     if (!mounted) return;
-
-    debugPrint('Vérification de l\'état de connexion...');
-    debugPrint('Session actuelle: ${SupabaseService.client.auth.currentSession}');
-    debugPrint('Utilisateur actuel: ${SupabaseService.currentUser}');
-
-    if (!SupabaseService.isAuthenticated) {
-      debugPrint('Utilisateur non authentifié, redirection vers la page de connexion');
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
-      }
-      return;
-    }
-
-    await _initializeData();
-  }
-
-  Future<void> _initializeData() async {
-    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
-      setState(() {
-        _isLoading = true;
-      });
-
-      debugPrint('Début du chargement des données...');
-      
-      // Charger les données en parallèle
-      await Future.wait([
-        _loadTasks(),
-        _loadStatistics(),
-      ]);
-
-      debugPrint('Données chargées avec succès');
+      // Charger les données nécessaires
+      await _loadUserProfile();
+      await _loadTasks();
     } catch (e) {
       debugPrint('Erreur lors du chargement des données: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors du chargement des données: $e')),
-        );
-      }
     } finally {
       if (mounted) {
         setState(() {
@@ -127,6 +96,10 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
         });
       }
     }
+  }
+
+  Future<void> _loadUserProfile() async {
+    // Implementation of _loadUserProfile method
   }
 
   Future<void> _loadTasks() async {
@@ -1624,77 +1597,6 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
               backgroundColor: const Color(0xFF1E3D54),
             ),
             child: const Text('Créer'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _checkForUpdates() async {
-    try {
-      final updateInfo = await VersionService.checkForUpdates();
-      
-      if (updateInfo != null && updateInfo['updateAvailable'] == true && mounted) {
-        _showUpdateDialog(
-          updateInfo['latestVersion'],
-          updateInfo['releaseNotes'],
-          updateInfo['downloadUrl'],
-          updateInfo['isMandatory'],
-        );
-      }
-    } catch (e) {
-      debugPrint('Erreur lors de la vérification des mises à jour: $e');
-    }
-  }
-
-  void _showUpdateDialog(String version, String? changelog, String downloadUrl, bool isMandatory) {
-    showDialog(
-      context: context,
-      barrierDismissible: !isMandatory,
-      builder: (context) => AlertDialog(
-        title: Text('Nouvelle version disponible (v$version)'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isMandatory 
-                ? 'Une mise à jour obligatoire est disponible.'
-                : 'Une nouvelle version de l\'application est disponible.',
-            ),
-            if (changelog != null) ...[
-              const SizedBox(height: 16),
-              const Text(
-                'Nouveautés :',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(changelog),
-            ],
-          ],
-        ),
-        actions: [
-          if (!isMandatory)
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Plus tard'),
-            ),
-          ElevatedButton(
-            onPressed: () async {
-              final url = Uri.parse(downloadUrl);
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url);
-                if (isMandatory && mounted) {
-                  Navigator.of(context).pushReplacementNamed('/login');
-                } else if (mounted) {
-                  Navigator.of(context).pop();
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E3D54),
-            ),
-            child: const Text('Mettre à jour'),
           ),
         ],
       ),

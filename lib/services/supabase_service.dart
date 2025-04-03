@@ -12,59 +12,55 @@ class SupabaseService {
   static SupabaseClient? _client;
   static UserRole? _currentUserRole;
 
-  static Future<void> initialize() async {
-    try {
-      final bool isWeb = kIsWeb;
+  static Future<bool> initialize() async {
+    if (_client != null) return true;
 
+    debugPrint('Initialisation de Supabase...');
+    
+    try {
+      // Chargement du fichier .env
+      debugPrint('Chargement du fichier .env');
+      await dotenv.load();
+      
       String? url;
       String? anonKey;
-
-      if (isWeb) {
-        // Utiliser les variables d'environnement injectées via window.ENV
-        url = _getJsWindowEnv('SUPABASE_URL') ?? 
-             const String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+      
+      if (kIsWeb) {
+        debugPrint('Exécution en mode Web - recherche des variables d\'environnement');
+        url = _getEnvVar('SUPABASE_URL');
+        anonKey = _getEnvVar('SUPABASE_ANON_KEY');
         
-        anonKey = _getJsWindowEnv('SUPABASE_ANON_KEY') ?? 
-                 const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
-        
-        debugPrint('Web variables - URL: ${url.isNotEmpty ? "Trouvée" : "Non trouvée"}, Key: ${anonKey.isNotEmpty ? "Trouvée" : "Non trouvée"}');
-        
-        if (url.isEmpty || anonKey.isEmpty) {
-          throw Exception('Les variables d\'environnement SUPABASE_URL et SUPABASE_ANON_KEY sont requises pour la version web');
-        }
+        debugPrint('URL Supabase: ${url != null ? 'Trouvée' : 'Non trouvée'}');
+        debugPrint('Clé anonyme: ${anonKey != null ? 'Trouvée' : 'Non trouvée'}');
       } else {
-        debugPrint('Chargement du fichier .env...');
-        await dotenv.load();
+        // Mode natif, utiliser directement dotenv
         url = dotenv.env['SUPABASE_URL'];
         anonKey = dotenv.env['SUPABASE_ANON_KEY'];
         
-        if (url == null || anonKey == null) {
-          throw Exception('Les variables SUPABASE_URL et SUPABASE_ANON_KEY sont manquantes dans le fichier .env');
-        }
+        debugPrint('URL Supabase: $url');
+        debugPrint('Clé anonyme: ${anonKey != null ? 'Trouvée' : 'Non trouvée'}');
       }
-
-      debugPrint('URL Supabase: $url');
-      debugPrint('Clé anonyme chargée: ${anonKey.substring(0, 10)}...');
-
-      await Supabase.initialize(
-        url: url,
-        anonKey: anonKey,
-      );
-
-      _client = Supabase.instance.client;
-      debugPrint('Client Supabase initialisé avec succès');
-
-      final session = _client?.auth.currentSession;
+      
+      if (url == null || anonKey == null) {
+        debugPrint('ERREUR CRITIQUE: Variables Supabase manquantes');
+        return false;
+      }
+      
+      debugPrint('Création du client Supabase avec URL: $url');
+      _client = SupabaseClient(url, anonKey);
+      
+      // Vérifie si une session existe
+      final session = _client!.auth.currentSession;
       if (session != null) {
         debugPrint('Session existante trouvée');
-        _currentUserRole = await getCurrentUserRole();
       } else {
         debugPrint('Aucune session existante');
-        await signOut();
       }
+      
+      return true;
     } catch (e) {
       debugPrint('Erreur lors de l\'initialisation de Supabase: $e');
-      rethrow;
+      return false;
     }
   }
 
@@ -258,16 +254,85 @@ class SupabaseService {
     }
   }
 
+  static String? _getEnvVar(String key) {
+    debugPrint('Recherche de la variable d\'environnement $key');
+    
+    // Essayer d'abord de récupérer depuis les variables d'environnement Dart
+    String? value = dotenv.env[key];
+    if (value != null) {
+      debugPrint('Variable trouvée dans dotenv: $key');
+      return value;
+    }
+    
+    // Essayer ensuite via la méthode JS standard
+    value = _getJsWindowEnv(key);
+    if (value != null) {
+      return value;
+    }
+    
+    // Essayer la méthode d'accès direct à window
+    value = _getJsWindowDirect(key);
+    if (value != null) {
+      return value;
+    }
+    
+    // Si on arrive ici, la variable n'a pas été trouvée
+    debugPrint('ERREUR: Variable $key non trouvée');
+    return null;
+  }
+
   // Méthode pour accéder aux variables d'environnement depuis JavaScript
   static String? _getJsWindowEnv(String key) {
     if (kIsWeb) {
       try {
+        debugPrint('Tentative d\'accès à window.ENV[$key]');
+        
+        // Vérifier si la variable existe dans le contexte JS
+        final bool hasEnv = js.context.hasProperty('ENV');
+        debugPrint('window.ENV existe: $hasEnv');
+        
+        if (!hasEnv) {
+          debugPrint('window.ENV n\'existe pas dans le contexte JavaScript');
+          return null;
+        }
+        
+        // Accéder à l'objet ENV
         final env = js.context['ENV'];
-        if (env != null && env[key] != null) {
-          return env[key] as String;
+        debugPrint('Type de window.ENV: ${env.runtimeType}');
+        
+        // Vérifier si la propriété existe
+        final bool hasKey = env != null && env is js.JsObject && env.hasProperty(key);
+        debugPrint('La clé $key existe dans window.ENV: $hasKey');
+        
+        if (hasKey) {
+          final value = env[key];
+          debugPrint('Valeur récupérée pour $key: ${value is String ? (value.length > 10 ? value.substring(0, 10) + "..." : value) : "non-string"}');
+          
+          if (value is String) {
+            return value;
+          } else {
+            debugPrint('La valeur de $key n\'est pas une chaîne de caractères');
+          }
         }
       } catch (e) {
         debugPrint('Erreur lors de l\'accès à window.ENV[$key]: $e');
+      }
+    }
+    return null;
+  }
+
+  // Méthode pour accéder aux variables directement injectées
+  static String? _getJsWindowDirect(String key) {
+    if (kIsWeb) {
+      try {
+        debugPrint('Tentative d\'accès direct à window.$key');
+        final value = js.context[key];
+        if (value != null) {
+          debugPrint('Valeur récupérée directement pour $key: Trouvée');
+          return value.toString();
+        }
+      } catch (e) {
+        debugPrint('Erreur lors de l\'accès direct à window.$key: $e');
       }
     }
     return null;

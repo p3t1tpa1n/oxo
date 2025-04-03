@@ -37,12 +37,29 @@ jobs:
       
       - name: Configure environment variables for web
         run: |
+          # S'assurer que le dossier build/web existe
+          mkdir -p build/web
+          
           # Créer le fichier env.js avec les variables d'environnement
-          echo "// Ce fichier est généré pendant le déploiement" > build/web/env.js
-          echo "window.ENV = {" >> build/web/env.js
-          echo "  SUPABASE_URL: \"${{ secrets.SUPABASE_URL }}\"," >> build/web/env.js
-          echo "  SUPABASE_ANON_KEY: \"${{ secrets.SUPABASE_ANON_KEY }}\"" >> build/web/env.js
-          echo "};" >> build/web/env.js
+          cat > build/web/env.js << 'EOL'
+          // Ce fichier est généré pendant le déploiement ($(date))
+          window.ENV = {
+            SUPABASE_URL: "${{ secrets.SUPABASE_URL }}",
+            SUPABASE_ANON_KEY: "${{ secrets.SUPABASE_ANON_KEY }}"
+          };
+
+          // Logs de débogage
+          console.log("env.js chargé avec succès à $(date)");
+          console.log("ENV disponible:", !!window.ENV);
+          console.log("SUPABASE_URL:", window.ENV.SUPABASE_URL);
+          console.log("SUPABASE_ANON_KEY (10 premiers caractères):", 
+            window.ENV.SUPABASE_ANON_KEY ? window.ENV.SUPABASE_ANON_KEY.substring(0, 10) + "..." : "Non définie");
+          EOL
+          
+          # Vérifier que le fichier a été créé
+          ls -la build/web/env.js
+          echo "Contenu du fichier env.js:"
+          cat build/web/env.js
       
       - name: Copy .env to build folder
         run: cp .env build/web/.env
@@ -54,3 +71,12 @@ jobs:
         run: |
           cd build/web
           vercel deploy --token ${{ secrets.VERCEL_TOKEN }} --prod --yes 
+      
+      - name: Inject environment variables directly into index.html
+        run: |
+          # Remplacer les placeholders dans index.html avec les vraies valeurs
+          sed -i 's|window.SUPABASE_URL = "__SUPABASE_URL__"|window.SUPABASE_URL = "${{ secrets.SUPABASE_URL }}"|' build/web/index.html
+          sed -i 's|window.SUPABASE_ANON_KEY = "__SUPABASE_ANON_KEY__"|window.SUPABASE_ANON_KEY = "${{ secrets.SUPABASE_ANON_KEY }}"|' build/web/index.html
+          
+          # Vérifier que les variables ont été injectées
+          grep "window.SUPABASE_URL" build/web/index.html 

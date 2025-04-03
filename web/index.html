@@ -47,12 +47,14 @@
 
   <title>OXO</title>
   <link rel="manifest" href="manifest.json">
-
-  <!-- Initialisation des variables globales -->
-  <script src="service_worker_init.js"></script>
   
   <!-- Variables d'environnement -->
-  <script src="env.js"></script>
+  <script>
+    // Ces variables seront remplacées lors du déploiement
+    // Ne pas modifier directement - elles seront injectées par le workflow GitHub Actions
+    window.SUPABASE_URL = "__SUPABASE_URL__";
+    window.SUPABASE_ANON_KEY = "__SUPABASE_ANON_KEY__";
+  </script>
 
   <style>
     body {
@@ -118,53 +120,11 @@
     }
   </style>
 
-  <script>
-    // Vérification de la compatibilité du navigateur
-    function checkBrowserCompatibility() {
-      // Vérifier les fonctionnalités nécessaires
-      var hasRequiredFeatures = 
-        'fetch' in window && 
-        'Promise' in window && 
-        'MutationObserver' in window &&
-        'Symbol' in window &&
-        typeof Uint8Array !== 'undefined';
-      
-      if (!hasRequiredFeatures) {
-        // Masquer l'écran de chargement
-        var loadingElement = document.getElementById('loading');
-        if (loadingElement) {
-          loadingElement.style.display = 'none';
-        }
-        
-        // Afficher un message d'avertissement de navigateur incompatible
-        var warningElement = document.getElementById('browser-warning');
-        if (warningElement) {
-          warningElement.style.display = 'block';
-        }
-        
-        return false;
-      }
-      
-      return true;
-    }
-  </script>
   <script src="flutter.js" defer></script>
   <script>
-    // Prevent pinch zoom on touch devices
-    document.addEventListener('touchmove', function (event) {
-      if (event.scale !== 1) { event.preventDefault(); }
-    }, { passive: false });
-
     window.addEventListener("load", function(ev) {
-      // Vérifier la compatibilité du navigateur
-      if (!checkBrowserCompatibility()) {
-        console.warn("Browser compatibility check failed");
-        return;
-      }
-      
       // Force hide loading screen after 8 seconds max, even if Flutter doesn't initialize
       var forcedTimeout = setTimeout(function() {
-        console.log("Forced loading screen timeout");
         var loadingElement = document.getElementById('loading');
         if (loadingElement) {
           loadingElement.style.display = 'none';
@@ -194,23 +154,11 @@
       }
       
       try {
-        // Download main.dart.js
-        if (typeof _flutter === 'undefined') {
-          console.error('Flutter.js not loaded correctly');
-          handleFlutterError(new Error('Flutter.js not loaded correctly'));
-          return;
-        }
-        
         _flutter.loader.loadEntrypoint({
-          serviceWorker: {
-            serviceWorkerVersion: window.serviceWorkerVersion,
-          },
           onEntrypointLoaded: function(engineInitializer) {
             engineInitializer.initializeEngine().then(function(appRunner) {
-              // Hide loading screen when Flutter app is ready
               try {
                 appRunner.runApp();
-                
                 clearTimeout(forcedTimeout);
                 
                 var loadingElement = document.getElementById('loading');

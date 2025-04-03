@@ -6,7 +6,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'services/supabase_service.dart';
-import 'services/version_service.dart';
 import 'services/auth_middleware.dart';
 
 // Import des modèles
@@ -22,8 +21,8 @@ import 'pages/partners_page.dart';
 import 'pages/messaging_page.dart';
 import 'pages/actions_page.dart';
 import 'pages/figures_page.dart';
-import 'pages/calendar_page.dart'; // Import de la page calendrier
-import 'pages/partner_dashboard_page.dart';  // Import de la page de tableau de bord
+import 'pages/calendar_page.dart';
+import 'pages/partner_dashboard_page.dart';
 import 'pages/timesheet_page.dart';
 
 // lib/main.dart
@@ -39,10 +38,15 @@ void main() async {
     ]);
     
     debugPrint('Initialisation de Supabase...');
-    await SupabaseService.initialize();
-    debugPrint('Supabase initialisé avec succès');
-    debugPrint('État de la session: ${SupabaseService.client.auth.currentSession}');
-    debugPrint('État de l\'utilisateur: ${SupabaseService.currentUser}');
+    bool initSuccess = await SupabaseService.initialize();
+    
+    if (!initSuccess) {
+      debugPrint('AVERTISSEMENT: Échec de l\'initialisation de Supabase, l\'application fonctionnera sans connexion');
+    } else {
+      debugPrint('Supabase initialisé avec succès');
+      debugPrint('État de la session: ${SupabaseService.client?.auth.currentSession != null ? 'Active' : 'Inactive'}');
+      debugPrint('État de l\'utilisateur: ${SupabaseService.currentUser != null ? 'Connecté' : 'Non connecté'}');
+    }
 
     // Initialisation de window_manager uniquement si ce n'est pas le web
     if (!kIsWeb) {
@@ -100,7 +104,7 @@ class _MainAppState extends State<MainApp> {
       // Une petite pause pour garantir que l'écran de chargement s'affiche
       await Future.delayed(const Duration(milliseconds: 500));
       
-      final session = SupabaseService.client.auth.currentSession;
+      final session = SupabaseService.client?.auth.currentSession;
       debugPrint('Session trouvée: ${session != null}');
       
       if (session == null && mounted) {
