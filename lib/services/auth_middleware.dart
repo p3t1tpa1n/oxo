@@ -18,8 +18,8 @@ class AuthMiddleware extends RouteObserver<PageRoute> {
   }
 
   void _checkAuthentication(Route<dynamic> route) {
+    // Si l'utilisateur n'est pas authentifié et tente d'accéder à une route protégée
     if (!_isLoginRoute(route) && !SupabaseService.isAuthenticated) {
-      // Utilisation de WidgetsBinding pour éviter les problèmes de BuildContext
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (route.navigator?.context.mounted == true) {
           Navigator.of(route.navigator!.context).pushNamedAndRemoveUntil(
@@ -33,5 +33,34 @@ class AuthMiddleware extends RouteObserver<PageRoute> {
 
   bool _isLoginRoute(Route<dynamic> route) {
     return route.settings.name == '/login';
+  }
+
+  // Méthode pour gérer la navigation en arrière
+  static void handleBackNavigation(BuildContext context) {
+    final userRole = SupabaseService.currentUserRole;
+    String targetRoute;
+
+    // Déterminer la route cible en fonction du rôle de l'utilisateur
+    switch (userRole) {
+      case 'associate':
+        targetRoute = '/associate';
+        break;
+      case 'partner':
+        targetRoute = '/partner';
+        break;
+      default:
+        targetRoute = '/login';
+    }
+
+    // Si nous sommes déjà sur la page cible, ne rien faire
+    if (ModalRoute.of(context)?.settings.name == targetRoute) {
+      return;
+    }
+
+    // Sinon, naviguer vers la page cible
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      targetRoute,
+      (route) => false,
+    );
   }
 } 

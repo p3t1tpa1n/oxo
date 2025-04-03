@@ -5,6 +5,7 @@ import '../../services/supabase_service.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/app_drawer.dart';
 import '../../widgets/calendar_widget.dart';
+import '../../services/auth_middleware.dart';
 
 class PlanningPage extends StatefulWidget {
   const PlanningPage({super.key});
@@ -168,9 +169,10 @@ class _PlanningPageState extends State<PlanningPage> {
     
     return Scaffold(
       appBar: CustomAppBar(
-        showBackButton: true, 
-        title: 'Planning - $currentMonth',
+        title: 'Planning',
+        showBackButton: true,
       ),
+      drawer: AppDrawer(),
       body: SafeArea(
         child: Column(
           children: [

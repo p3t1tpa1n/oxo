@@ -45,39 +45,11 @@ class _CalendarPageState extends State<CalendarPage> {
     List<int> nextMonthDays = List.generate(7 - lastWeekday, (index) => 0);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Planning Perso"),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: DropdownButton<String>(
-              value: months[(selectedMonth - 1).clamp(0, months.length - 1)], // ✅ Correction pour éviter les erreurs
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() {
-                    selectedMonth = months.indexOf(newValue) + 1;
-                  });
-                }
-              },
-              dropdownColor: Colors.white,
-              style: const TextStyle(color: Colors.black),
-              underline: Container(),
-              items: months.map((String month) {
-                return DropdownMenuItem<String>(
-                  value: month,
-                  child: Text(month),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
+      appBar: CustomAppBar(
+        title: 'Planning Perso',
+        showBackButton: true,
       ),
+      drawer: AppDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

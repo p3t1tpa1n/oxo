@@ -10,9 +10,11 @@ class ActionsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Actions Page'),
+      appBar: CustomAppBar(
+        title: 'Actions',
+        showBackButton: true,
       ),
+      drawer: AppDrawer(),
       body: Center(
         child: Text('Actions Page'),
       ),

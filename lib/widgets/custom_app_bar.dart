@@ -1,6 +1,7 @@
 // lib/widgets/custom_app_bar.dart
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
+import '../services/auth_middleware.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showBackButton;
@@ -19,15 +20,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: showBackButton
           ? IconButton(
               icon: const Icon(Icons.arrow_back, color: Color(0xFF122b35)),
-              onPressed: () {
-                _navigateToRoleDashboard(context);
-              },
+              onPressed: () => AuthMiddleware.handleBackNavigation(context),
             )
           : null,
       title: GestureDetector(
-        onTap: () {
-          _navigateToRoleDashboard(context);
-        },
+        onTap: () => AuthMiddleware.handleBackNavigation(context),
         child: Row(
           children: [
             Container(
@@ -52,16 +49,5 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       centerTitle: false,
     );
-  }
-
-  void _navigateToRoleDashboard(BuildContext context) {
-    final userRole = SupabaseService.currentUserRole;
-    if (userRole == UserRole.associe) {
-      // Rediriger vers le tableau de bord des associés
-      Navigator.pushReplacementNamed(context, '/');
-    } else {
-      // Rediriger vers le tableau de bord des partenaires
-      Navigator.pushReplacementNamed(context, '/dashboard');
-    }
   }
 }
