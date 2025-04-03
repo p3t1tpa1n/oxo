@@ -29,9 +29,15 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
         
+      - name: Enable web
+        run: flutter config --enable-web
+        
       - name: Build Web
-        run: flutter build web --web-renderer canvaskit --release
+        run: flutter build web --web-renderer canvaskit --release --csp --dart-define=Dart2jsOptimization=O4
       
+      - name: Copy .env to build folder
+        run: cp .env build/web/.env
+        
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
       
