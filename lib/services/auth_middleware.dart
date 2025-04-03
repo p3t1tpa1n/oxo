@@ -18,20 +18,26 @@ class AuthMiddleware extends RouteObserver<PageRoute> {
   }
 
   void _checkAuthentication(Route<dynamic> route) {
-    if (!_isLoginRoute(route) && !SupabaseService.isAuthenticated) {
-      // Si l'utilisateur n'est pas authentifié et tente d'accéder à une route protégée
-      // On récupère le context du Navigator pour rediriger
-      Future.delayed(Duration.zero, () {
+    // Ne pas rediriger si c'est la page de login ou si l'utilisateur est authentifié
+    if (_isLoginRoute(route) || SupabaseService.isAuthenticated) {
+      return;
+    }
+
+    // Rediriger vers la page de login uniquement si l'utilisateur n'est pas authentifié
+    // et tente d'accéder à une route protégée
+    Future.delayed(Duration.zero, () {
+      if (route.navigator?.context != null) {
         final navigator = Navigator.of(route.navigator!.context);
         navigator.pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const LoginPage()),
           (route) => false,
         );
-      });
-    }
+      }
+    });
   }
 
   bool _isLoginRoute(Route<dynamic> route) {
-    return route.settings.name == '/login';
+    return route.settings.name == '/login' || 
+           route.settings.name == null && route is MaterialPageRoute && route.builder is LoginPage;
   }
 } 
