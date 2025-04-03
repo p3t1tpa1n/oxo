@@ -47,6 +47,9 @@
   <title>OXO</title>
   <link rel="manifest" href="manifest.json">
 
+  <!-- Initialisation des variables globales -->
+  <script src="service_worker_init.js"></script>
+
   <style>
     body {
       background-color: #1E3D54;
@@ -112,9 +115,6 @@
   </style>
 
   <script>
-    // Définition de la version du service worker
-    var serviceWorkerVersion = null;
-    
     // Vérification de la compatibilité du navigateur
     function checkBrowserCompatibility() {
       // Vérifier les fonctionnalités nécessaires
@@ -199,7 +199,7 @@
         
         _flutter.loader.loadEntrypoint({
           serviceWorker: {
-            serviceWorkerVersion: serviceWorkerVersion,
+            serviceWorkerVersion: window.serviceWorkerVersion,
           },
           onEntrypointLoaded: function(engineInitializer) {
             engineInitializer.initializeEngine().then(function(appRunner) {
