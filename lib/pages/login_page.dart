@@ -58,10 +58,10 @@ class _LoginPageState extends State<LoginPage> {
           debugPrint('Rôle utilisateur: $userRole');
           switch (userRole) {
             case UserRole.associe:
-              Navigator.pushReplacementNamed(context, '/');
+              Navigator.pushReplacementNamed(context, '/dashboard');
               break;
             case UserRole.partenaire:
-      Navigator.pushReplacementNamed(context, '/dashboard');
+              Navigator.pushReplacementNamed(context, '/dashboard');
               break;
           }
         }

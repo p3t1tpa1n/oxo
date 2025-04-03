@@ -281,7 +281,14 @@ class _MainAppState extends State<MainApp> {
       // Routes pour la navigation
       routes: {
         '/login': (context) => const LoginPage(),
-        '/dashboard': (context) => const PartnerDashboardPage(),
+        '/dashboard': (context) {
+          final userRole = SupabaseService.currentUserRole;
+          if (userRole == UserRole.associe) {
+            return const DashboardPage();
+          } else {
+            return const PartnerDashboardPage();
+          }
+        },
         '/profile': (context) => const ProfilePage(),
         '/associate': (context) => const AssociatePage(),
         '/planning': (context) => const PlanningPage(),
