@@ -20,8 +20,10 @@ jobs:
           channel: 'stable'
           
       - name: Install dependencies
-        run: flutter pub get
-        
+        run: |
+          flutter pub get
+          flutter pub deps
+          
       - name: Analyze project source
         run: flutter analyze
         
@@ -32,4 +34,10 @@ jobs:
         run: flutter build apk --release
         
       - name: Build iOS
-        run: flutter build ios --release --no-codesign 
+        run: flutter build ios --release --no-codesign
+        
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk 
