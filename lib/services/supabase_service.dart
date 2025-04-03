@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:js' as js;
 
 enum UserRole {
   associe,
@@ -19,8 +20,14 @@ class SupabaseService {
       String? anonKey;
 
       if (isWeb) {
-        url = const String.fromEnvironment('SUPABASE_URL', defaultValue: '');
-        anonKey = const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+        // Utiliser les variables d'environnement injectées via window.ENV
+        url = _getJsWindowEnv('SUPABASE_URL') ?? 
+             const String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+        
+        anonKey = _getJsWindowEnv('SUPABASE_ANON_KEY') ?? 
+                 const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+        
+        debugPrint('Web variables - URL: ${url.isNotEmpty ? "Trouvée" : "Non trouvée"}, Key: ${anonKey.isNotEmpty ? "Trouvée" : "Non trouvée"}');
         
         if (url.isEmpty || anonKey.isEmpty) {
           throw Exception('Les variables d\'environnement SUPABASE_URL et SUPABASE_ANON_KEY sont requises pour la version web');
@@ -249,5 +256,20 @@ class SupabaseService {
       debugPrint('Erreur lors de la récupération des partenaires: $e');
       return [];
     }
+  }
+
+  // Méthode pour accéder aux variables d'environnement depuis JavaScript
+  static String? _getJsWindowEnv(String key) {
+    if (kIsWeb) {
+      try {
+        final env = js.context['ENV'];
+        if (env != null && env[key] != null) {
+          return env[key] as String;
+        }
+      } catch (e) {
+        debugPrint('Erreur lors de l\'accès à window.ENV[$key]: $e');
+      }
+    }
+    return null;
   }
 }

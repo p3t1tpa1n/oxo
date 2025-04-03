@@ -35,6 +35,15 @@ jobs:
       - name: Build Web
         run: flutter build web --web-renderer canvaskit --release --csp --dart-define=Dart2jsOptimization=O4
       
+      - name: Configure environment variables for web
+        run: |
+          # Créer le fichier env.js avec les variables d'environnement
+          echo "// Ce fichier est généré pendant le déploiement" > build/web/env.js
+          echo "window.ENV = {" >> build/web/env.js
+          echo "  SUPABASE_URL: \"${{ secrets.SUPABASE_URL }}\"," >> build/web/env.js
+          echo "  SUPABASE_ANON_KEY: \"${{ secrets.SUPABASE_ANON_KEY }}\"" >> build/web/env.js
+          echo "};" >> build/web/env.js
+      
       - name: Copy .env to build folder
         run: cp .env build/web/.env
         
