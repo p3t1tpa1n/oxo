@@ -53,14 +53,14 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
       final startOfMonth = DateTime(_currentMonth.year, _currentMonth.month, 1);
       final endOfMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
 
-      final response = await SupabaseService.client
-          .from('timesheet_entries')
-          .select('date, hours')
-          .eq('user_id', SupabaseService.currentUser!.id)
-          .gte('date', startOfMonth.toIso8601String())
-          .lte('date', endOfMonth.toIso8601String());
+      // Utiliser la méthode fetchTimeEntries qui gère les données fictives en mode développement
+      final userId = SupabaseService.currentUser?.id ?? 'dev-user-id';
+      final entries = await SupabaseService.fetchTimeEntries(
+        userId,
+        startDate: startOfMonth,
+        endDate: endOfMonth,
+      );
 
-      final entries = List<Map<String, dynamic>>.from(response);
       final Map<String, double> newDailyHours = {};
 
       for (var entry in entries) {

@@ -46,7 +46,7 @@ class _LoginPageState extends State<LoginPage> {
       if (response.user != null) {
         if (!mounted) return;
         
-        final userRole = await SupabaseService.getCurrentUserRole();
+        final userRole = SupabaseService.currentUserRole;
         
         if (!mounted) return;
         
@@ -61,10 +61,13 @@ class _LoginPageState extends State<LoginPage> {
         debugPrint('Rôle utilisateur: $userRole');
         switch (userRole) {
           case UserRole.associe:
-            Navigator.pushReplacementNamed(context, '/');
+            Navigator.pushReplacementNamed(context, '/associate');
             break;
           case UserRole.partenaire:
-            Navigator.pushReplacementNamed(context, '/dashboard');
+            Navigator.pushReplacementNamed(context, '/partner');
+            break;
+          case UserRole.admin:
+            Navigator.pushReplacementNamed(context, '/associate');
             break;
           default:
             setState(() {
@@ -81,7 +84,14 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       debugPrint('Erreur de connexion: $e');
       setState(() {
-        _errorMessage = 'Erreur de connexion: ${e.toString()}';
+        // Message d'erreur plus convivial
+        String errorMsg = 'Une erreur est survenue lors de la connexion';
+        if (e.toString().contains('Failed to fetch')) {
+          errorMsg = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet ou contactez l\'administrateur.';
+        } else if (e.toString().contains('Invalid login credentials')) {
+          errorMsg = 'Email ou mot de passe incorrect';
+        }
+        _errorMessage = errorMsg;
         _isLoading = false;
       });
     }

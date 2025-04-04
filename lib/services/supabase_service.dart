@@ -175,15 +175,17 @@ class SupabaseService {
   }) async {
     try {
       debugPrint('Tentative de connexion pour: $email');
+      
       final response = await client.auth.signInWithPassword(
         email: email,
         password: password,
       );
-
+      
       if (response.user != null) {
         _currentUserRole = await getCurrentUserRole();
+        debugPrint('Connexion réussie avec le rôle: $_currentUserRole');
       }
-
+      
       return response;
     } catch (e) {
       debugPrint('Erreur lors de la connexion: $e');
@@ -212,6 +214,53 @@ class SupabaseService {
 
   static Future<List<Map<String, dynamic>>> fetchTasks() async {
     try {
+      if (kDebugMode) {
+        try {
+          final response = await client
+            .from('tasks')
+            .select()
+            .order('created_at', ascending: false);
+          
+          return List<Map<String, dynamic>>.from(response);
+        } catch (e) {
+          debugPrint('Erreur lors de la récupération des tâches en mode développement: $e');
+          
+          // Retourner des données fictives pour le développement
+          return [
+            {
+              'id': 1,
+              'title': 'Réunion avec client A',
+              'description': 'Présentation des nouveaux services',
+              'due_date': DateTime.now().add(const Duration(days: 2)).toIso8601String(),
+              'user_id': 'dev-user-id',
+              'status': 'pending',
+              'priority': 'high',
+              'created_at': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+            },
+            {
+              'id': 2,
+              'title': 'Préparation présentation',
+              'description': 'Slides pour la conférence',
+              'due_date': DateTime.now().add(const Duration(days: 5)).toIso8601String(),
+              'user_id': 'dev-user-id',
+              'status': 'in_progress',
+              'priority': 'medium',
+              'created_at': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
+            },
+            {
+              'id': 3,
+              'title': 'Rapport mensuel',
+              'description': 'Compilation des résultats du mois',
+              'due_date': DateTime.now().add(const Duration(days: 7)).toIso8601String(),
+              'user_id': 'dev-user-id',
+              'status': 'completed',
+              'priority': 'low',
+              'created_at': DateTime.now().subtract(const Duration(days: 3)).toIso8601String(),
+            },
+          ];
+        }
+      }
+      
       final response = await client
         .from('tasks')
         .select()
@@ -327,6 +376,153 @@ class SupabaseService {
       // ... existing code ...
     } catch (e) {
       debugPrint('Erreur lors de l\'installation de la mise à jour: $e');
+    }
+  }
+
+  // Méthode pour générer des heures fictives pour le développement
+  static List<Map<String, dynamic>> getMockTimeEntries() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final List<Map<String, dynamic>> entries = [];
+    
+    // Générer des entrées pour les 7 derniers jours
+    for (int i = 0; i < 7; i++) {
+      final date = today.subtract(Duration(days: i));
+      final hours = (i % 3 == 0) ? 8 : (i % 3 == 1) ? 7 : 6;
+      
+      entries.add({
+        'id': i + 1,
+        'user_id': 'dev-user-id',
+        'date': date.toIso8601String(),
+        'hours': hours,
+        'description': 'Travail sur projet OXO - Jour ${i+1}',
+        'created_at': date.toIso8601String(),
+      });
+    }
+    
+    return entries;
+  }
+
+  // Méthode pour récupérer les heures travaillées
+  static Future<List<Map<String, dynamic>>> fetchTimeEntries(String userId, {DateTime? startDate, DateTime? endDate}) async {
+    try {
+      if (kDebugMode) {
+        try {
+          var query = client.from('time_entries').select();
+          
+          if (userId.isNotEmpty) {
+            query = query.eq('user_id', userId);
+          }
+          
+          if (startDate != null) {
+            query = query.gte('date', startDate.toIso8601String());
+          }
+          
+          if (endDate != null) {
+            query = query.lte('date', endDate.toIso8601String());
+          }
+          
+          final response = await query.order('date', ascending: false);
+          return List<Map<String, dynamic>>.from(response);
+        } catch (e) {
+          debugPrint('Erreur lors de la récupération des heures en mode développement: $e');
+          return getMockTimeEntries();
+        }
+      }
+      
+      var query = client.from('time_entries').select();
+      
+      if (userId.isNotEmpty) {
+        query = query.eq('user_id', userId);
+      }
+      
+      if (startDate != null) {
+        query = query.gte('date', startDate.toIso8601String());
+      }
+      
+      if (endDate != null) {
+        query = query.lte('date', endDate.toIso8601String());
+      }
+      
+      final response = await query.order('date', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur lors du chargement des heures: $e');
+      return [];
+    }
+  }
+
+  // Méthode pour générer des événements de calendrier fictifs pour le développement
+  static List<Map<String, dynamic>> getMockCalendarEvents() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final List<Map<String, dynamic>> events = [];
+    
+    // Générer des événements pour les 14 prochains jours
+    for (int i = -2; i < 12; i++) {
+      final date = today.add(Duration(days: i));
+      final uniqueId = 'event-${i + 3}';
+      
+      // Un événement tous les deux jours environ
+      if (i % 2 == 0) {
+        events.add({
+          'id': uniqueId,
+          'title': i % 6 == 0 ? 'Réunion d\'équipe' : 
+                  i % 6 == 2 ? 'Rendez-vous client' : 
+                  i % 6 == 4 ? 'Point d\'avancement' : 'Atelier projet',
+          'start_time': DateTime(date.year, date.month, date.day, 9 + (i % 3) * 2, 0).toIso8601String(),
+          'end_time': DateTime(date.year, date.month, date.day, 10 + (i % 3) * 2, 30).toIso8601String(),
+          'description': 'Description détaillée pour l\'événement $uniqueId',
+          'location': i % 4 == 0 ? 'Bureau principal' : 'Salle de réunion A',
+          'user_id': 'dev-user-id',
+          'created_at': date.subtract(const Duration(days: 5)).toIso8601String(),
+        });
+      }
+    }
+    
+    return events;
+  }
+
+  // Méthode pour récupérer les événements du calendrier
+  static Future<List<Map<String, dynamic>>> fetchCalendarEvents({DateTime? startDate, DateTime? endDate}) async {
+    try {
+      debugPrint('Chargement des événements du calendrier...');
+      
+      if (kDebugMode) {
+        try {
+          var query = client.from('calendar_events').select();
+          
+          if (startDate != null) {
+            query = query.gte('start_time', startDate.toIso8601String());
+          }
+          
+          if (endDate != null) {
+            query = query.lte('start_time', endDate.toIso8601String());
+          }
+          
+          final response = await query.order('start_time');
+          return List<Map<String, dynamic>>.from(response);
+        } catch (e) {
+          debugPrint('Erreur lors de la récupération des événements en mode développement: $e');
+          return getMockCalendarEvents();
+        }
+      }
+      
+      var query = client.from('calendar_events').select();
+      
+      if (startDate != null) {
+        query = query.gte('start_time', startDate.toIso8601String());
+      }
+      
+      if (endDate != null) {
+        query = query.lte('start_time', endDate.toIso8601String());
+      }
+      
+      final response = await query.order('start_time');
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur lors du chargement des événements du calendrier: $e');
+      return [];
     }
   }
 } 

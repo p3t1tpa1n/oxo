@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 import '../models/user_role.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthMiddleware extends RouteObserver<PageRoute> {
   @override
@@ -18,7 +19,9 @@ class AuthMiddleware extends RouteObserver<PageRoute> {
   }
 
   void _checkAuthentication(Route<dynamic> route) {
+    debugPrint('Vérification d\'authentification pour la route: ${route.settings.name}');
     if (!_isLoginRoute(route) && !SupabaseService.isAuthenticated) {
+      debugPrint('Non authentifié, redirection vers la page de connexion');
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (route.navigator?.context.mounted == true) {
           Navigator.of(route.navigator!.context).pushNamedAndRemoveUntil(
@@ -27,6 +30,8 @@ class AuthMiddleware extends RouteObserver<PageRoute> {
           );
         }
       });
+    } else {
+      debugPrint('Authentifié, navigation autorisée vers: ${route.settings.name}');
     }
   }
 

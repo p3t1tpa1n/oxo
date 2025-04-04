@@ -191,45 +191,41 @@ class _MainAppState extends State<MainApp> {
     }
 
     final userRole = SupabaseService.currentUserRole;
+    debugPrint('Rôle de l\'utilisateur pour la page d\'accueil: $userRole');
+    
     if (userRole == UserRole.associe) {
       return const DashboardPage();
     } else if (userRole == UserRole.partenaire) {
       return const PartnerDashboardPage();
+    } else if (userRole == UserRole.admin) {
+      // Dans le cas d'un administrateur, on pourrait rediriger vers une page d'administration
+      return const DashboardPage();
     }
 
+    // Si le rôle n'est pas défini ou pas reconnu, rediriger vers la page de connexion
+    debugPrint('Rôle non reconnu, redirection vers la page de connexion');
     return const LoginPage();
   }
 
   Map<String, WidgetBuilder> _getRoutes() {
     final routes = <String, WidgetBuilder>{
-      '/': (context) => _getHomePage(),
       '/login': (context) => const LoginPage(),
     };
 
-    if (SupabaseService.isAuthenticated) {
-      final userRole = SupabaseService.currentUserRole;
-      if (userRole == UserRole.associe) {
-        routes.addAll({
-          '/associate': (context) => const DashboardPage(),
-          '/figures': (context) => const FiguresPage(),
-          '/timesheet': (context) => const TimesheetPage(),
-        });
-      } else if (userRole == UserRole.partenaire) {
-        routes.addAll({
-          '/partner': (context) => const PartnerDashboardPage(),
-          '/partners': (context) => const PartnersPage(),
-          '/actions': (context) => const ActionsPage(),
-        });
-      }
-
-      // Routes communes
-      routes.addAll({
-        '/profile': (context) => const ProfilePage(),
-        '/planning': (context) => const PlanningPage(),
-        '/messaging': (context) => const MessagingPage(),
-        '/calendar': (context) => const CalendarPage(),
-      });
-    }
+    // Toujours définir ces routes, même si l'authentification n'est pas complète
+    // pour permettre le mode développement
+    routes.addAll({
+      '/associate': (context) => const DashboardPage(),
+      '/partner': (context) => const PartnerDashboardPage(),
+      '/profile': (context) => const ProfilePage(),
+      '/planning': (context) => const PlanningPage(),
+      '/messaging': (context) => const MessagingPage(),
+      '/calendar': (context) => const CalendarPage(),
+      '/figures': (context) => const FiguresPage(),
+      '/timesheet': (context) => const TimesheetPage(),
+      '/partners': (context) => const PartnersPage(),
+      '/actions': (context) => const ActionsPage(),
+    });
 
     return routes;
   }
