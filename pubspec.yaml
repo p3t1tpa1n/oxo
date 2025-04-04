@@ -40,6 +40,5 @@ flutter:
     - assets/
     - assets/oxo_logo.png
     - assets/cleaned_image_smoothed.png
-    - .env
 
   # Déclarez ici vos assets (images, etc.)

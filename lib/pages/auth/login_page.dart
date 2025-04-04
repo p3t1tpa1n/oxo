@@ -69,11 +69,6 @@ class _LoginPageState extends State<LoginPage> {
           case UserRole.admin:
             Navigator.pushReplacementNamed(context, '/associate');
             break;
-          default:
-            setState(() {
-              _errorMessage = 'Erreur: Rôle utilisateur non reconnu';
-              _isLoading = false;
-            });
         }
       } else {
         setState(() {
