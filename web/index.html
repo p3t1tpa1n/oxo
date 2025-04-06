@@ -131,8 +131,11 @@
   <script src="flutter.js" defer></script>
   <script>
     window.addEventListener("load", function(ev) {
+      console.log('Page chargée, initialisation de Flutter en cours...');
+      
       // Force hide loading screen after 8 seconds max, even if Flutter doesn't initialize
       var forcedTimeout = setTimeout(function() {
+        console.log('Délai d\'attente dépassé, affichage forcé de l\'application');
         var loadingElement = document.getElementById('loading');
         if (loadingElement) {
           loadingElement.style.display = 'none';
@@ -156,21 +159,32 @@
         
         var flutterAppElement = document.getElementById('flutter-app');
         if (flutterAppElement) {
-          flutterAppElement.innerHTML = '<div style="color: white; text-align: center; padding: 20px;">Une erreur est survenue lors du chargement de l\'application.<br>Veuillez rafraîchir la page ou réessayer plus tard.</div>';
+          flutterAppElement.innerHTML = '<div style="color: white; text-align: center; padding: 20px;">Une erreur est survenue lors du chargement de l\'application.<br>Détails: ' + (error ? error.toString() : 'Erreur inconnue') + '<br>Veuillez rafraîchir la page ou réessayer plus tard.</div>';
           flutterAppElement.style.display = 'block';
         }
       }
       
       try {
+        // Vérifier que _flutter est disponible
+        if (typeof _flutter === 'undefined') {
+          console.error('Error: _flutter is undefined');
+          handleFlutterError(new Error('_flutter is undefined'));
+          return;
+        }
+        
+        console.log('Chargement de Flutter...');
         // Utiliser la méthode load() recommandée par Flutter
         _flutter.loader.load()
           .then(function(engineInitializer) {
+            console.log('Flutter chargé, initialisation du moteur...');
             return engineInitializer.initializeEngine();
           })
           .then(function(appRunner) {
+            console.log('Moteur initialisé, démarrage de l\'application...');
             return appRunner.runApp();
           })
           .then(function() {
+            console.log('Application démarrée avec succès');
             clearTimeout(forcedTimeout);
             
             var loadingElement = document.getElementById('loading');
