@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:version/version.dart';
 import '../models/user_role.dart';
-import 'package:js/js.dart' as js;
 
 class SupabaseService {
   static SupabaseClient? _client;
@@ -127,28 +126,13 @@ class SupabaseService {
     // Cette méthode sera appelée uniquement en mode web
     if (!kIsWeb) return null;
     
-    try {
-      // Essaie d'accéder à window.getEnvVar
-      final js.JsObject? window = js.context;
-      if (window != null && window.hasProperty('getEnvVar')) {
-        final value = window.callMethod('getEnvVar', [key]);
-        if (value != null && value != 'undefined' && value != '') {
-          return value.toString();
-        }
+    // En mode développement web, utiliser des valeurs par défaut
+    if (kDebugMode) {
+      if (key == 'SUPABASE_URL') {
+        return 'https://iejxrakkdaqfyvupzdmn.supabase.co';
+      } else if (key == 'SUPABASE_ANON_KEY') {
+        return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllanhyYWtrZGFxZnl2dXB6ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwOTA3MTcsImV4cCI6MjA1NDY2NjcxN30.TYD_417ef8HOk8dnde2Hj5TJe9oIX5h5UfHS7fNKcM8';
       }
-      
-      // Essaie d'accéder à window.ENV
-      if (window != null && window.hasProperty('ENV')) {
-        final env = window['ENV'];
-        if (env != null && env is js.JsObject && env.hasProperty(key)) {
-          final value = env[key];
-          if (value != null && value != 'undefined' && value != '') {
-            return value.toString();
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('Erreur lors de la récupération de la variable web $key: $e');
     }
     
     return null;

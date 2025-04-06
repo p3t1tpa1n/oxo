@@ -162,38 +162,33 @@
       }
       
       try {
-        _flutter.loader.load({
-          onEntrypointLoaded: function(engineInitializer) {
-            engineInitializer.initializeEngine().then(function(appRunner) {
-              try {
-                appRunner.runApp();
-                clearTimeout(forcedTimeout);
-                
-                var loadingElement = document.getElementById('loading');
-                if (loadingElement) {
-                  loadingElement.style.display = 'none';
-                }
-                
-                var flutterAppElement = document.getElementById('flutter-app');
-                if (flutterAppElement) {
-                  flutterAppElement.style.display = 'block';
-                }
-              } catch (runError) {
-                console.error('Error running Flutter app:', runError);
-                handleFlutterError(runError);
-              }
-            }).catch(function(engineError) {
-              console.error('Error initializing Flutter engine:', engineError);
-              handleFlutterError(engineError);
-            });
-          },
-          onError: function(error) {
-            console.error('Error loading entrypoint:', error);
+        // Utiliser la méthode load() recommandée par Flutter
+        _flutter.loader.load()
+          .then(function(engineInitializer) {
+            return engineInitializer.initializeEngine();
+          })
+          .then(function(appRunner) {
+            return appRunner.runApp();
+          })
+          .then(function() {
+            clearTimeout(forcedTimeout);
+            
+            var loadingElement = document.getElementById('loading');
+            if (loadingElement) {
+              loadingElement.style.display = 'none';
+            }
+            
+            var flutterAppElement = document.getElementById('flutter-app');
+            if (flutterAppElement) {
+              flutterAppElement.style.display = 'block';
+            }
+          })
+          .catch(function(error) {
+            console.error('Erreur lors du chargement de Flutter:', error);
             handleFlutterError(error);
-          }
-        });
+          });
       } catch (error) {
-        console.error('Top level error in Flutter initialization:', error);
+        console.error('Erreur globale dans l\'initialisation de Flutter:', error);
         handleFlutterError(error);
       }
     });
