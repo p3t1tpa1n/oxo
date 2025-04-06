@@ -1,43 +1,21 @@
 {
+  "name": "oxo",
   "version": 2,
-  "buildCommand": "npm run build",
+  "public": false,
+  "framework": "flutter",
+  "buildCommand": "flutter build web --release",
   "outputDirectory": "build/web",
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "s-maxage=31536000, stale-while-revalidate=31536000"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
+      "dest": "/$1"
     },
     {
-      "source": "/(.+\\.[a-zA-Z0-9]+)$",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
+      "handle": "filesystem"
+    },
+    {
+      "src": "/.*",
+      "dest": "/index.html"
     }
   ]
 } 
