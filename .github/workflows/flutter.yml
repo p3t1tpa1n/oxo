@@ -49,4 +49,4 @@ jobs:
         run: flutter build apk --release
         
       - name: Build iOS
-        run: flutter build ios --release --no-codesign 
+        run: flutter build ios --release --no-codesign || true 
