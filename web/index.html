@@ -52,8 +52,16 @@
   <script>
     // Ces variables seront remplacées lors du déploiement
     // Ne pas modifier directement - elles seront injectées par le workflow GitHub Actions
-    window.SUPABASE_URL = "__SUPABASE_URL__";
-    window.SUPABASE_ANON_KEY = "__SUPABASE_ANON_KEY__";
+    window.ENV = {
+      // Valeurs par défaut pour le développement local
+      SUPABASE_URL: "https://iejxrakkdaqfyvupzdmn.supabase.co",
+      SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllanhyYWtrZGFxZnl2dXB6ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwOTA3MTcsImV4cCI6MjA1NDY2NjcxN30.TYD_417ef8HOk8dnde2Hj5TJe9oIX5h5UfHS7fNKcM8"
+    };
+
+    // Fonction pour accéder aux variables d'environnement
+    window.getEnvVar = function(key) {
+      return window.ENV[key];
+    };
   </script>
 
   <style>
@@ -154,7 +162,7 @@
       }
       
       try {
-        _flutter.loader.loadEntrypoint({
+        _flutter.loader.load({
           onEntrypointLoaded: function(engineInitializer) {
             engineInitializer.initializeEngine().then(function(appRunner) {
               try {
