@@ -42,6 +42,7 @@ class SupabaseService {
       await Supabase.initialize(
         url: url,
         anonKey: anonKey,
+        debug: kDebugMode,
       );
       
       _client = Supabase.instance.client;
@@ -56,8 +57,9 @@ class SupabaseService {
       }
       
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Erreur lors de l\'initialisation de Supabase: $e');
+      debugPrint('Stack trace: $stackTrace');
       return false;
     }
   }
@@ -159,7 +161,10 @@ class SupabaseService {
       
       if (_client == null) {
         debugPrint('Client Supabase non initialisé');
-        throw Exception('Client Supabase non initialisé');
+        await initialize();
+        if (_client == null) {
+          throw Exception('Impossible d\'initialiser le client Supabase');
+        }
       }
       
       debugPrint('Tentative de connexion avec les credentials fournis');
@@ -179,17 +184,17 @@ class SupabaseService {
         debugPrint('Connexion échouée: Utilisateur non trouvé');
         throw Exception('Utilisateur non trouvé');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Erreur lors de la connexion: $e');
+      debugPrint('Stack trace: $stackTrace');
       debugPrint('Type d\'erreur: ${e.runtimeType}');
-      debugPrint('Message d\'erreur: ${e.toString()}');
       
       if (e.toString().contains('Invalid login credentials')) {
         throw Exception('Email ou mot de passe incorrect');
       } else if (e.toString().contains('Failed to fetch')) {
-        throw Exception('Impossible de se connecter au serveur. Vérifiez votre connexion internet ou contactez l\'administrateur.');
+        throw Exception('Impossible de se connecter au serveur. Vérifiez votre connexion internet.');
       } else {
-        throw Exception('Une erreur est survenue lors de la connexion');
+        throw Exception('Une erreur est survenue lors de la connexion. Veuillez réessayer.');
       }
     }
   }
