@@ -1,19 +1,26 @@
+@JS()
+library supabase_service;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:js/js.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:version/version.dart';
 import '../models/user_role.dart';
-import 'dart:js' as js;
 
 class SupabaseService {
   static SupabaseClient? _client;
   static SupabaseClient get client => _client!;
   static UserRole? _currentUserRole;
+
+  // URL et clé par défaut
+  static const defaultUrl = 'https://iejxrakkdaqfyvupzdmn.supabase.co';
+  static const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllanhyYWtrZGFxZnl2dXB6ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwOTA3MTcsImV4cCI6MjA1NDY2NjcxN30.TYD_417ef8HOk8dnde2Hj5TJe9oIX5h5UfHS7fNKcM8';
 
   static Future<bool> initialize() async {
     if (_client != null) return true;
@@ -21,32 +28,17 @@ class SupabaseService {
     debugPrint('Initialisation de Supabase...');
     
     try {
-      String url;
-      String anonKey;
+      String url = defaultUrl;
+      String anonKey = defaultKey;
       
-      // URL et clé par défaut
-      const defaultUrl = 'https://iejxrakkdaqfyvupzdmn.supabase.co';
-      const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllanhyYWtrZGFxZnl2dXB6ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwOTA3MTcsImV4cCI6MjA1NDY2NjcxN30.TYD_417ef8HOk8dnde2Hj5TJe9oIX5h5UfHS7fNKcM8';
-      
-      if (kIsWeb) {
-        debugPrint('Mode Web: Utilisation des variables d\'environnement du navigateur');
+      if (!kIsWeb) {
         try {
-          final webUrl = js.context['window']['ENV']['SUPABASE_URL'];
-          final webKey = js.context['window']['ENV']['SUPABASE_ANON_KEY'];
-          
-          url = webUrl?.toString() ?? defaultUrl;
-          anonKey = webKey?.toString() ?? defaultKey;
-          
-          debugPrint('Variables récupérées depuis window.ENV');
+          await dotenv.load(fileName: '.env');
+          url = dotenv.env['SUPABASE_URL'] ?? defaultUrl;
+          anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? defaultKey;
         } catch (e) {
-          debugPrint('Erreur lors de la récupération des variables web: $e');
-          url = defaultUrl;
-          anonKey = defaultKey;
+          debugPrint('Erreur lors du chargement du fichier .env: $e');
         }
-      } else {
-        debugPrint('Mode natif: Utilisation des variables par défaut');
-        url = defaultUrl;
-        anonKey = defaultKey;
       }
       
       debugPrint('Création du client Supabase avec URL: $url');
@@ -74,45 +66,10 @@ class SupabaseService {
     }
   }
 
-  static String? _getEnvVar(String key) {
-    // Essayer d'abord le fichier .env
-    String? value = dotenv.env[key];
-    if (value != null) {
-      debugPrint('Variable trouvée dans .env: $key');
-      return value;
-    }
-
-    if (kIsWeb) {
-      // En mode web, essayer de récupérer depuis window.ENV
-      try {
-        // Cette partie sera gérée par le JavaScript injecté dans index.html
-        value = _getWebEnvVar(key);
-        if (value != null) {
-          debugPrint('Variable trouvée dans window: $key');
-          return value;
-        }
-      } catch (e) {
-        debugPrint('Erreur lors de la récupération de la variable web $key: $e');
-      }
-    }
-
-    debugPrint('Variable non trouvée: $key');
-    return null;
-  }
-
   static String? _getWebEnvVar(String key) {
-    // Cette méthode sera appelée uniquement en mode web
     if (!kIsWeb) return null;
     
     try {
-      // En mode web, essayer de récupérer depuis window.ENV
-      final value = _getEnvVarFromWindow(key);
-      if (value != null) {
-        debugPrint('Variable trouvée dans window.ENV: $key');
-        return value;
-      }
-      
-      // Si non trouvé, utiliser les valeurs par défaut en mode développement
       if (kDebugMode) {
         if (key == 'SUPABASE_URL') {
           return 'https://iejxrakkdaqfyvupzdmn.supabase.co';
@@ -120,31 +77,21 @@ class SupabaseService {
           return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllanhyYWtrZGFxZnl2dXB6ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwOTA3MTcsImV4cCI6MjA1NDY2NjcxN30.TYD_417ef8HOk8dnde2Hj5TJe9oIX5h5UfHS7fNKcM8';
         }
       }
-    } catch (e) {
-      debugPrint('Erreur lors de la récupération de la variable web $key: $e');
-    }
-    
-    return null;
-  }
-
-  static String? _getEnvVarFromWindow(String key) {
-    if (!kIsWeb) return null;
-    
-    try {
-      // @dart=2.9
-      final value = js.context['window']['ENV'][key];
+      
+      dynamic value;
+      if (js.context != null) {
+        value = js.context['window']?['ENV']?[key];
+      }
       return value?.toString();
     } catch (e) {
-      debugPrint('Erreur lors de l\'accès à window.ENV[$key]: $e');
+      debugPrint('Erreur lors de la récupération de la variable web $key: $e');
       return null;
     }
   }
 
   static UserRole? get currentUserRole => _currentUserRole;
 
-  static User? get currentUser {
-    return client.auth.currentUser;
-  }
+  static User? get currentUser => client.auth.currentUser;
 
   static Future<UserRole?> getCurrentUserRole() async {
     try {
