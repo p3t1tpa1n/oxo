@@ -1,11 +1,7 @@
-@JS()
-library supabase_service;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:js/js.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -70,19 +66,18 @@ class SupabaseService {
     if (!kIsWeb) return null;
     
     try {
+      // En mode développement, retourner les valeurs par défaut
       if (kDebugMode) {
         if (key == 'SUPABASE_URL') {
-          return 'https://iejxrakkdaqfyvupzdmn.supabase.co';
+          return defaultUrl;
         } else if (key == 'SUPABASE_ANON_KEY') {
-          return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllanhyYWtrZGFxZnl2dXB6ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwOTA3MTcsImV4cCI6MjA1NDY2NjcxN30.TYD_417ef8HOk8dnde2Hj5TJe9oIX5h5UfHS7fNKcM8';
+          return defaultKey;
         }
       }
       
-      dynamic value;
-      if (js.context != null) {
-        value = js.context['window']?['ENV']?[key];
-      }
-      return value?.toString();
+      // En production, les variables d'environnement seront injectées dans window.ENV
+      // lors du build de l'application
+      return null;
     } catch (e) {
       debugPrint('Erreur lors de la récupération de la variable web $key: $e');
       return null;
@@ -427,7 +422,7 @@ class SupabaseService {
     try {
       if (kDebugMode) {
         try {
-          var query = client.from('time_entries').select();
+          var query = client.from('timesheet_entries').select();
           
           if (userId.isNotEmpty) {
             query = query.eq('user_id', userId);
@@ -449,7 +444,7 @@ class SupabaseService {
         }
       }
       
-      var query = client.from('time_entries').select();
+      var query = client.from('timesheet_entries').select();
       
       if (userId.isNotEmpty) {
         query = query.eq('user_id', userId);
