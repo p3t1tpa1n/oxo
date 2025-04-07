@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:version/version.dart';
 import '../models/user_role.dart';
+import 'dart:js' as js;
 
 class SupabaseService {
   static SupabaseClient? _client;
@@ -20,60 +21,48 @@ class SupabaseService {
     debugPrint('Initialisation de Supabase...');
     
     try {
-      // Chargement du fichier .env
-      debugPrint('Chargement du fichier .env');
-      try {
-        await dotenv.load(fileName: '.env');
-      } catch (e) {
-        debugPrint('Avertissement: Impossible de charger le fichier .env: $e');
-        // Continuer même si le fichier .env n'est pas trouvé
-      }
+      String url;
+      String anonKey;
       
-      String? url;
-      String? anonKey;
+      // URL et clé par défaut
+      const defaultUrl = 'https://iejxrakkdaqfyvupzdmn.supabase.co';
+      const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllanhyYWtrZGFxZnl2dXB6ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwOTA3MTcsImV4cCI6MjA1NDY2NjcxN30.TYD_417ef8HOk8dnde2Hj5TJe9oIX5h5UfHS7fNKcM8';
       
       if (kIsWeb) {
-        debugPrint('Exécution en mode Web - recherche des variables d\'environnement');
-        url = _getEnvVar('SUPABASE_URL');
-        anonKey = _getEnvVar('SUPABASE_ANON_KEY');
-        
-        debugPrint('URL Supabase: ${url != null ? 'Trouvée' : 'Non trouvée'}');
-        debugPrint('Clé anonyme: ${anonKey != null ? 'Trouvée' : 'Non trouvée'}');
-        
-        // En mode web, si les variables ne sont pas trouvées, utiliser des valeurs par défaut pour le développement
-        if (kDebugMode && (url == null || anonKey == null)) {
-          url = url ?? 'https://msexomjltbhwcutgfmkl.supabase.co';
-          anonKey = anonKey ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zZXhvbWpsdGJod2N1dGdmbWtsIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTQ0MzY4MDAsImV4cCI6MjAxMDAxMjgwMH0.QJQd9HOiOqgUP4rkuIgbh4vXH8goaWRU-NDGw7QiLi4';
-          debugPrint('Mode développement: Utilisation de valeurs par défaut pour Supabase');
+        debugPrint('Mode Web: Utilisation des variables d\'environnement du navigateur');
+        try {
+          final webUrl = js.context['window']['ENV']['SUPABASE_URL'];
+          final webKey = js.context['window']['ENV']['SUPABASE_ANON_KEY'];
+          
+          url = webUrl?.toString() ?? defaultUrl;
+          anonKey = webKey?.toString() ?? defaultKey;
+          
+          debugPrint('Variables récupérées depuis window.ENV');
+        } catch (e) {
+          debugPrint('Erreur lors de la récupération des variables web: $e');
+          url = defaultUrl;
+          anonKey = defaultKey;
         }
       } else {
-        // Mode natif, utiliser directement dotenv
-        url = dotenv.env['SUPABASE_URL'];
-        anonKey = dotenv.env['SUPABASE_ANON_KEY'];
-        
-        debugPrint('URL Supabase: $url');
-        debugPrint('Clé anonyme: ${anonKey != null ? 'Trouvée' : 'Non trouvée'}');
-        
-        // En mode natif, si les variables ne sont pas trouvées, utiliser des valeurs par défaut pour le développement
-        if (kDebugMode && (url == null || anonKey == null)) {
-          url = url ?? 'https://msexomjltbhwcutgfmkl.supabase.co';
-          anonKey = anonKey ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zZXhvbWpsdGJod2N1dGdmbWtsIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTQ0MzY4MDAsImV4cCI6MjAxMDAxMjgwMH0.QJQd9HOiOqgUP4rkuIgbh4vXH8goaWRU-NDGw7QiLi4';
-          debugPrint('Mode développement: Utilisation de valeurs par défaut pour Supabase');
-        }
-      }
-      
-      if (url == null || anonKey == null) {
-        debugPrint('ERREUR CRITIQUE: Variables Supabase manquantes');
-        return false;
+        debugPrint('Mode natif: Utilisation des variables par défaut');
+        url = defaultUrl;
+        anonKey = defaultKey;
       }
       
       debugPrint('Création du client Supabase avec URL: $url');
-      _client = SupabaseClient(url, anonKey);
+      
+      await Supabase.initialize(
+        url: url,
+        anonKey: anonKey,
+      );
+      
+      _client = Supabase.instance.client;
       
       // Vérifie si une session existe
       final session = _client!.auth.currentSession;
       if (session != null) {
         debugPrint('Session existante trouvée');
+        _currentUserRole = await getCurrentUserRole();
       } else {
         debugPrint('Aucune session existante');
       }
@@ -81,17 +70,6 @@ class SupabaseService {
       return true;
     } catch (e) {
       debugPrint('Erreur lors de l\'initialisation de Supabase: $e');
-      
-      // En mode développement, créer un client fictif pour éviter les erreurs
-      if (kDebugMode) {
-        debugPrint('Mode développement: Création d\'un client Supabase fictif');
-        _client = SupabaseClient(
-          'https://msexomjltbhwcutgfmkl.supabase.co',
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zZXhvbWpsdGJod2N1dGdmbWtsIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTQ0MzY4MDAsImV4cCI6MjAxMDAxMjgwMH0.QJQd9HOiOqgUP4rkuIgbh4vXH8goaWRU-NDGw7QiLi4'
-        );
-        return true;
-      }
-      
       return false;
     }
   }
@@ -126,16 +104,40 @@ class SupabaseService {
     // Cette méthode sera appelée uniquement en mode web
     if (!kIsWeb) return null;
     
-    // En mode développement web, utiliser des valeurs par défaut
-    if (kDebugMode) {
-      if (key == 'SUPABASE_URL') {
-        return 'https://iejxrakkdaqfyvupzdmn.supabase.co';
-      } else if (key == 'SUPABASE_ANON_KEY') {
-        return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllanhyYWtrZGFxZnl2dXB6ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwOTA3MTcsImV4cCI6MjA1NDY2NjcxN30.TYD_417ef8HOk8dnde2Hj5TJe9oIX5h5UfHS7fNKcM8';
+    try {
+      // En mode web, essayer de récupérer depuis window.ENV
+      final value = _getEnvVarFromWindow(key);
+      if (value != null) {
+        debugPrint('Variable trouvée dans window.ENV: $key');
+        return value;
       }
+      
+      // Si non trouvé, utiliser les valeurs par défaut en mode développement
+      if (kDebugMode) {
+        if (key == 'SUPABASE_URL') {
+          return 'https://iejxrakkdaqfyvupzdmn.supabase.co';
+        } else if (key == 'SUPABASE_ANON_KEY') {
+          return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllanhyYWtrZGFxZnl2dXB6ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwOTA3MTcsImV4cCI6MjA1NDY2NjcxN30.TYD_417ef8HOk8dnde2Hj5TJe9oIX5h5UfHS7fNKcM8';
+        }
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération de la variable web $key: $e');
     }
     
     return null;
+  }
+
+  static String? _getEnvVarFromWindow(String key) {
+    if (!kIsWeb) return null;
+    
+    try {
+      // @dart=2.9
+      final value = js.context['window']['ENV'][key];
+      return value?.toString();
+    } catch (e) {
+      debugPrint('Erreur lors de l\'accès à window.ENV[$key]: $e');
+      return null;
+    }
   }
 
   static UserRole? get currentUserRole => _currentUserRole;
@@ -213,20 +215,40 @@ class SupabaseService {
     try {
       debugPrint('Tentative de connexion pour: $email');
       
+      if (_client == null) {
+        debugPrint('Client Supabase non initialisé');
+        throw Exception('Client Supabase non initialisé');
+      }
+      
+      debugPrint('Tentative de connexion avec les credentials fournis');
+      
       final response = await client.auth.signInWithPassword(
         email: email,
         password: password,
       );
       
+      debugPrint('Réponse de Supabase: ${response.user != null ? 'Succès' : 'Échec'}');
+      
       if (response.user != null) {
         _currentUserRole = await getCurrentUserRole();
         debugPrint('Connexion réussie avec le rôle: $_currentUserRole');
+        return response;
+      } else {
+        debugPrint('Connexion échouée: Utilisateur non trouvé');
+        throw Exception('Utilisateur non trouvé');
       }
-      
-      return response;
     } catch (e) {
       debugPrint('Erreur lors de la connexion: $e');
-      rethrow;
+      debugPrint('Type d\'erreur: ${e.runtimeType}');
+      debugPrint('Message d\'erreur: ${e.toString()}');
+      
+      if (e.toString().contains('Invalid login credentials')) {
+        throw Exception('Email ou mot de passe incorrect');
+      } else if (e.toString().contains('Failed to fetch')) {
+        throw Exception('Impossible de se connecter au serveur. Vérifiez votre connexion internet ou contactez l\'administrateur.');
+      } else {
+        throw Exception('Une erreur est survenue lors de la connexion');
+      }
     }
   }
 

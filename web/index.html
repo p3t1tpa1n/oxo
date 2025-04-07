@@ -28,7 +28,7 @@
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="OXO">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
   
@@ -50,19 +50,39 @@
   
   <!-- Variables d'environnement -->
   <script>
-    // Ces variables seront remplacées lors du déploiement
-    // Ne pas modifier directement - elles seront injectées par le workflow GitHub Actions
+    // Configuration Flutter
+    window._flutter = {
+      buildConfig: {
+        renderer: "html",
+        baseUrl: "/",
+        serviceWorkerVersion: null,
+        appVersion: "1.0.0",
+        buildMode: "release",
+        buildName: "1.0.0",
+        buildNumber: "1",
+        buildTime: new Date().toISOString(),
+        dartVersion: "3.0.0",
+        engineVersion: "3.0.0",
+        flutterVersion: "3.0.0",
+        environment: "production"
+      }
+    };
+
+    // Variables d'environnement
     window.ENV = {
-      // Valeurs par défaut pour le développement local
       SUPABASE_URL: "https://iejxrakkdaqfyvupzdmn.supabase.co",
       SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllanhyYWtrZGFxZnl2dXB6ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwOTA3MTcsImV4cCI6MjA1NDY2NjcxN30.TYD_417ef8HOk8dnde2Hj5TJe9oIX5h5UfHS7fNKcM8"
     };
 
-    // Fonction pour accéder aux variables d'environnement
     window.getEnvVar = function(key) {
       return window.ENV[key];
     };
+
+    // The value below is injected by flutter build, do not touch.
+    const serviceWorkerVersion = null;
   </script>
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
 
   <style>
     body {
@@ -127,86 +147,6 @@
       font-family: Arial, sans-serif;
     }
   </style>
-
-  <script src="flutter.js" defer></script>
-  <script>
-    window.addEventListener("load", function(ev) {
-      console.log('Page chargée, initialisation de Flutter en cours...');
-      
-      // Force hide loading screen after 8 seconds max, even if Flutter doesn't initialize
-      var forcedTimeout = setTimeout(function() {
-        console.log('Délai d\'attente dépassé, affichage forcé de l\'application');
-        var loadingElement = document.getElementById('loading');
-        if (loadingElement) {
-          loadingElement.style.display = 'none';
-        }
-        
-        var flutterAppElement = document.getElementById('flutter-app');
-        if (flutterAppElement) {
-          flutterAppElement.style.display = 'block';
-        }
-      }, 8000);
-      
-      // Fonction de gestion des erreurs
-      function handleFlutterError(error) {
-        console.error('Flutter initialization error:', error);
-        clearTimeout(forcedTimeout);
-        
-        var loadingElement = document.getElementById('loading');
-        if (loadingElement) {
-          loadingElement.style.display = 'none';
-        }
-        
-        var flutterAppElement = document.getElementById('flutter-app');
-        if (flutterAppElement) {
-          flutterAppElement.innerHTML = '<div style="color: white; text-align: center; padding: 20px;">Une erreur est survenue lors du chargement de l\'application.<br>Détails: ' + (error ? error.toString() : 'Erreur inconnue') + '<br>Veuillez rafraîchir la page ou réessayer plus tard.</div>';
-          flutterAppElement.style.display = 'block';
-        }
-      }
-      
-      try {
-        // Vérifier que _flutter est disponible
-        if (typeof _flutter === 'undefined') {
-          console.error('Error: _flutter is undefined');
-          handleFlutterError(new Error('_flutter is undefined'));
-          return;
-        }
-        
-        console.log('Chargement de Flutter...');
-        // Utiliser la méthode load() recommandée par Flutter
-        _flutter.loader.load()
-          .then(function(engineInitializer) {
-            console.log('Flutter chargé, initialisation du moteur...');
-            return engineInitializer.initializeEngine();
-          })
-          .then(function(appRunner) {
-            console.log('Moteur initialisé, démarrage de l\'application...');
-            return appRunner.runApp();
-          })
-          .then(function() {
-            console.log('Application démarrée avec succès');
-            clearTimeout(forcedTimeout);
-            
-            var loadingElement = document.getElementById('loading');
-            if (loadingElement) {
-              loadingElement.style.display = 'none';
-            }
-            
-            var flutterAppElement = document.getElementById('flutter-app');
-            if (flutterAppElement) {
-              flutterAppElement.style.display = 'block';
-            }
-          })
-          .catch(function(error) {
-            console.error('Erreur lors du chargement de Flutter:', error);
-            handleFlutterError(error);
-          });
-      } catch (error) {
-        console.error('Erreur globale dans l\'initialisation de Flutter:', error);
-        handleFlutterError(error);
-      }
-    });
-  </script>
 </head>
 <body>
   <!-- Loading screen -->
@@ -225,5 +165,50 @@
   </div>
 
   <div id="flutter-app"></div>
+
+  <script>
+    window.addEventListener('load', function(ev) {
+      var loading = document.querySelector('#loading');
+      var flutterApp = document.querySelector('#flutter-app');
+      var browserWarning = document.querySelector('#browser-warning');
+
+      // Vérifier que les variables d'environnement sont définies
+      if (!window.ENV || !window.ENV.SUPABASE_URL || !window.ENV.SUPABASE_ANON_KEY) {
+        console.error('Variables d\'environnement manquantes');
+        loading.style.display = 'none';
+        browserWarning.style.display = 'flex';
+        return;
+      }
+
+      // Initialiser Flutter
+      _flutter.loader.loadEntrypoint({
+        entrypointUrl: "main.dart.js",
+        onEntrypointLoaded: async function(engineInitializer) {
+          try {
+            let appRunner = await engineInitializer.initializeEngine({
+              hostElement: flutterApp,
+              renderer: "html"
+            });
+
+            // S'assurer que les variables d'environnement sont accessibles
+            console.log('Variables d\'environnement:', {
+              SUPABASE_URL: window.ENV.SUPABASE_URL,
+              SUPABASE_ANON_KEY: 'présente'
+            });
+
+            await appRunner.runApp();
+            
+            // Afficher l'application
+            flutterApp.style.display = 'block';
+            loading.style.display = 'none';
+          } catch (error) {
+            console.error('Erreur lors de l\'initialisation:', error);
+            loading.style.display = 'none';
+            browserWarning.style.display = 'flex';
+          }
+        }
+      });
+    });
+  </script>
 </body>
 </html>
