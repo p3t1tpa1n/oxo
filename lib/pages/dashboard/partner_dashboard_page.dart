@@ -295,9 +295,36 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
               padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
               child: InkWell(
                 onTap: () async {
-                  await SupabaseService.signOut();
-                  if (mounted) {
-                    Navigator.pushReplacementNamed(context, '/login');
+                  // Afficher une boîte de dialogue de confirmation
+                  final bool? confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text('Confirmation'),
+                        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: const Text('Annuler'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: const Text(
+                              'Déconnexion',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                  
+                  // Si l'utilisateur a confirmé, procéder à la déconnexion
+                  if (confirm == true && mounted) {
+                    await SupabaseService.signOut();
+                    if (mounted) {
+                      Navigator.pushReplacementNamed(context, '/login');
+                    }
                   }
                 },
                 child: Container(
