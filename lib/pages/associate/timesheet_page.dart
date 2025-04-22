@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
+import '../../models/user_role.dart';
+import '../../services/supabase_service.dart';
 
 class TimesheetPage extends StatelessWidget {
   const TimesheetPage({super.key});
@@ -10,7 +12,10 @@ class TimesheetPage extends StatelessWidget {
     return Scaffold(
       body: Row(
         children: [
-          const SideMenu(selectedRoute: '/timesheet'),
+          SideMenu(
+            userRole: SupabaseService.currentUserRole,
+            selectedRoute: '/timesheet',
+          ),
           Expanded(
             child: Column(
               children: [

@@ -15,8 +15,8 @@ class SupabaseService {
   static UserRole? _currentUserRole;
 
   // URL et clé par défaut
-  static const defaultUrl = 'https://iejxrakkdaqfyvupzdmn.supabase.co';
-  static const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllanhyYWtrZGFxZnl2dXB6ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwOTA3MTcsImV4cCI6MjA1NDY2NjcxN30.TYD_417ef8HOk8dnde2Hj5TJe9oIX5h5UfHS7fNKcM8';
+  static const defaultUrl = 'https://ghphcztugdywtyovahod.supabase.co';
+  static const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdocGhjenR1Z2R5d3R5b3ZhaG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUyMjczNjMsImV4cCI6MjA2MDgwMzM2M30.VbUstu9pTe4rw9KVKDfOlGAsEXvfL9wWkVEkyLswC-Q';
 
   static Future<bool> initialize() async {
     if (_client != null) return true;
@@ -129,6 +129,8 @@ class SupabaseService {
           return UserRole.partenaire;
         case 'admin':
           return UserRole.admin;
+        case 'client':
+          return UserRole.client;
         default:
           debugPrint('getCurrentUserRole: Rôle non reconnu: $role');
           return null;
@@ -148,6 +150,16 @@ class SupabaseService {
           .eq('id', userId);
     } catch (e) {
       debugPrint('Erreur lors de la modification du rôle: $e');
+      rethrow;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getAllUsers() async {
+    try {
+      final List<dynamic> response = await client.rpc('get_users');
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des utilisateurs: $e');
       rethrow;
     }
   }
@@ -398,57 +410,9 @@ class SupabaseService {
     }
   }
 
-  // Méthode pour générer des heures fictives pour le développement
-  static List<Map<String, dynamic>> getMockTimeEntries() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final List<Map<String, dynamic>> entries = [];
-    
-    // Générer des entrées pour les 7 derniers jours
-    for (int i = 0; i < 7; i++) {
-      final date = today.subtract(Duration(days: i));
-      final hours = (i % 3 == 0) ? 8 : (i % 3 == 1) ? 7 : 6;
-      
-      entries.add({
-        'id': i + 1,
-        'user_id': 'dev-user-id',
-        'date': date.toIso8601String(),
-        'hours': hours,
-        'description': 'Travail sur projet OXO - Jour ${i+1}',
-        'created_at': date.toIso8601String(),
-      });
-    }
-    
-    return entries;
-  }
-
   // Méthode pour récupérer les heures travaillées
   static Future<List<Map<String, dynamic>>> fetchTimeEntries(String userId, {DateTime? startDate, DateTime? endDate}) async {
     try {
-      if (kDebugMode) {
-        try {
-          var query = client.from('timesheet_entries').select();
-          
-          if (userId.isNotEmpty) {
-            query = query.eq('user_id', userId);
-          }
-          
-          if (startDate != null) {
-            query = query.gte('date', startDate.toIso8601String());
-          }
-          
-          if (endDate != null) {
-            query = query.lte('date', endDate.toIso8601String());
-          }
-          
-          final response = await query.order('date', ascending: false);
-          return List<Map<String, dynamic>>.from(response);
-        } catch (e) {
-          debugPrint('Erreur lors de la récupération des heures en mode développement: $e');
-          return getMockTimeEntries();
-        }
-      }
-      
       var query = client.from('timesheet_entries').select();
       
       if (userId.isNotEmpty) {
@@ -541,6 +505,110 @@ class SupabaseService {
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Erreur lors du chargement des événements du calendrier: $e');
+      return [];
+    }
+  }
+
+  // Méthodes pour la gestion des clients
+  static Future<List<Map<String, dynamic>>> fetchClients() async {
+    try {
+      final response = await client
+        .from('clients')
+        .select()
+        .order('name', ascending: true);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des clients: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getClientById(String clientId) async {
+    try {
+      final response = await client
+        .from('clients')
+        .select()
+        .eq('id', clientId)
+        .single();
+      
+      return response;
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération du client: $e');
+      return null;
+    }
+  }
+
+  static Future<void> insertClient(Map<String, dynamic> clientData) async {
+    try {
+      await client.from('clients').insert(clientData);
+    } catch (e) {
+      debugPrint('Erreur lors de l\'ajout du client: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> updateClient(String clientId, Map<String, dynamic> updates) async {
+    try {
+      await client.from('clients').update(updates).eq('id', clientId);
+    } catch (e) {
+      debugPrint('Erreur lors de la mise à jour du client: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> deleteClient(String clientId) async {
+    try {
+      await client.from('clients').delete().eq('id', clientId);
+    } catch (e) {
+      debugPrint('Erreur lors de la suppression du client: $e');
+      rethrow;
+    }
+  }
+
+  // Méthodes pour la gestion des clients et projets
+
+  static Future<Map<String, dynamic>?> getClientMapping(String userId) async {
+    try {
+      final response = await client
+        .from('user_client_mapping')
+        .select()
+        .eq('user_id', userId)
+        .single();
+      
+      return response;
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération du mapping client: $e');
+      return null;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getClientProjects(String clientId) async {
+    try {
+      final response = await client
+        .from('projects')
+        .select()
+        .eq('client_id', clientId)
+        .order('created_at', ascending: false);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des projets du client: $e');
+      return [];
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getClientTasks(String clientId) async {
+    try {
+      final response = await client
+        .from('tasks')
+        .select()
+        .eq('client_id', clientId)
+        .order('created_at', ascending: false);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des tâches du client: $e');
       return [];
     }
   }
