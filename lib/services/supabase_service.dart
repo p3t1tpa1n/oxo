@@ -92,6 +92,11 @@ class SupabaseService {
 
   static Future<UserRole?> getCurrentUserRole() async {
     try {
+      if (kDebugMode && _currentUserRole != null) {
+        debugPrint('getCurrentUserRole: Mode développement, retour du rôle en cache: $_currentUserRole');
+        return _currentUserRole;
+      }
+
       if (currentUser == null) {
         debugPrint('getCurrentUserRole: Aucun utilisateur connecté');
         return null;
@@ -122,19 +127,7 @@ class SupabaseService {
       final role = userProfile['user_role'] as String;
       debugPrint('getCurrentUserRole: Rôle trouvé: $role');
 
-      switch (role) {
-        case 'associe':
-          return UserRole.associe;
-        case 'partenaire':
-          return UserRole.partenaire;
-        case 'admin':
-          return UserRole.admin;
-        case 'client':
-          return UserRole.client;
-        default:
-          debugPrint('getCurrentUserRole: Rôle non reconnu: $role');
-          return null;
-      }
+      return UserRole.fromString(role);
     } catch (e, stackTrace) {
       debugPrint('Erreur lors de la récupération du rôle: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -146,7 +139,7 @@ class SupabaseService {
     try {
       await client
           .from('profiles')
-          .update({'role': role.toString().split('.').last})
+          .update({'role': role.toString()})
           .eq('id', userId);
     } catch (e) {
       debugPrint('Erreur lors de la modification du rôle: $e');
