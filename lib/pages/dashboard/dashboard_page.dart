@@ -391,7 +391,11 @@ class _DashboardPageState extends State<DashboardPage> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (screenWidth > 700) const SideMenu(),
+                    if (screenWidth > 700) 
+                      SideMenu(
+                        userRole: SupabaseService.currentUserRole,
+                        selectedRoute: '/',
+                      ),
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.all(16),

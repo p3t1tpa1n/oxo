@@ -69,6 +69,15 @@ class _LoginPageState extends State<LoginPage> {
           case UserRole.admin:
             Navigator.pushReplacementNamed(context, '/associate');
             break;
+          case UserRole.client:
+            Navigator.pushReplacementNamed(context, '/client');
+            break;
+          default:
+            // Si le rôle n'est pas reconnu, rediriger vers la page de connexion
+            setState(() {
+              _errorMessage = 'Erreur: Rôle utilisateur non reconnu';
+              _isLoading = false;
+            });
         }
       } else {
         setState(() {
@@ -244,20 +253,66 @@ class _LoginPageState extends State<LoginPage> {
                   // Lien de récupération
                   TextButton(
                     onPressed: () {
-                      // TODO: Implémenter la récupération de mot de passe
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Fonctionnalité à venir'),
+                      final email = _emailController.text.trim();
+                      if (email.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Veuillez saisir votre adresse email avant de demander une réinitialisation'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                        return;
+                      }
+                      
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Réinitialisation du mot de passe'),
+                          content: Text(
+                            'Un email de réinitialisation de mot de passe va être envoyé à $email.\n\n'
+                            'Consultez votre boîte de réception et suivez les instructions pour réinitialiser votre mot de passe.'
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Annuler'),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                Navigator.pop(context);
+                                try {
+                                  await SupabaseService.client.auth.resetPasswordForEmail(email);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Email de réinitialisation envoyé. Vérifiez votre boîte de réception.'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Erreur lors de l\'envoi: $e'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              child: const Text('Envoyer'),
+                            ),
+                          ],
                         ),
                       );
                     },
                     child: const Text(
-                      'Mot de passe oublié?',
+                      'Mot de passe oublié ?',
                       style: TextStyle(
                         color: Color(0xFF1E3D54),
                         fontWeight: FontWeight.w500,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ),
                 ],

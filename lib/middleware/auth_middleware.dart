@@ -38,6 +38,9 @@ class AuthMiddleware extends NavigatorObserver {
       case UserRole.associe:
         Navigator.of(context).pushReplacementNamed('/associate/dashboard');
         break;
+      case UserRole.client:
+        Navigator.of(context).pushReplacementNamed('/client');
+        break;
       default:
         Navigator.of(context).pushReplacementNamed('/login');
     }
@@ -47,13 +50,13 @@ class AuthMiddleware extends NavigatorObserver {
     if (context == null || route.settings.name == '/login') return;
 
     final user = SupabaseService.currentUser;
-    if (user == null) {
+    if (user == null && context.mounted) {
       Navigator.of(context).pushReplacementNamed('/login');
       return;
     }
 
     final role = await SupabaseService.getCurrentUserRole();
-    if (role == null) {
+    if (role == null && context.mounted) {
       Navigator.of(context).pushReplacementNamed('/login');
       return;
     }
@@ -69,6 +72,12 @@ class AuthMiddleware extends NavigatorObserver {
         break;
       case UserRole.associe:
         Navigator.of(context).pushReplacementNamed('/associate/dashboard');
+        break;
+      case UserRole.client:
+        Navigator.of(context).pushReplacementNamed('/client');
+        break;
+      default:
+        // Aucune action si le rôle est null ou non reconnu
         break;
     }
   }
