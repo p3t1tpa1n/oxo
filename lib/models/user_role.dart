@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class UserRole {
   final String value;
   const UserRole._internal(this.value);
@@ -13,12 +15,24 @@ class UserRole {
   static UserRole? fromString(String? roleStr) {
     if (roleStr == null) return null;
     
-    switch (roleStr) {
-      case 'associe': return associe;
-      case 'partenaire': return partenaire;
-      case 'client': return client;
-      case 'admin': return admin;
-      default: return null;
+    // Conversion en minuscules pour ignorer la casse
+    final role = roleStr.toLowerCase().trim();
+    
+    switch (role) {
+      case 'associe': 
+      case 'associé': 
+        return associe;
+      case 'partenaire': 
+        return partenaire;
+      case 'client': 
+        return client;
+      case 'admin':
+      case 'administrator':
+      case 'administrateur':  
+        return admin;
+      default: 
+        debugPrint('UserRole.fromString: Rôle non reconnu: $roleStr');
+        return null;
     }
   }
 } 

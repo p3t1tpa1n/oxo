@@ -112,6 +112,12 @@ class SupabaseService {
         return null;
       }
 
+      // Journalisation de tous les utilisateurs pour diagnostic
+      debugPrint('Liste complète des utilisateurs:');
+      for (var user in response) {
+        debugPrint('User ID: ${user['user_id']}, Role: ${user['user_role']}');
+      }
+
       final userProfile = response.firstWhere(
         (user) => user['user_id'] == currentUser!.id,
         orElse: () => null,
@@ -127,7 +133,16 @@ class SupabaseService {
       final role = userProfile['user_role'] as String;
       debugPrint('getCurrentUserRole: Rôle trouvé: $role');
 
-      return UserRole.fromString(role);
+      // Vérification explicite pour le rôle client
+      if (role.toLowerCase() == 'client') {
+        debugPrint('getCurrentUserRole: Rôle client détecté, retournant UserRole.client');
+        return UserRole.client;
+      }
+
+      // Pour les autres rôles, utilisez la méthode standard
+      final userRole = UserRole.fromString(role);
+      debugPrint('getCurrentUserRole: Conversion du rôle: $role -> $userRole');
+      return userRole;
     } catch (e, stackTrace) {
       debugPrint('Erreur lors de la récupération du rôle: $e');
       debugPrint('Stack trace: $stackTrace');

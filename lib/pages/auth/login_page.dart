@@ -46,15 +46,29 @@ class _LoginPageState extends State<LoginPage> {
       if (response.user != null) {
         if (!mounted) return;
         
-        final userRole = SupabaseService.currentUserRole;
+        // Récupérer le rôle via une fonction asynchrone pour s'assurer d'avoir le dernier état
+        final userRole = await SupabaseService.getCurrentUserRole();
+        debugPrint('Rôle utilisateur récupéré: $userRole');
         
         if (!mounted) return;
         
         if (userRole == null) {
+          debugPrint('ERREUR: Rôle utilisateur est null');
           setState(() {
             _errorMessage = 'Erreur: Rôle utilisateur non défini';
             _isLoading = false;
           });
+          return;
+        }
+
+        // Vérifier le rôle explicitement pour le débogage
+        final roleValue = userRole.toString();
+        debugPrint('Valeur du rôle utilisateur: $roleValue');
+
+        if (userRole == UserRole.client) {
+          debugPrint('Rôle client détecté, redirection vers /client');
+          if (!mounted) return;
+          Navigator.pushReplacementNamed(context, '/client');
           return;
         }
 
@@ -69,11 +83,9 @@ class _LoginPageState extends State<LoginPage> {
           case UserRole.admin:
             Navigator.pushReplacementNamed(context, '/associate');
             break;
-          case UserRole.client:
-            Navigator.pushReplacementNamed(context, '/client');
-            break;
           default:
             // Si le rôle n'est pas reconnu, rediriger vers la page de connexion
+            debugPrint('Rôle non reconnu dans le switch: $userRole');
             setState(() {
               _errorMessage = 'Erreur: Rôle utilisateur non reconnu';
               _isLoading = false;
