@@ -126,12 +126,12 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
               description,
               status
             ),
-            assigned_profile:profiles!tasks_assigned_to_fkey (
+            assigned_profile:profiles (
               id,
               email,
               role
             ),
-            partner_profile:profiles!tasks_partner_id_fkey (
+            partner_profile:profiles (
               id,
               email,
               role
