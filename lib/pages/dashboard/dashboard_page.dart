@@ -4,6 +4,7 @@ import '../../services/supabase_service.dart';
 import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
 import '../../widgets/calendar_widget.dart';
+import '../../widgets/messaging_button.dart';
 import '../shared/calendar_page.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -359,70 +360,78 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      body: Row(
+        children: [
+          // Menu latéral
+          SideMenu(
+            selectedRoute: '/dashboard',
+            userRole: SupabaseService.currentUserRole,
+          ),
+          
+          // Contenu principal
+          Expanded(
+            child: Column(
+              children: [
+                // Barre supérieure
+                const TopBar(title: 'Dashboard'),
+                
+                // Contenu du tableau de bord
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _buildDashboardContent(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          MessagingFloatingButton(
+            backgroundColor: const Color(0xFF1784af),
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            onPressed: _showAddTaskDialog,
+            backgroundColor: const Color(0xFF1784af),
+            child: const Icon(Icons.add),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardContent() {
     double screenWidth = MediaQuery.of(context).size.width;
     int crossAxisCount = screenWidth < 500 ? 1 : 2;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF122b35),
-      body: SafeArea(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            minWidth: 1200,
-            minHeight: 800,
-          ),
-          child: Column(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // En-tête avec stats
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                height: 56,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Expanded(child: TopBar()),
-                    if (screenWidth < 700) 
-                      Padding(
-                        padding: const EdgeInsets.only(right: 16),
-                        child: _buildDropdownMenu(),
-                      ),
-                  ],
-                ),
-              ),
               Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (screenWidth > 700) 
-                      SideMenu(
-                        userRole: SupabaseService.currentUserRole,
-                        selectedRoute: '/',
-                      ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            return Column(
-                              children: [
-                                SizedBox(
-                                  height: constraints.maxHeight * 0.45,
-                                  child: _buildTasksSection(),
-                                ),
-                                const SizedBox(height: 16),
-                                Expanded(
-                                  child: _buildCalendarsSection(constraints, crossAxisCount),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                flex: 2,
+                child: _buildTasksSection(),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 24),
+          
+          // Calendriers
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return _buildCalendarsSection(constraints, crossAxisCount);
+            },
+          ),
+        ],
       ),
     );
   }
