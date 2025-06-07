@@ -11,6 +11,20 @@ class UserRole {
 
   @override
   String toString() => value;
+  
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is UserRole) {
+      return value.toLowerCase() == other.value.toLowerCase();
+    } else if (other is String) {
+      return value.toLowerCase() == other.toLowerCase();
+    }
+    return false;
+  }
+  
+  @override
+  int get hashCode => value.toLowerCase().hashCode;
 
   static UserRole? fromString(String? roleStr) {
     if (roleStr == null) return null;
@@ -25,6 +39,7 @@ class UserRole {
       case 'partenaire': 
         return partenaire;
       case 'client': 
+        debugPrint('UserRole.fromString: rôle client détecté, retournant l\'instance UserRole.client');
         return client;
       case 'admin':
       case 'administrator':

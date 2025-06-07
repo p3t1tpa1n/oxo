@@ -65,23 +65,30 @@ class _LoginPageState extends State<LoginPage> {
         final roleValue = userRole.toString();
         debugPrint('Valeur du rôle utilisateur: $roleValue');
 
-        if (userRole == UserRole.client) {
-          debugPrint('Rôle client détecté, redirection vers /client');
+        // Gestion explicite du cas client pour Vercel
+        if (roleValue.toLowerCase() == 'client') {
+          debugPrint('Détection directe du rôle client par sa valeur, redirection vers /client');
           if (!mounted) return;
           Navigator.pushReplacementNamed(context, '/client');
           return;
         }
 
         debugPrint('Rôle utilisateur: $userRole');
-        switch (userRole) {
-          case UserRole.associe:
+        switch (userRole.toString().toLowerCase()) {
+          case 'associe':
+          case 'associé':
             Navigator.pushReplacementNamed(context, '/associate');
             break;
-          case UserRole.partenaire:
+          case 'partenaire':
             Navigator.pushReplacementNamed(context, '/partner');
             break;
-          case UserRole.admin:
+          case 'admin':
+          case 'administrateur':
             Navigator.pushReplacementNamed(context, '/associate');
+            break;
+          case 'client':
+            debugPrint('Rôle client détecté dans le switch, redirection vers /client');
+            Navigator.pushReplacementNamed(context, '/client');
             break;
           default:
             // Si le rôle n'est pas reconnu, rediriger vers la page de connexion

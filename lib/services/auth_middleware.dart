@@ -45,12 +45,21 @@ class AuthMiddleware extends RouteObserver<PageRoute> {
     String targetRoute;
 
     // Déterminer la route cible en fonction du rôle de l'utilisateur
-    if (userRole == UserRole.associe) {
-      targetRoute = '/associate';
-    } else if (userRole == UserRole.partenaire) {
-      targetRoute = '/partner';
-    } else {
-      targetRoute = '/login';
+    switch (userRole) {
+      case UserRole.admin:
+        targetRoute = '/associate';
+        break;
+      case UserRole.associe:
+        targetRoute = '/associate';
+        break;
+      case UserRole.partenaire:
+        targetRoute = '/partner';
+        break;
+      case UserRole.client:
+        targetRoute = '/client';
+        break;
+      default:
+        targetRoute = '/login';
     }
 
     // Si nous sommes déjà sur la page cible, ne rien faire

@@ -286,14 +286,14 @@ class _DashboardPageState extends State<DashboardPage> {
                   }
 
                   try {
-                    int projectId;
+                    dynamic projectId;
                     if (isCreatingNewProject) {
                       final projectResponse = await SupabaseService.client
                           .from('projects')
                           .insert({
                             'name': projectNameController.text,
                             'description': projectDescriptionController.text,
-                            'status': 'en_cours',
+                            'status': 'active',
                             'start_date': DateTime.now().toIso8601String(),
                             'end_date': selectedDate!.toIso8601String(),
                             'created_at': DateTime.now().toIso8601String(),
@@ -303,7 +303,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           .single();
                       projectId = projectResponse['id'];
                     } else {
-                      projectId = int.parse(selectedProject!);
+                      projectId = selectedProject!;
                     }
 
                     await SupabaseService.client
@@ -316,6 +316,8 @@ class _DashboardPageState extends State<DashboardPage> {
                           'project_id': projectId,
                           'user_id': SupabaseService.currentUser!.id,
                           'partner_id': selectedPartnerId,
+                          'created_by': SupabaseService.currentUser!.id,
+                          'updated_by': SupabaseService.currentUser!.id,
                         });
                     
                     if (!mounted) return;
@@ -418,7 +420,6 @@ class _DashboardPageState extends State<DashboardPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                flex: 2,
                 child: _buildTasksSection(),
               ),
             ],
@@ -475,12 +476,13 @@ class _DashboardPageState extends State<DashboardPage> {
               ],
             ),
             const SizedBox(height: 8),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Colonne "À faire"
-                  Expanded(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Colonne "À faire"
+                Expanded(
+                  child: Container(
+                    height: MediaQuery.of(context).size.height * 0.7,
                     child: Column(
                       children: [
                         Container(
@@ -542,18 +544,20 @@ class _DashboardPageState extends State<DashboardPage> {
                             },
                             builder: (context, candidateData, rejectedData) {
                               return ListView(
-                                children: _tasks.where((task) => task['status'] == 'todo').map((task) => Column(
-                                  children: [
-                                    _buildTaskCard(
-                                      task['title'],
-                                      task['description'],
-                                      DateTime.parse(task['due_date']),
-                                      isDone: task['isDone'] ?? false,
-                                    ),
-                                    const SizedBox(height: 8),
-                                  ],
-                                ))
-                                .toList(),
+                                children: _tasks
+                                  .where((task) => task['status'] == 'todo')
+                                  .map((task) => Column(
+                                    children: [
+                                      _buildTaskCard(
+                                        task['title'],
+                                        task['description'],
+                                        DateTime.parse(task['due_date']),
+                                        isDone: task['isDone'] ?? false,
+                                      ),
+                                      const SizedBox(height: 8),
+                                    ],
+                                  ))
+                                  .toList(),
                               );
                             },
                           ),
@@ -561,9 +565,12 @@ class _DashboardPageState extends State<DashboardPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  // Colonne "En cours"
-                  Expanded(
+                ),
+                const SizedBox(width: 16),
+                // Colonne "En cours"
+                Expanded(
+                  child: Container(
+                    height: MediaQuery.of(context).size.height * 0.7,
                     child: Column(
                       children: [
                         Container(
@@ -611,18 +618,20 @@ class _DashboardPageState extends State<DashboardPage> {
                             },
                             builder: (context, candidateData, rejectedData) {
                               return ListView(
-                                children: _tasks.where((task) => task['status'] == 'in_progress').map((task) => Column(
-                                  children: [
-                                    _buildTaskCard(
-                                      task['title'],
-                                      task['description'],
-                                      DateTime.parse(task['due_date']),
-                                      isDone: task['isDone'] ?? false,
-                                    ),
-                                    const SizedBox(height: 8),
-                                  ],
-                                ))
-                                .toList(),
+                                children: _tasks
+                                  .where((task) => task['status'] == 'in_progress')
+                                  .map((task) => Column(
+                                    children: [
+                                      _buildTaskCard(
+                                        task['title'],
+                                        task['description'],
+                                        DateTime.parse(task['due_date']),
+                                        isDone: task['isDone'] ?? false,
+                                      ),
+                                      const SizedBox(height: 8),
+                                    ],
+                                  ))
+                                  .toList(),
                               );
                             },
                           ),
@@ -630,9 +639,12 @@ class _DashboardPageState extends State<DashboardPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  // Colonne "Fait"
-                  Expanded(
+                ),
+                const SizedBox(width: 16),
+                // Colonne "Fait"
+                Expanded(
+                  child: Container(
+                    height: MediaQuery.of(context).size.height * 0.7,
                     child: Column(
                       children: [
                         Container(
@@ -680,18 +692,20 @@ class _DashboardPageState extends State<DashboardPage> {
                             },
                             builder: (context, candidateData, rejectedData) {
                               return ListView(
-                                children: _tasks.where((task) => task['status'] == 'done').map((task) => Column(
-                                  children: [
-                                    _buildTaskCard(
-                                      task['title'],
-                                      task['description'],
-                                      DateTime.parse(task['due_date']),
-                                      isDone: task['isDone'] ?? false,
-                                    ),
-                                    const SizedBox(height: 8),
-                                  ],
-                                ))
-                                .toList(),
+                                children: _tasks
+                                  .where((task) => task['status'] == 'done')
+                                  .map((task) => Column(
+                                    children: [
+                                      _buildTaskCard(
+                                        task['title'],
+                                        task['description'],
+                                        DateTime.parse(task['due_date']),
+                                        isDone: task['isDone'] ?? false,
+                                      ),
+                                      const SizedBox(height: 8),
+                                    ],
+                                  ))
+                                  .toList(),
                               );
                             },
                           ),
@@ -699,8 +713,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
@@ -709,6 +723,11 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildCalendarsSection(BoxConstraints constraints, int crossAxisCount) {
+    // Calculer un aspect ratio fixe pour éviter les valeurs négatives ou nulles
+    double width = constraints.maxWidth / crossAxisCount;
+    double height = width * 0.75; // Ratio 4:3
+    double aspectRatio = width / height;
+
     return GridView.custom(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -716,7 +735,7 @@ class _DashboardPageState extends State<DashboardPage> {
         crossAxisCount: crossAxisCount,
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
-        childAspectRatio: (constraints.maxWidth / crossAxisCount) / ((constraints.maxHeight * 0.5)),
+        childAspectRatio: aspectRatio,
       ),
       childrenDelegate: SliverChildListDelegate([
         Card(
@@ -1034,7 +1053,8 @@ class CalendarMiniWidgetState extends State<CalendarMiniWidget> {
           ],
         ),
         const SizedBox(height: 8),
-        Expanded(
+        Flexible(
+          fit: FlexFit.loose,
           child: GridView.builder(
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -1143,7 +1163,7 @@ class _TimesheetDialogState extends State<TimesheetDialog> {
                     future: SupabaseService.client
                         .from('tasks')
                         .select()
-                        .eq('project_id', int.parse(selectedProject!))
+                        .eq('project_id', selectedProject!)
                         .order('title'),
                     builder: (context, AsyncSnapshot<List<dynamic>> taskSnapshot) {
                       final tasks = List<Map<String, dynamic>>.from(taskSnapshot.data ?? []);
@@ -1269,14 +1289,24 @@ class _TimesheetDialogState extends State<TimesheetDialog> {
                   }
 
                   try {
+                    // Gérer l'ID de tâche de manière flexible
+                    dynamic taskIdValue = selectedTask!;
+                    try {
+                      taskIdValue = int.parse(selectedTask!);
+                    } catch (e) {
+                      // Si la conversion échoue, c'est probablement un UUID
+                      debugPrint('Task ID est probablement un UUID: $selectedTask');
+                    }
+
                     await SupabaseService.client
                         .from('timesheet_entries')
                         .insert({
                       'user_id': SupabaseService.currentUser!.id,
-                      'task_id': int.parse(selectedTask!),
+                      'task_id': taskIdValue, // Utiliser la valeur appropriée
                       'date': widget.selectedDate.toIso8601String(),
                       'hours': hours,
                       'description': descriptionController.text,
+                      'status': 'pending', // Ajouter le status requis
                     });
 
                     if (mounted) {

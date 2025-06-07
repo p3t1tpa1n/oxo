@@ -15,8 +15,8 @@ class SupabaseService {
   static UserRole? _currentUserRole;
 
   // URL et clé par défaut
-  static const defaultUrl = 'https://ghphcztugdywtyovahod.supabase.co';
-  static const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdocGhjenR1Z2R5d3R5b3ZhaG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUyMjczNjMsImV4cCI6MjA2MDgwMzM2M30.VbUstu9pTe4rw9KVKDfOlGAsEXvfL9wWkVEkyLswC-Q';
+  static const defaultUrl = 'https://dswirxxbzbyhnxsrzyzi.supabase.co';
+  static const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzd2lyeHhiemJ5aG54c3J6eXppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkxMTE0MTksImV4cCI6MjA2NDY4NzQxOX0.eIpOuCszUaldsiIxb9WzQcra34VbImWaRHx5lysPtOg';
 
   static Future<bool> initialize() async {
     if (_client != null) return true;
@@ -27,7 +27,19 @@ class SupabaseService {
       String url = defaultUrl;
       String anonKey = defaultKey;
       
-      if (!kIsWeb) {
+      if (kIsWeb) {
+        // Pour Vercel et autres déploiements web, récupérer les variables depuis window
+        debugPrint('Initialisation en mode web (Vercel)');
+        try {
+          // Tentative d'utiliser les variables d'environnement injectées via window.ENV
+          url = _getWebEnvVar('SUPABASE_URL') ?? defaultUrl;
+          anonKey = _getWebEnvVar('SUPABASE_ANON_KEY') ?? defaultKey;
+          debugPrint('Variables d\'environnement web récupérées: URL=$url');
+        } catch (e) {
+          debugPrint('Erreur lors de la récupération des variables d\'environnement web: $e');
+          debugPrint('Utilisation des valeurs par défaut');
+        }
+      } else {
         try {
           await dotenv.load(fileName: '.env');
           url = dotenv.env['SUPABASE_URL'] ?? defaultUrl;
@@ -42,7 +54,7 @@ class SupabaseService {
       await Supabase.initialize(
         url: url,
         anonKey: anonKey,
-        debug: kDebugMode,
+        debug: true, // Forcer le mode debug même en production pour diagnostiquer le problème
       );
       
       _client = Supabase.instance.client;
@@ -77,8 +89,20 @@ class SupabaseService {
         }
       }
       
-      // En production, les variables d'environnement seront injectées dans window.ENV
-      // lors du build de l'application
+      // Tenter d'accéder aux variables d'environnement injectées par Vercel
+      debugPrint('Tentative d\'accès à la variable d\'environnement web: $key');
+      
+      // Si nous sommes sur Vercel, les variables sont accessibles via window.ENV
+      // Mais comme nous ne pouvons pas appeler directement js.context['ENV'][key],
+      // nous utilisons les valeurs par défaut
+      
+      debugPrint('Utilisation des valeurs par défaut pour les variables d\'environnement web');
+      if (key == 'SUPABASE_URL') {
+        return defaultUrl;
+      } else if (key == 'SUPABASE_ANON_KEY') {
+        return defaultKey;
+      }
+      
       return null;
     } catch (e) {
       debugPrint('Erreur lors de la récupération de la variable web $key: $e');
@@ -131,17 +155,25 @@ class SupabaseService {
       }
 
       final role = userProfile['user_role'] as String;
-      debugPrint('getCurrentUserRole: Rôle trouvé: $role');
+      debugPrint('getCurrentUserRole: Rôle trouvé dans la base: "$role"');
 
-      // Vérification explicite pour le rôle client
-      if (role.toLowerCase() == 'client') {
-        debugPrint('getCurrentUserRole: Rôle client détecté, retournant UserRole.client');
+      // Traitement spécial pour le rôle "client" car il semble poser problème sur Vercel
+      if (role.toLowerCase().contains('client')) {
+        debugPrint('getCurrentUserRole: Rôle client détecté par contenu, retournant UserRole.client');
         return UserRole.client;
       }
 
       // Pour les autres rôles, utilisez la méthode standard
       final userRole = UserRole.fromString(role);
-      debugPrint('getCurrentUserRole: Conversion du rôle: $role -> $userRole');
+      if (userRole == null) {
+        debugPrint('ERREUR: Conversion du rôle a échoué pour: "$role"');
+        // Tentative de récupération pour les rôles problématiques
+        if (role.contains('asso')) return UserRole.associe;
+        if (role.contains('parte')) return UserRole.partenaire;
+        if (role.contains('admin')) return UserRole.admin;
+      } else {
+        debugPrint('getCurrentUserRole: Conversion réussie du rôle: "$role" -> $userRole');
+      }
       return userRole;
     } catch (e, stackTrace) {
       debugPrint('Erreur lors de la récupération du rôle: $e');
@@ -167,8 +199,8 @@ class SupabaseService {
       final List<dynamic> response = await client.rpc('get_users');
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      debugPrint('Erreur lors de la récupération des utilisateurs: $e');
-      rethrow;
+      debugPrint('Erreur lors de la récupération de tous les utilisateurs: $e');
+      return [];
     }
   }
 
@@ -314,6 +346,10 @@ class SupabaseService {
 
   static Future<void> insertTask(Map<String, dynamic> taskData) async {
     try {
+      // Ajout des métadonnées
+      taskData['created_by'] = currentUser?.id;
+      taskData['updated_by'] = currentUser?.id;
+      
       await client.from('tasks').insert(taskData);
     } catch (e) {
       debugPrint('Erreur lors de l\'insertion de la tâche: $e');
@@ -323,6 +359,9 @@ class SupabaseService {
 
   static Future<void> updateTask(int taskId, Map<String, dynamic> updates) async {
     try {
+      // Ajout de la métadonnée updated_by
+      updates['updated_by'] = currentUser?.id;
+      
       await client.from('tasks').update(updates).eq('id', taskId);
     } catch (e) {
       debugPrint('Erreur lors de la mise à jour de la tâche: $e');
@@ -358,9 +397,35 @@ class SupabaseService {
   static Future<List<Map<String, dynamic>>> getPartners() async {
     try {
       final List<dynamic> response = await client.rpc('get_users');
-      return List<Map<String, dynamic>>.from(
-        response.where((user) => user['user_role'] == 'partenaire')
+      debugPrint('getPartners: Réponse brute: $response');
+      
+      // Filtrer les partenaires en utilisant 'user_role' (confirmé par le diagnostic)
+      final partners = List<Map<String, dynamic>>.from(
+        response.where((user) {
+          final userRole = user['user_role']; // Utiliser user_role directement
+          debugPrint('getPartners: Utilisateur ${user['email']} a le rôle: $userRole');
+          return userRole == 'partenaire';
+        })
       );
+
+      debugPrint('getPartners: ${partners.length} partenaires trouvés');
+
+      // Adapter les champs pour la compatibilité avec l'interface
+      final adaptedPartners = partners.map((partner) => {
+        'user_id': partner['user_id'],
+        'user_email': partner['email'], // Mapper 'email' vers 'user_email'
+        'email': partner['email'],
+        'first_name': partner['first_name'],
+        'last_name': partner['last_name'],
+        'phone': partner['phone'],
+        'role': partner['user_role'], // Utiliser user_role
+        'status': partner['status'],
+        'created_at': partner['created_at'],
+        'updated_at': partner['updated_at'],
+      }).toList();
+
+      debugPrint('getPartners: Partenaires adaptés: $adaptedPartners');
+      return adaptedPartners;
     } catch (e) {
       debugPrint('Erreur lors de la récupération des partenaires: $e');
       return [];
@@ -618,6 +683,49 @@ class SupabaseService {
     } catch (e) {
       debugPrint('Erreur lors de la récupération des tâches du client: $e');
       return [];
+    }
+  }
+
+  // Méthode pour créer un nouvel utilisateur
+  static Future<void> createUser({
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+    required String phone,
+    required UserRole role,
+  }) async {
+    try {
+      // Créer l'utilisateur dans auth
+      final AuthResponse response = await client.auth.signUp(
+        email: email,
+        password: password,
+      );
+
+      if (response.user == null) {
+        throw Exception('Erreur lors de la création de l\'utilisateur');
+      }
+
+      // Créer le profil de l'utilisateur
+      await client.from('profiles').insert({
+        'user_id': response.user!.id,
+        'email': email,
+        'first_name': firstName,
+        'last_name': lastName,
+        'phone': phone,
+        'role': role.toString(),
+        'status': 'actif',
+      });
+
+      // Envoyer un email de confirmation
+      await client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: defaultUrl,
+      );
+
+    } catch (e) {
+      debugPrint('Erreur lors de la création de l\'utilisateur: $e');
+      rethrow;
     }
   }
 } 

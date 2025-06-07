@@ -230,6 +230,7 @@ class _ChatWidgetState extends State<ChatWidget> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
@@ -253,97 +254,103 @@ class _ChatWidgetState extends State<ChatWidget> {
               ],
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              reverse: true,
-              padding: const EdgeInsets.all(8),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isCurrentUser = message['sender_id'] == SupabaseService.currentUser!.id;
-                final senderProfile = message['profiles'];
-                final senderEmail = senderProfile != null ? senderProfile['email'] : 'Utilisateur inconnu';
+          Flexible(
+            fit: FlexFit.loose,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.5,
+              ),
+              child: ListView.builder(
+                reverse: true,
+                padding: const EdgeInsets.all(8),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final message = _messages[index];
+                  final isCurrentUser = message['sender_id'] == SupabaseService.currentUser!.id;
+                  final senderProfile = message['profiles'];
+                  final senderEmail = senderProfile != null ? senderProfile['email'] : 'Utilisateur inconnu';
 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Column(
-                    crossAxisAlignment: isCurrentUser
-                        ? CrossAxisAlignment.end
-                        : CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        senderEmail,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[600],
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: isCurrentUser
+                          ? CrossAxisAlignment.end
+                          : CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          senderEmail,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[600],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Align(
-                        alignment: isCurrentUser
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width * 0.4,
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isCurrentUser
-                                ? const Color(0xFF1784af)
-                                : Colors.grey[200],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                message['content'],
-                                style: TextStyle(
-                                  color: isCurrentUser
-                                      ? Colors.white
-                                      : Colors.black87,
+                        const SizedBox(height: 2),
+                        Align(
+                          alignment: isCurrentUser
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width * 0.4,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isCurrentUser
+                                  ? const Color(0xFF1784af)
+                                  : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  message['content'],
+                                  style: TextStyle(
+                                    color: isCurrentUser
+                                        ? Colors.white
+                                        : Colors.black87,
+                                  ),
+                                  softWrap: true,
                                 ),
-                                softWrap: true,
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    DateFormat('HH:mm').format(
-                                      DateTime.parse(message['created_at']),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      DateFormat('HH:mm').format(
+                                        DateTime.parse(message['created_at']),
+                                      ),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isCurrentUser
+                                            ? Colors.white70
+                                            : Colors.black54,
+                                      ),
                                     ),
-                                    style: TextStyle(
-                                      fontSize: 10,
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.lock,
+                                      size: 10,
                                       color: isCurrentUser
                                           ? Colors.white70
                                           : Colors.black54,
                                     ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    Icons.lock,
-                                    size: 10,
-                                    color: isCurrentUser
-                                        ? Colors.white70
-                                        : Colors.black54,
-                                  ),
-                                ],
-                              ),
-                            ],
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           Container(

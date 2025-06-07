@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/calendar_widget.dart';
 import 'dart:async';
+import '../../widgets/messaging_button.dart';
 
 class PartnerDashboardPage extends StatefulWidget {
   const PartnerDashboardPage({super.key});
@@ -27,6 +28,9 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
   final Map<String, Stopwatch> _stopwatches = {};
   final Map<String, Timer> _timers = {};
   final Map<String, Duration> _elapsedTimes = {};
+
+  // Variables pour le timesheet
+  Map<String, double> _taskHours = {};
 
   @override
   void initState() {
@@ -85,6 +89,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
       // Charger les données nécessaires
       await _loadUserProfile();
       await _loadTasks();
+      await _loadStatistics();
     } catch (e) {
       debugPrint('Erreur lors du chargement des données: $e');
     } finally {
@@ -116,27 +121,10 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
       debugPrint('_loadTasks: Début du chargement des tâches');
       debugPrint('ID utilisateur: ${SupabaseService.currentUser!.id}');
       
+      // Requête simplifiée sans les JOINs problématiques
       final response = await SupabaseService.client
           .from('tasks')
-          .select('''
-            *,
-            projects!tasks_project_id_fkey (
-              id,
-              name,
-              description,
-              status
-            ),
-            assigned_profile:profiles (
-              id,
-              email,
-              role
-            ),
-            partner_profile:profiles (
-              id,
-              email,
-              role
-            )
-          ''')
+          .select('*')
           .or('user_id.eq.${SupabaseService.currentUser!.id},partner_id.eq.${SupabaseService.currentUser!.id},assigned_to.eq.${SupabaseService.currentUser!.id}')
           .order('created_at', ascending: false);
 
@@ -146,13 +134,32 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
       
       if (!mounted) return;
 
+      // Enrichir les données avec les informations de projet si nécessaire
+      for (var task in response) {
+        if (task['project_id'] != null) {
+          try {
+            final projectResponse = await SupabaseService.client
+                .from('projects')
+                .select('id, name, description, status')
+                .eq('id', task['project_id'])
+                .single();
+            task['projects'] = projectResponse;
+          } catch (e) {
+            debugPrint('Erreur lors du chargement du projet ${task['project_id']}: $e');
+            task['projects'] = null;
+          }
+        }
+      }
+
+      // Charger les heures de timesheet pour chaque tâche
+      await _loadTimesheetHours();
+
       setState(() {
         _tasks = List<Map<String, dynamic>>.from(response);
         _isLoading = false;
       });
 
       debugPrint('_loadTasks: État mis à jour avec ${_tasks.length} tâches');
-      debugPrint('Contenu de _tasks: $_tasks');
     } catch (e, stackTrace) {
       debugPrint('_loadTasks: Erreur lors du chargement des tâches');
       debugPrint('Erreur: $e');
@@ -173,6 +180,34 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
     }
   }
 
+  Future<void> _loadTimesheetHours() async {
+    try {
+      final timesheetResponse = await SupabaseService.client
+          .from('timesheet_entries')
+          .select('task_id, hours')
+          .eq('user_id', SupabaseService.currentUser!.id);
+
+      final Map<String, double> taskHours = {};
+      for (var entry in timesheetResponse) {
+        final taskId = entry['task_id'].toString();
+        final hours = (entry['hours'] ?? 0.0).toDouble();
+        taskHours[taskId] = (taskHours[taskId] ?? 0.0) + hours;
+      }
+
+      if (mounted) {
+        setState(() {
+          _taskHours = taskHours;
+        });
+      }
+    } catch (e) {
+      debugPrint('Erreur lors du chargement des heures timesheet: $e');
+    }
+  }
+
+  double _calculateTotalHours(dynamic taskId) {
+    return _taskHours[taskId.toString()] ?? 0.0;
+  }
+
   Future<void> _loadStatistics() async {
     if (!mounted || SupabaseService.currentUser == null) {
       debugPrint('_loadStatistics: Non monté ou utilisateur non connecté');
@@ -185,34 +220,29 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
       debugPrint('_loadStatistics: Début du chargement des statistiques');
       debugPrint('ID utilisateur: ${SupabaseService.currentUser!.id}');
       
-      final allTasks = await SupabaseService.client
-          .from('tasks')
-          .select()
-          .or('assigned_to.eq.${SupabaseService.currentUser!.id},partner_id.eq.${SupabaseService.currentUser!.id}');
-
-      debugPrint('_loadStatistics: Réponse reçue');
-      debugPrint('Nombre total de tâches: ${allTasks.length}');
-      debugPrint('Contenu de la réponse: $allTasks');
-
-      if (!mounted) return;
-
-      final completedTasks = allTasks.where((task) => task['status'] == 'done').length;
-      final urgentTasks = allTasks.where((task) => task['priority'] == 'urgent').length;
-      final totalTasks = allTasks.length;
+      final completedTasks = _tasks.where((task) => task['status'] == 'done').length;
+      final inProgressTasks = _tasks.where((task) => task['status'] == 'in_progress').length;
+      final totalTasks = _tasks.length;
 
       debugPrint('_loadStatistics: Calcul des statistiques');
       debugPrint('Tâches terminées: $completedTasks');
-      debugPrint('Tâches urgentes: $urgentTasks');
+      debugPrint('Tâches en cours: $inProgressTasks');
       debugPrint('Total des tâches: $totalTasks');
+
+      // Calcul correct du taux d'achèvement : 100% si toutes les tâches sont terminées
+      double completionRate = 0.0;
+      if (totalTasks > 0) {
+        completionRate = (completedTasks / totalTasks) * 100;
+      }
 
       setState(() {
         _statistics = {
-          'completion_rate': totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0.0,
+          'completion_rate': completionRate,
           'total_tasks': totalTasks,
           'completed_tasks': completedTasks,
-          'urgent_tasks': urgentTasks,
+          'urgent_tasks': _tasks.where((task) => task['priority'] == 'urgent').length,
         };
-        debugPrint('_loadStatistics: État mis à jour avec les nouvelles statistiques');
+        debugPrint('_loadStatistics: État mis à jour avec taux d\'achèvement: ${completionRate.toStringAsFixed(1)}%');
       });
     } catch (e, stackTrace) {
       debugPrint('_loadStatistics: Erreur lors du chargement des statistiques');
@@ -220,12 +250,6 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
       debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
-  }
-
-  void _onTabChanged(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
   }
 
   @override
@@ -240,7 +264,16 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
             minExtendedWidth: 200,
             backgroundColor: const Color(0xFF1E3D54),
             selectedIndex: _selectedIndex,
-            onDestinationSelected: _onTabChanged,
+            onDestinationSelected: (int index) {
+              if (index == 1) {
+                // Rediriger vers la messagerie universelle
+                Navigator.pushNamed(context, '/messaging');
+              } else {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              }
+            },
             labelType: NavigationRailLabelType.none,
             leading: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -269,21 +302,6 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                 icon: Icon(Icons.dashboard_outlined, color: Colors.white70),
                 selectedIcon: Icon(Icons.dashboard, color: Colors.white),
                 label: Text('Dashboard', style: TextStyle(color: Colors.white)),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.assignment_outlined, color: Colors.white70),
-                selectedIcon: Icon(Icons.assignment, color: Colors.white),
-                label: Text('Mes Missions', style: TextStyle(color: Colors.white)),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.calendar_today_outlined, color: Colors.white70),
-                selectedIcon: Icon(Icons.calendar_today, color: Colors.white),
-                label: Text('Planning', style: TextStyle(color: Colors.white)),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.access_time_outlined, color: Colors.white70),
-                selectedIcon: Icon(Icons.access_time, color: Colors.white),
-                label: Text('Timesheet', style: TextStyle(color: Colors.white)),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.chat_outlined, color: Colors.white70),
@@ -362,69 +380,24 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
           Expanded(
             child: Material(
               color: Colors.grey[100],
-              child: Column(
-                children: [
-                  // Barre de notification
-                  Material(
-                    elevation: 1,
-                    color: Colors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.notifications_none),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Nouvelles missions disponibles',
-                            style: TextStyle(
-                              color: Colors.grey[800],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const Spacer(),
-                          TextButton(
-                            onPressed: () {
-                              // TODO: Voir toutes les notifications
-                            },
-                            child: const Text('Voir tout'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Contenu de la page
-                  Expanded(
-                    child: _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : Builder(
-                            builder: (context) {
-                              switch (_selectedIndex) {
-                                case 0:
-                                  return _buildDashboardPage();
-                                case 1:
-                                  return _buildMissionsPage();
-                                case 2:
-                                  return _buildPlanningPage();
-                                case 3:
-                                  return _buildTimesheetPage();
-                                case 4:
-                                  return _buildDiscussionPage();
-                                default:
-                                  return _buildDashboardPage();
-                              }
-                            },
-                          ),
-                  ),
-                ],
-              ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _buildDashboardPage(),
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateTaskDialog,
-        backgroundColor: const Color(0xFF1E3D54),
-        child: const Icon(Icons.add),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          const MessagingFloatingButton(),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            onPressed: _showCreateTaskDialog,
+            backgroundColor: const Color(0xFF1E3D54),
+            child: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }
@@ -587,577 +560,6 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
               color: color,
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMissionsPage() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // En-tête avec statistiques
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(13),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatCard('Tâches en cours', '5', Colors.blue, Icons.trending_up),
-                _buildStatCard('Tâches terminées', '12', Colors.green, Icons.check_circle_outline),
-                _buildStatCard('Taux d\'achèvement', '75%', Colors.orange, Icons.pie_chart_outline),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          // Liste des tâches
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(13),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Mes Missions',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: ListView(
-                      children: [
-                        _buildTaskCard(
-                          'Mission urgente',
-                          'Description détaillée de la mission',
-                          true,
-                          'En cours',
-                        ),
-                        const SizedBox(height: 8),
-                        _buildTaskCard(
-                          'Mission normale',
-                          'Description détaillée de la mission',
-                          false,
-                          'À faire',
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTaskCard(String title, String description, bool isUrgent, String status) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isUrgent ? Colors.red.withAlpha(77) : Colors.grey.withAlpha(77),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isUrgent ? Colors.red.withAlpha(26) : Colors.grey.withAlpha(26),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  status,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isUrgent ? Colors.red : Colors.grey[800],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(description),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E3D54),
-                ),
-                child: const Text('Commencer'),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: () {},
-                child: const Text('Marquer comme terminé'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlanningPage() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: ListView(
-        children: [
-          // Calendrier
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Titre du calendrier
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.calendar_today, size: 20, color: Color(0xFF1E3D54)),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Planning',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E3D54),
-                        ),
-                      ),
-                      const Spacer(),
-                      // Bouton optionnel d'expansion (peut être utilisé plus tard)
-                      IconButton(
-                        icon: const Icon(Icons.fullscreen, size: 20, color: Color(0xFF1E3D54)),
-                        onPressed: () {
-                          // TODO: Action d'expansion du calendrier
-                        },
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
-                  ),
-                ),
-                // Widget de calendrier
-                CalendarWidget(
-                  showTitle: false, // Le titre est déjà affiché ci-dessus
-                  title: '',
-                  isExpanded: false,
-                  onExpandToggle: null,
-                  isTimesheet: false,
-                  onDaySelected: (DateTime date) {
-                    debugPrint('Date sélectionnée : ${date.toString()}');
-                    // TODO: Afficher les tâches du jour sélectionné
-                  },
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Tâches du jour
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.task_alt, size: 20, color: Color(0xFF1E3D54)),
-                    SizedBox(width: 8),
-                    Text(
-                      'Tâches du jour',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E3D54),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildTaskCard(
-                  'Réunion client',
-                  'Présentation du projet',
-                  true,
-                  'Aujourd\'hui',
-                ),
-                const SizedBox(height: 8),
-                _buildTaskCard(
-                  'Mise à jour documentation',
-                  'Mettre à jour les documents du projet',
-                  false,
-                  'À faire',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimesheetPage() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: ListView(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Timesheet',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Ouvrir le dialogue d'ajout d'heures
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Ajouter des heures'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E3D54),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            height: MediaQuery.of(context).size.height * 0.6,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Date'),
-                            Text('Mission'),
-                            Text('Heures'),
-                            Text('Status'),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: [
-                      _buildTimesheetEntry(
-                        date: '12/03/2024',
-                        mission: 'Développement API',
-                        hours: '4h',
-                        status: 'Validé',
-                      ),
-                      const SizedBox(height: 8),
-                      _buildTimesheetEntry(
-                        date: '11/03/2024',
-                        mission: 'Tests unitaires',
-                        hours: '6h',
-                        status: 'En attente',
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimesheetEntry({
-    required String date,
-    required String mission,
-    required String hours,
-    required String status,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.withAlpha(77)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(date),
-          Text(mission),
-          Text(hours),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: status == 'Validé' 
-                ? Colors.green.withAlpha(26)
-                : Colors.orange.withAlpha(26),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                fontSize: 12,
-                color: status == 'Validé' ? Colors.green : Colors.orange,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDiscussionPage() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: ListView(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: const Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Color(0xFF1E3D54),
-                  child: Icon(Icons.person, color: Colors.white),
-                ),
-                SizedBox(width: 16),
-                Text(
-                  'Discussion avec mon associé',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            height: MediaQuery.of(context).size.height * 0.5,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    reverse: true,
-                    children: [
-                      _buildMessageBubble(
-                        'Bonjour, avez-vous pu avancer sur le dossier client ?',
-                        isMe: false,
-                      ),
-                      _buildMessageBubble(
-                        'Oui, j\'ai terminé la première partie. Je vous envoie le document aujourd\'hui.',
-                        isMe: true,
-                      ),
-                      _buildMessageBubble(
-                        'Parfait, merci !',
-                        isMe: false,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'Écrire un message...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1E3D54),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed: () {
-                          // TODO: Envoyer le message
-                        },
-                        icon: const Icon(Icons.send, color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageBubble(String message, {required bool isMe}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        children: [
-          if (!isMe) ...[
-            const CircleAvatar(
-              backgroundColor: Color(0xFF1E3D54),
-              radius: 16,
-              child: Icon(Icons.person, color: Colors.white, size: 16),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isMe ? const Color(0xFF1E3D54) : Colors.grey[100],
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              message,
-              style: TextStyle(
-                color: isMe ? Colors.white : Colors.black,
-              ),
-            ),
-          ),
-          if (isMe) ...[
-            const SizedBox(width: 8),
-            const CircleAvatar(
-              backgroundColor: Colors.blue,
-              radius: 16,
-              child: Icon(Icons.person, color: Colors.white, size: 16),
-            ),
-          ],
         ],
       ),
     );
@@ -1411,11 +813,21 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
       final duration = _elapsedTimes[taskId] ?? Duration.zero;
       final hours = duration.inMinutes / 60.0;
 
+      // Utiliser taskId directement - peut être UUID ou int
+      dynamic taskIdValue = taskId;
+      // Essayer de convertir en int si c'est un nombre, sinon garder comme String
+      try {
+        taskIdValue = int.parse(taskId);
+      } catch (e) {
+        // Si la conversion échoue, c'est probablement un UUID, on garde le String
+        debugPrint('taskId est probablement un UUID: $taskId');
+      }
+
       // Créer une entrée timesheet
       await SupabaseService.client
           .from('timesheet_entries')
           .insert({
-            'task_id': taskId,
+            'task_id': taskIdValue, // Utiliser la valeur appropriée (int ou String)
             'user_id': SupabaseService.currentUser!.id,
             'hours': hours,
             'date': DateTime.now().toIso8601String(),
@@ -1430,7 +842,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
             'status': 'done',
             'updated_at': DateTime.now().toIso8601String(),
           })
-          .eq('id', taskId);
+          .eq('id', taskIdValue); // Utiliser la valeur appropriée
       
       // Arrêter et réinitialiser le chronomètre
       _stopwatches[taskId]?.stop();
@@ -1474,18 +886,23 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
         throw Exception('Utilisateur non connecté');
       }
 
+      // Ne pas convertir projectId - l'utiliser directement comme String (UUID)
+      // La base de données déterminera le bon type
+
       final response = await SupabaseService.client
           .from('tasks')
           .insert({
             'title': title,
             'description': description,
-            'project_id': projectId,
+            'project_id': projectId, // Utiliser directement le projectId (peut être UUID ou int)
             'status': 'todo',
             'due_date': dueDate?.toIso8601String(),
             'created_at': DateTime.now().toIso8601String(),
             'updated_at': DateTime.now().toIso8601String(),
-            'user_id': currentUser.id,  // ID de l'utilisateur qui crée la tâche
-            // partner_id et assigned_to seront gérés par le trigger
+            'user_id': currentUser.id,
+            'created_by': currentUser.id,
+            'updated_by': currentUser.id,
+            'partner_id': currentUser.id,
           })
           .select()
           .single();

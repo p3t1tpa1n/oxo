@@ -28,7 +28,7 @@ class SideMenu extends StatelessWidget {
           if (isClient)
             _buildClientMenu(context)
           else
-            _buildStandardMenu(context, isAssociate, isAdmin),
+            _buildStandardMenu(context, isAssociate, isAdmin, isClient),
           const Spacer(),
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -153,41 +153,69 @@ class SideMenu extends StatelessWidget {
           '/profile',
           isSelected: selectedRoute == '/profile',
         ),
+        const SizedBox(height: 12),
+        _buildMenuButton(
+          context,
+          Icons.chat_outlined,
+          'Messages',
+          '/messaging',
+          isSelected: selectedRoute == '/messaging',
+        ),
       ],
     );
   }
 
-  Widget _buildStandardMenu(BuildContext context, bool isAssociate, bool isAdmin) {
+  Widget _buildStandardMenu(BuildContext context, bool isAssociate, bool isAdmin, bool isClient) {
     return Column(
       children: [
+        if (!isAssociate) ...[
+          _buildMenuButton(
+            context,
+            Icons.person,
+            'Fiche Associé',
+            '/associate',
+            isSelected: selectedRoute == '/associate',
+          ),
+          const SizedBox(height: 12),
+        ],
         _buildMenuButton(
           context,
-          Icons.person,
-          'Fiche Associé',
-          '/associate',
-          isSelected: selectedRoute == '/associate',
-        ),
-        const SizedBox(height: 12),
-        _buildMenuButton(
-          context,
-          Icons.dashboard,
+          Icons.dashboard_outlined,
           'Dashboard',
-          isAssociate ? '/' : '/dashboard',
-          isSelected: (isAssociate && selectedRoute == '/') || 
-                      (!isAssociate && selectedRoute == '/dashboard'),
+          isAssociate
+              ? '/dashboard'
+              : isAdmin
+                  ? '/dashboard'
+                  : isClient
+                      ? '/client'
+                      : '/dashboard',
+          isSelected: (isAssociate && selectedRoute == '/dashboard') ||
+                      (isAdmin && selectedRoute == '/dashboard') ||
+                      (isClient && selectedRoute == '/client') ||
+                      (!isAssociate && !isAdmin && !isClient && selectedRoute == '/dashboard'),
         ),
         const SizedBox(height: 12),
         _buildMenuButton(
           context,
-          Icons.calendar_month,
-          'Planning',
-          '/planning',
-          isSelected: selectedRoute == '/planning',
+          Icons.folder_outlined,
+          'Projets',
+          '/projects',
+          isSelected: selectedRoute == '/projects',
         ),
         const SizedBox(height: 12),
+        if (!isAssociate) ...[
+          _buildMenuButton(
+            context,
+            Icons.calendar_month,
+            'Planning',
+            '/planning',
+            isSelected: selectedRoute == '/planning',
+          ),
+          const SizedBox(height: 12),
+        ],
         _buildMenuButton(
           context,
-          Icons.access_time,
+          Icons.access_time_outlined,
           'Timesheet',
           '/timesheet',
           isSelected: selectedRoute == '/timesheet',
@@ -213,7 +241,7 @@ class SideMenu extends StatelessWidget {
         const SizedBox(height: 12),
         _buildMenuButton(
           context,
-          Icons.people,
+          Icons.people_outlined,
           'Clients',
           '/clients',
           isSelected: selectedRoute == '/clients',
@@ -236,6 +264,14 @@ class SideMenu extends StatelessWidget {
             isSelected: selectedRoute == '/admin/roles',
           ),
         ],
+        const SizedBox(height: 12),
+        _buildMenuButton(
+          context,
+          Icons.chat_outlined,
+          'Messages',
+          '/messaging',
+          isSelected: selectedRoute == '/messaging',
+        ),
       ],
     );
   }

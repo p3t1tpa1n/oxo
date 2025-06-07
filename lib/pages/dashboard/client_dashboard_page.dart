@@ -4,6 +4,7 @@ import '../../models/user_role.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
+import '../../widgets/messaging_button.dart';
 
 class ClientDashboardPage extends StatefulWidget {
   const ClientDashboardPage({super.key});
@@ -122,6 +123,7 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
           ),
         ),
       ),
+      floatingActionButton: const MessagingFloatingButton(),
     );
   }
 

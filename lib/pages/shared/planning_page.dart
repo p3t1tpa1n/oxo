@@ -208,23 +208,24 @@ class _PlanningPageState extends State<PlanningPage> {
               ),
             ),
             
-            // Reste du contenu dans un ListView pour éviter les problèmes de débordement
             Expanded(
               child: ListView(
                 children: [
                   // Calendrier avec hauteur fixée
-                  Container(
+                  SizedBox(
                     height: MediaQuery.of(context).size.height * 0.35,
-                    padding: const EdgeInsets.all(8.0),
-                    child: isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : CalendarWidget(
-                            showTitle: true,
-                            title: 'Calendrier',
-                            onDaySelected: _onDaySelected,
-                            isExpanded: isCalendarExpanded,
-                            onExpandToggle: _toggleCalendarExpand,
-                          ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : CalendarWidget(
+                              showTitle: true,
+                              title: 'Calendrier',
+                              onDaySelected: _onDaySelected,
+                              isExpanded: isCalendarExpanded,
+                              onExpandToggle: _toggleCalendarExpand,
+                            ),
+                    ),
                   ),
                   
                   // Séparateur avec la date sélectionnée
@@ -242,113 +243,108 @@ class _PlanningPageState extends State<PlanningPage> {
                     ),
                   ),
                   
-                  // Liste des tâches - hauteur adaptative
-                  Container(
-                    constraints: BoxConstraints(
-                      minHeight: 100,
-                      maxHeight: MediaQuery.of(context).size.height * 0.4,
-                    ),
-                    child: isLoading 
-                        ? const Center(child: CircularProgressIndicator())
-                        : selectedDayEvents.isEmpty
-                            ? Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Text(
-                                    'Pour le moment aucune tâche ne vous a été affectée pour ce jour.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.grey[600],
+                  // Liste des tâches
+                  if (isLoading)
+                    const Center(child: CircularProgressIndicator())
+                  else if (selectedDayEvents.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Center(
+                        child: Text(
+                          'Pour le moment aucune tâche ne vous a été affectée pour ce jour.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: selectedDayEvents.length,
+                      separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemBuilder: (context, index) {
+                        final event = selectedDayEvents[index];
+                        return ListTile(
+                          dense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          title: Text(
+                            event['name'] ?? 'Sans titre',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 2),
+                              Text(
+                                'Projet: ${event['projects'] != null ? event['projects']['name'] ?? 'Projet inconnu' : 'Projet inconnu'}',
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 11,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(event['status']).withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      _getStatusText(event['status']),
+                                      style: TextStyle(
+                                        color: _getStatusColor(event['status']),
+                                        fontSize: 9,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              )
-                            : ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: selectedDayEvents.length,
-                                separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16),
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                itemBuilder: (context, index) {
-                                  final event = selectedDayEvents[index];
-                                  return ListTile(
-                                    dense: true,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                                    title: Text(
-                                      event['name'] ?? 'Sans titre',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: _getPriorityColor(event['priority']).withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Projet: ${event['projects'] != null ? event['projects']['name'] ?? 'Projet inconnu' : 'Projet inconnu'}',
-                                          style: TextStyle(
-                                            color: Colors.grey[700],
-                                            fontSize: 11,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                              decoration: BoxDecoration(
-                                                color: _getStatusColor(event['status']).withOpacity(0.2),
-                                                borderRadius: BorderRadius.circular(10),
-                                              ),
-                                              child: Text(
-                                                _getStatusText(event['status']),
-                                                style: TextStyle(
-                                                  color: _getStatusColor(event['status']),
-                                                  fontSize: 9,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                              decoration: BoxDecoration(
-                                                color: _getPriorityColor(event['priority']).withOpacity(0.2),
-                                                borderRadius: BorderRadius.circular(10),
-                                              ),
-                                              child: Text(
-                                                _getPriorityText(event['priority']),
-                                                style: TextStyle(
-                                                  color: _getPriorityColor(event['priority']),
-                                                  fontSize: 9,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    leading: CircleAvatar(
-                                      radius: 16,
-                                      backgroundColor: _getStatusColor(event['status']).withOpacity(0.2),
-                                      child: Icon(
-                                        _getStatusIcon(event['status']),
-                                        color: _getStatusColor(event['status']),
-                                        size: 14,
+                                    child: Text(
+                                      _getPriorityText(event['priority']),
+                                      style: TextStyle(
+                                        color: _getPriorityColor(event['priority']),
+                                        fontSize: 9,
                                       ),
                                     ),
-                                    onTap: () {
-                                      // TODO: Afficher les détails de la tâche
-                                    },
-                                  );
-                                },
+                                  ),
+                                ],
                               ),
-                  ),
+                            ],
+                          ),
+                          leading: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: _getStatusColor(event['status']).withOpacity(0.2),
+                            child: Icon(
+                              _getStatusIcon(event['status']),
+                              color: _getStatusColor(event['status']),
+                              size: 14,
+                            ),
+                          ),
+                          onTap: () {
+                            // TODO: Afficher les détails de la tâche
+                          },
+                        );
+                      },
+                    ),
                 ],
               ),
             ),

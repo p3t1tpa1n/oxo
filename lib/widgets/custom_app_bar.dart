@@ -6,7 +6,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showBackButton;
   final String title;
 
-  const CustomAppBar({super.key, required this.showBackButton, required this.title});
+  const CustomAppBar({super.key, this.showBackButton = false, required this.title});
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);

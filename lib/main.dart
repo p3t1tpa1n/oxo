@@ -5,19 +5,24 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:window_manager/window_manager.dart';
 import 'services/supabase_service.dart';
+import 'services/messaging_service.dart';
 import 'services/auth_middleware.dart';
 import 'models/user_role.dart';
 import 'pages/auth/login_page.dart';
 import 'pages/dashboard/dashboard_page.dart';
 import 'pages/shared/profile_page.dart';
 import 'pages/shared/planning_page.dart';
+import 'pages/shared/projects_page.dart';
 import 'pages/partner/partners_page.dart';
-import 'pages/shared/messaging_page.dart';
-import 'pages/partner/actions_page.dart';
 import 'pages/associate/figures_page.dart';
 import 'pages/shared/calendar_page.dart';
 import 'pages/dashboard/partner_dashboard_page.dart';
+import 'pages/dashboard/client_dashboard_page.dart';
 import 'pages/associate/timesheet_page.dart';
+import 'pages/clients/clients_page.dart';
+import 'pages/admin/user_roles_page.dart';
+import 'pages/partner/actions_page.dart';
+import 'pages/messaging/messaging_page.dart' as messaging;
 
 // lib/main.dart
 void main() async {
@@ -40,6 +45,15 @@ void main() async {
       debugPrint('Supabase initialisé avec succès');
       debugPrint('État de la session: ${SupabaseService.client.auth.currentSession != null ? 'Active' : 'Inactive'}');
       debugPrint('État de l\'utilisateur: ${SupabaseService.currentUser != null ? 'Connecté' : 'Non connecté'}');
+      
+      // Initialiser le service de messagerie seulement si Supabase est initialisé
+      try {
+        debugPrint('Initialisation du service de messagerie...');
+        await MessagingService().initialize();
+        debugPrint('Service de messagerie initialisé avec succès');
+      } catch (e) {
+        debugPrint('Erreur lors de l\'initialisation du service de messagerie: $e');
+      }
     }
 
     // Initialisation de window_manager uniquement si ce n'est pas le web
@@ -200,6 +214,8 @@ class _MainAppState extends State<MainApp> {
     } else if (userRole == UserRole.admin) {
       // Dans le cas d'un administrateur, on pourrait rediriger vers une page d'administration
       return const DashboardPage();
+    } else if (userRole == UserRole.client) {
+      return const ClientDashboardPage();
     }
 
     // Si le rôle n'est pas défini ou pas reconnu, rediriger vers la page de connexion
@@ -210,17 +226,26 @@ class _MainAppState extends State<MainApp> {
   Map<String, WidgetBuilder> _getRoutes() {
     final routes = <String, WidgetBuilder>{
       '/login': (context) => const LoginPage(),
+      '/dashboard': (context) => const DashboardPage(),
+      '/partner_dashboard': (context) => const PartnerDashboardPage(),
+      '/client_dashboard': (context) => const ClientDashboardPage(),
+      '/profile': (context) => const ProfilePage(),
+      '/clients': (context) => const ClientsPage(),
+      '/admin/roles': (context) => const UserRolesPage(),
+      '/messaging': (context) => const messaging.MessagingPage(),
+      '/settings': (context) => const ProfilePage(),
+      '/projects': (context) => const ProjectsPage(),
+      '/client/projects': (context) => const ClientDashboardPage(),
+      '/client/tasks': (context) => const ClientDashboardPage(),
+      '/client/invoices': (context) => const ClientDashboardPage(),
     };
 
     // Toujours définir ces routes, même si l'authentification n'est pas complète
-    // pour permettre le mode développement
     routes.addAll({
       '/associate': (context) => const DashboardPage(),
       '/partner': (context) => const PartnerDashboardPage(),
-      '/profile': (context) => const ProfilePage(),
+      '/client': (context) => const ClientDashboardPage(),
       '/planning': (context) => const PlanningPage(),
-      '/messaging': (context) => const MessagingPage(),
-      '/calendar': (context) => const CalendarPage(),
       '/figures': (context) => const FiguresPage(),
       '/timesheet': (context) => const TimesheetPage(),
       '/partners': (context) => const PartnersPage(),
