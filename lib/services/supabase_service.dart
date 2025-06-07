@@ -585,30 +585,17 @@ class SupabaseService {
   // Méthodes pour la gestion des clients
   static Future<List<Map<String, dynamic>>> fetchClients() async {
     try {
+      // Récupérer les utilisateurs avec le rôle 'client' depuis la table profiles avec leurs informations entreprise
       final response = await client
-        .from('clients')
-        .select()
-        .order('name', ascending: true);
+        .from('user_company_info')
+        .select('*')
+        .eq('role', 'client')
+        .order('first_name', ascending: true);
       
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Erreur lors de la récupération des clients: $e');
       return [];
-    }
-  }
-
-  static Future<Map<String, dynamic>?> getClientById(String clientId) async {
-    try {
-      final response = await client
-        .from('clients')
-        .select()
-        .eq('id', clientId)
-        .single();
-      
-      return response;
-    } catch (e) {
-      debugPrint('Erreur lors de la récupération du client: $e');
-      return null;
     }
   }
 
@@ -639,50 +626,192 @@ class SupabaseService {
     }
   }
 
-  // Méthodes pour la gestion des clients et projets
+  // === GESTION DES FACTURES ===
 
-  static Future<Map<String, dynamic>?> getClientMapping(String userId) async {
+  /// Récupérer toutes les factures (pour admins/associés)
+  static Future<List<Map<String, dynamic>>> getAllInvoices() async {
     try {
       final response = await client
-        .from('user_client_mapping')
-        .select()
-        .eq('user_id', userId)
-        .single();
+          .from('invoice_details')
+          .select('*')
+          .order('created_at', ascending: false);
       
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération de toutes les factures: $e');
+      return [];
+    }
+  }
+
+  /// Récupérer les factures d'un client spécifique
+  static Future<List<Map<String, dynamic>>> getClientInvoices([String? clientUserId]) async {
+    try {
+      var query = client.from('invoice_details').select('*');
+      
+      // Si un clientUserId est fourni, filtrer par ce client
+      // Sinon, utiliser l'utilisateur connecté (pour les clients qui consultent leurs propres factures)
+      final targetUserId = clientUserId ?? currentUser?.id;
+      if (targetUserId != null) {
+        query = query.eq('client_user_id', targetUserId);
+      }
+      
+      final response = await query.order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des factures client: $e');
+      return [];
+    }
+  }
+
+  /// Créer une nouvelle facture
+  static Future<Map<String, dynamic>?> createInvoice({
+    required String clientUserId,
+    required String title,
+    required String description,
+    required double amount,
+    required DateTime dueDate,
+    String? projectId,
+    double? taxRate,
+    DateTime? invoiceDate,
+    String status = 'draft',
+  }) async {
+    try {
+      // Récupérer l'entreprise de l'utilisateur connecté (admin/associé)
+      debugPrint('Tentative de récupération de l\'entreprise pour l\'utilisateur: ${currentUser?.id}');
+      
+      final userCompany = await getUserCompany();
+      debugPrint('Entreprise récupérée: $userCompany');
+      
+      if (userCompany == null) {
+        // Diagnostic plus détaillé
+        debugPrint('❌ Aucune entreprise trouvée pour l\'utilisateur');
+        
+        // Vérifier si l'utilisateur existe dans profiles
+        try {
+          final userProfile = await getUserProfile(currentUser!.id);
+          debugPrint('Profil utilisateur: $userProfile');
+          
+          if (userProfile == null) {
+            throw Exception('Profil utilisateur non trouvé. Contactez l\'administrateur.');
+          }
+          
+          final userRole = userProfile['user_role'] ?? userProfile['role'];
+          final companyId = userProfile['company_id'];
+          
+          debugPrint('Rôle utilisateur: $userRole, company_id: $companyId');
+          
+          if (companyId == null || companyId == 0) {
+            throw Exception(
+              'Utilisateur non assigné à une entreprise.\n\n'
+              'Solutions:\n'
+              '1. Exécutez le script SQL de diagnostic dans Supabase\n'
+              '2. Ou contactez l\'administrateur pour vous assigner à une entreprise\n\n'
+              'Votre rôle: $userRole\n'
+              'Votre ID: ${currentUser?.id}'
+            );
+          } else {
+            throw Exception('Entreprise trouvée (ID: $companyId) mais vue user_company_info inaccessible');
+          }
+        } catch (e) {
+          throw Exception('Erreur lors du diagnostic utilisateur: $e');
+        }
+      }
+      
+      if (userCompany['company_id'] == null) {
+        throw Exception(
+          'Données d\'entreprise incohérentes.\n'
+          'Entreprise: ${userCompany['company_name']}\n'
+          'ID: ${userCompany['company_id']}\n'
+          'Contactez l\'administrateur.'
+        );
+      }
+
+      debugPrint('✅ Création de facture pour l\'entreprise: ${userCompany['company_name']} (ID: ${userCompany['company_id']})');
+
+      final invoiceData = {
+        'company_id': userCompany['company_id'],
+        'client_user_id': clientUserId,
+        'title': title,
+        'description': description,
+        'amount': amount,
+        'due_date': dueDate.toIso8601String().split('T')[0], // Format YYYY-MM-DD
+        'invoice_date': (invoiceDate ?? DateTime.now()).toIso8601String().split('T')[0],
+        'status': status,
+        'created_by': currentUser!.id,
+      };
+
+      if (projectId != null) {
+        invoiceData['project_id'] = projectId;
+      }
+      if (taxRate != null) {
+        invoiceData['tax_rate'] = taxRate;
+      }
+
+      debugPrint('Données de la facture à insérer: $invoiceData');
+
+      final response = await client
+          .from('invoices')
+          .insert(invoiceData)
+          .select()
+          .single();
+      
+      debugPrint('✅ Facture créée avec succès: ${response['invoice_number']}');
       return response;
     } catch (e) {
-      debugPrint('Erreur lors de la récupération du mapping client: $e');
-      return null;
+      debugPrint('❌ Erreur lors de la création de la facture: $e');
+      rethrow;
     }
   }
 
-  static Future<List<Map<String, dynamic>>> getClientProjects(String clientId) async {
+  /// Mettre à jour une facture
+  static Future<void> updateInvoice(int invoiceId, Map<String, dynamic> updates) async {
     try {
-      final response = await client
-        .from('projects')
-        .select()
-        .eq('client_id', clientId)
-        .order('created_at', ascending: false);
-      
-      return List<Map<String, dynamic>>.from(response);
+      await client
+          .from('invoices')
+          .update(updates)
+          .eq('id', invoiceId);
     } catch (e) {
-      debugPrint('Erreur lors de la récupération des projets du client: $e');
-      return [];
+      debugPrint('Erreur lors de la mise à jour de la facture: $e');
+      rethrow;
     }
   }
 
-  static Future<List<Map<String, dynamic>>> getClientTasks(String clientId) async {
+  /// Supprimer une facture
+  static Future<void> deleteInvoice(int invoiceId) async {
     try {
-      final response = await client
-        .from('tasks')
-        .select()
-        .eq('client_id', clientId)
-        .order('created_at', ascending: false);
-      
-      return List<Map<String, dynamic>>.from(response);
+      await client
+          .from('invoices')
+          .delete()
+          .eq('id', invoiceId);
     } catch (e) {
-      debugPrint('Erreur lors de la récupération des tâches du client: $e');
-      return [];
+      debugPrint('Erreur lors de la suppression de la facture: $e');
+      rethrow;
+    }
+  }
+
+  /// Marquer une facture comme payée
+  static Future<void> markInvoiceAsPaid(int invoiceId, {
+    String? paymentMethod,
+    String? paymentReference,
+    DateTime? paymentDate,
+  }) async {
+    try {
+      final updates = {
+        'status': 'paid',
+        'payment_date': (paymentDate ?? DateTime.now()).toIso8601String().split('T')[0],
+      };
+
+      if (paymentMethod != null) {
+        updates['payment_method'] = paymentMethod;
+      }
+      if (paymentReference != null) {
+        updates['payment_reference'] = paymentReference;
+      }
+
+      await updateInvoice(invoiceId, updates);
+    } catch (e) {
+      debugPrint('Erreur lors du marquage de la facture comme payée: $e');
+      rethrow;
     }
   }
 
@@ -726,6 +855,321 @@ class SupabaseService {
     } catch (e) {
       debugPrint('Erreur lors de la création de l\'utilisateur: $e');
       rethrow;
+    }
+  }
+
+  // Méthodes pour la gestion des clients et projets
+
+  /// Méthode de compatibilité pour getClientMapping - remplacée par l'approche entreprise
+  static Future<Map<String, dynamic>?> getClientMapping(String userId) async {
+    try {
+      final userCompany = await getUserCompany();
+      if (userCompany != null && userCompany['company_id'] != null) {
+        return {
+          'client_id': userCompany['company_id'].toString(),
+          'user_id': userId,
+        };
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération du mapping client: $e');
+      return null;
+    }
+  }
+
+  /// Méthode de compatibilité pour getClientProjects - remplacée par l'approche entreprise
+  static Future<List<Map<String, dynamic>>> getClientProjects(String clientId) async {
+    return await getCompanyProjects();
+  }
+
+  /// Méthode de compatibilité pour getClientTasks - remplacée par l'approche entreprise
+  static Future<List<Map<String, dynamic>>> getClientTasks(String clientId) async {
+    return await getClientActiveTasks();
+  }
+
+  /// Méthode de compatibilité pour getClientById - remplacée par l'approche entreprise
+  static Future<Map<String, dynamic>?> getClientById(String clientId) async {
+    try {
+      final userCompany = await getUserCompany();
+      if (userCompany != null) {
+        return {
+          'id': userCompany['company_id'],
+          'name': userCompany['company_name'],
+          'email': userCompany['company_email'],
+        };
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération du client par ID: $e');
+      return null;
+    }
+  }
+
+  // === GESTION DES ENTREPRISES ===
+
+  /// Récupérer toutes les entreprises (pour admins/associés)
+  static Future<List<Map<String, dynamic>>> getAllCompanies() async {
+    try {
+      final response = await client
+          .from('companies')
+          .select()
+          .order('name', ascending: true);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des entreprises: $e');
+      return [];
+    }
+  }
+
+  /// Récupérer l'entreprise de l'utilisateur connecté
+  static Future<Map<String, dynamic>?> getUserCompany() async {
+    try {
+      final response = await client
+          .from('user_company_info')
+          .select()
+          .eq('user_id', currentUser!.id)
+          .single();
+      
+      return response;
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération de l\'entreprise utilisateur: $e');
+      return null;
+    }
+  }
+
+  /// Créer une nouvelle entreprise
+  static Future<Map<String, dynamic>?> createCompany({
+    required String name,
+    String? description,
+    String? address,
+    String? phone,
+    String? email,
+    String? website,
+  }) async {
+    try {
+      final response = await client
+          .from('companies')
+          .insert({
+            'name': name,
+            'description': description,
+            'address': address,
+            'phone': phone,
+            'email': email,
+            'website': website,
+            'status': 'active',
+          })
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      debugPrint('Erreur lors de la création de l\'entreprise: $e');
+      rethrow;
+    }
+  }
+
+  /// Mettre à jour une entreprise
+  static Future<void> updateCompany(int companyId, Map<String, dynamic> updates) async {
+    try {
+      await client
+          .from('companies')
+          .update(updates)
+          .eq('id', companyId);
+    } catch (e) {
+      debugPrint('Erreur lors de la mise à jour de l\'entreprise: $e');
+      rethrow;
+    }
+  }
+
+  /// Assigner un utilisateur à une entreprise
+  static Future<bool> assignUserToCompany(String userId, int companyId) async {
+    try {
+      final result = await client.rpc('assign_user_to_company', params: {
+        'user_id_param': userId,
+        'company_id_param': companyId,
+      });
+      
+      return result as bool;
+    } catch (e) {
+      debugPrint('Erreur lors de l\'assignation à l\'entreprise: $e');
+      rethrow;
+    }
+  }
+
+  // === PROJETS FILTRÉS PAR ENTREPRISE ===
+
+  /// Récupérer les projets de l'entreprise de l'utilisateur connecté
+  static Future<List<Map<String, dynamic>>> getCompanyProjects() async {
+    try {
+      final response = await client
+          .from('projects')
+          .select('''
+            *,
+            companies:company_id(name, id),
+            tasks:tasks(count)
+          ''')
+          .order('created_at', ascending: false);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des projets de l\'entreprise: $e');
+      return [];
+    }
+  }
+
+  /// Créer un projet pour l'entreprise de l'utilisateur
+  static Future<Map<String, dynamic>?> createProjectForCompany({
+    required String name,
+    String? description,
+    String? status,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      // Récupérer l'entreprise de l'utilisateur
+      final userCompany = await getUserCompany();
+      if (userCompany == null || userCompany['company_id'] == null) {
+        throw Exception('Utilisateur non assigné à une entreprise');
+      }
+
+      final response = await client
+          .from('projects')
+          .insert({
+            'name': name,
+            'description': description,
+            'status': status ?? 'active',
+            'start_date': startDate?.toIso8601String(),
+            'end_date': endDate?.toIso8601String(),
+            'company_id': userCompany['company_id'],
+          })
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      debugPrint('Erreur lors de la création du projet: $e');
+      rethrow;
+    }
+  }
+
+  // === TÂCHES FILTRÉES PAR ENTREPRISE ===
+
+  /// Récupérer les tâches des projets de l'entreprise
+  static Future<List<Map<String, dynamic>>> getCompanyTasks() async {
+    try {
+      final response = await client
+          .from('tasks')
+          .select('''
+            *,
+            projects:project_id(name, company_id),
+            assigned_user:assigned_to(email),
+            creator:created_by(email)
+          ''')
+          .order('created_at', ascending: false);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des tâches de l\'entreprise: $e');
+      return [];
+    }
+  }
+
+  /// Créer une tâche dans un projet de l'entreprise
+  static Future<Map<String, dynamic>?> createTaskForCompany({
+    required String projectId,
+    required String title,
+    String? description,
+    String? status,
+    String? priority,
+    DateTime? dueDate,
+    String? assignedTo,
+  }) async {
+    try {
+      final response = await client
+          .from('tasks')
+          .insert({
+            'project_id': projectId,
+            'title': title,
+            'description': description,
+            'status': status ?? 'todo',
+            'priority': priority ?? 'medium',
+            'due_date': dueDate?.toIso8601String(),
+            'assigned_to': assignedTo,
+            'created_by': currentUser!.id,
+          })
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      debugPrint('Erreur lors de la création de la tâche: $e');
+      rethrow;
+    }
+  }
+
+  // === MÉTHODES SPÉCIFIQUES CLIENTS ===
+
+  /// Récupérer les statistiques de l'entreprise du client
+  static Future<Map<String, dynamic>> getClientCompanyStats() async {
+    try {
+      final userCompany = await getUserCompany();
+      if (userCompany == null || userCompany['company_id'] == null) {
+        return {
+          'projects_count': 0,
+          'tasks_count': 0,
+          'completed_tasks_count': 0,
+          'company_name': 'Aucune entreprise',
+        };
+      }
+
+      final projects = await getCompanyProjects();
+      final tasks = await getCompanyTasks();
+      final completedTasks = tasks.where((task) => task['status'] == 'done').toList();
+
+      return {
+        'projects_count': projects.length,
+        'tasks_count': tasks.length,
+        'completed_tasks_count': completedTasks.length,
+        'company_name': userCompany['company_name'] ?? 'Entreprise',
+        'company_id': userCompany['company_id'],
+      };
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des statistiques: $e');
+      return {
+        'projects_count': 0,
+        'tasks_count': 0,
+        'completed_tasks_count': 0,
+        'company_name': 'Erreur',
+      };
+    }
+  }
+
+  /// Récupérer les projets récents de l'entreprise du client (limité à 5)
+  static Future<List<Map<String, dynamic>>> getClientRecentProjects() async {
+    try {
+      final projects = await getCompanyProjects();
+      return projects.take(5).toList();
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des projets récents: $e');
+      return [];
+    }
+  }
+
+  /// Récupérer les tâches assignées au client ou en cours dans son entreprise
+  static Future<List<Map<String, dynamic>>> getClientActiveTasks() async {
+    try {
+      final tasks = await getCompanyTasks();
+      
+      // Filtrer les tâches actives (non terminées)
+      final activeTasks = tasks.where((task) => 
+        task['status'] != 'done' && task['status'] != 'completed'
+      ).toList();
+      
+      return activeTasks.take(10).toList();
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des tâches actives: $e');
+      return [];
     }
   }
 } 

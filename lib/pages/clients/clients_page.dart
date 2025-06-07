@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../models/client.dart';
+import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/custom_app_bar.dart';
 import 'client_detail_page.dart';
@@ -14,8 +14,9 @@ class ClientsPage extends StatefulWidget {
 }
 
 class _ClientsPageState extends State<ClientsPage> {
-  List<Client> _clients = [];
-  List<Client> _filteredClients = [];
+  List<Map<String, dynamic>> _clients = [];
+  List<Map<String, dynamic>> _filteredClients = [];
+  List<Map<String, dynamic>> _projects = [];
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
   String _filterStatus = 'tous';
@@ -23,7 +24,7 @@ class _ClientsPageState extends State<ClientsPage> {
   @override
   void initState() {
     super.initState();
-    _loadClients();
+    _loadData();
   }
 
   @override
@@ -32,17 +33,21 @@ class _ClientsPageState extends State<ClientsPage> {
     super.dispose();
   }
 
-  Future<void> _loadClients() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final clientsData = await SupabaseService.fetchClients();
-      final clients = clientsData.map((data) => Client.fromJson(data)).toList();
+      // Charger les clients et projets en parallèle
+      final futures = await Future.wait([
+        SupabaseService.fetchClients(),
+        SupabaseService.getCompanyProjects(),
+      ]);
       
       setState(() {
-        _clients = clients;
+        _clients = futures[0];
+        _projects = futures[1];
         _applyFilters();
         _isLoading = false;
       });
@@ -54,7 +59,7 @@ class _ClientsPageState extends State<ClientsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors du chargement des clients: $e'),
+            content: Text('Erreur lors du chargement des données: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -65,20 +70,22 @@ class _ClientsPageState extends State<ClientsPage> {
   void _applyFilters() {
     final searchTerm = _searchController.text.toLowerCase();
     
-    List<Client> filtered = _clients;
+    List<Map<String, dynamic>> filtered = _clients;
     
-    // Filtre par statut
-    if (_filterStatus != 'tous') {
-      filtered = filtered.where((client) => client.status == _filterStatus).toList();
-    }
+    // Filtre par statut (adapter selon les données profiles)
+    // Note: Les profiles n'ont pas forcément de statut, on peut filtrer par entreprise ou autre
     
     // Filtre par recherche
     if (searchTerm.isNotEmpty) {
-      filtered = filtered.where((client) => 
-        client.name.toLowerCase().contains(searchTerm) ||
-        client.company.toLowerCase().contains(searchTerm) ||
-        client.email.toLowerCase().contains(searchTerm)
-      ).toList();
+      filtered = filtered.where((client) {
+        final name = '${client['first_name'] ?? ''} ${client['last_name'] ?? ''}'.toLowerCase();
+        final email = (client['email'] ?? '').toLowerCase();
+        final company = (client['company_name'] ?? '').toLowerCase();
+        
+        return name.contains(searchTerm) ||
+               email.contains(searchTerm) ||
+               company.contains(searchTerm);
+      }).toList();
     }
     
     setState(() {
@@ -86,15 +93,13 @@ class _ClientsPageState extends State<ClientsPage> {
     });
   }
 
-  void _showClientForm({Client? client}) {
+  void _showClientForm({Map<String, dynamic>? client}) {
     final _formKey = GlobalKey<FormState>();
-    final nameController = TextEditingController(text: client?.name ?? '');
-    final emailController = TextEditingController(text: client?.email ?? '');
-    final phoneController = TextEditingController(text: client?.phone ?? '');
-    final addressController = TextEditingController(text: client?.address ?? '');
-    final companyController = TextEditingController(text: client?.company ?? '');
-    final notesController = TextEditingController(text: client?.notes ?? '');
-    String status = client?.status ?? 'actif';
+    final firstNameController = TextEditingController(text: client?['first_name'] ?? '');
+    final lastNameController = TextEditingController(text: client?['last_name'] ?? '');
+    final emailController = TextEditingController(text: client?['email'] ?? '');
+    final phoneController = TextEditingController(text: client?['phone'] ?? '');
+    final companyController = TextEditingController(text: client?['company_name'] ?? '');
 
     showDialog(
       context: context,
@@ -106,41 +111,55 @@ class _ClientsPageState extends State<ClientsPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom',
-                    icon: Icon(Icons.person),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Veuillez saisir un nom';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: companyController,
-                  decoration: const InputDecoration(
-                    labelText: 'Entreprise',
-                    icon: Icon(Icons.business),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: firstNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Prénom *',
+                          icon: Icon(Icons.person),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Prénom requis';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextFormField(
+                        controller: lastNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nom *',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Nom requis';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: emailController,
                   decoration: const InputDecoration(
-                    labelText: 'Email',
+                    labelText: 'Email *',
                     icon: Icon(Icons.email),
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
-                    if (value != null && value.isNotEmpty) {
-                      final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                      if (!emailRegex.hasMatch(value)) {
-                        return 'Veuillez saisir un email valide';
-                      }
+                    if (value == null || value.isEmpty) {
+                      return 'Email requis';
+                    }
+                    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                    if (!emailRegex.hasMatch(value)) {
+                      return 'Email invalide';
                     }
                     return null;
                   },
@@ -153,43 +172,14 @@ class _ClientsPageState extends State<ClientsPage> {
                     icon: Icon(Icons.phone),
                   ),
                   keyboardType: TextInputType.phone,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: addressController,
+                  controller: companyController,
                   decoration: const InputDecoration(
-                    labelText: 'Adresse',
-                    icon: Icon(Icons.location_on),
+                    labelText: 'Entreprise',
+                    icon: Icon(Icons.business),
                   ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: status,
-                  decoration: const InputDecoration(
-                    labelText: 'Statut',
-                    icon: Icon(Icons.flag),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'actif', child: Text('Actif')),
-                    DropdownMenuItem(value: 'inactif', child: Text('Inactif')),
-                    DropdownMenuItem(value: 'prospect', child: Text('Prospect')),
-                  ],
-                  onChanged: (value) {
-                    status = value!;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: notesController,
-                  decoration: const InputDecoration(
-                    labelText: 'Notes',
-                    icon: Icon(Icons.note),
-                  ),
-                  maxLines: 3,
                 ),
               ],
             ),
@@ -203,115 +193,383 @@ class _ClientsPageState extends State<ClientsPage> {
           ElevatedButton(
             onPressed: () async {
               if (_formKey.currentState!.validate()) {
-                try {
-                  final clientData = {
-                    'name': nameController.text,
-                    'email': emailController.text,
-                    'phone': phoneController.text,
-                    'address': addressController.text,
-                    'company': companyController.text,
-                    'notes': notesController.text,
-                    'status': status,
-                  };
-                  
-                  if (client == null) {
-                    // Ajouter un nouveau client
-                    clientData['id'] = const Uuid().v4();
-                    clientData['created_at'] = DateTime.now().toIso8601String();
-                    
-                    await SupabaseService.insertClient(clientData);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Client ajouté avec succès')),
-                      );
-                    }
-                  } else {
-                    // Mettre à jour le client existant
-                    await SupabaseService.updateClient(client.id, clientData);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Client mis à jour avec succès')),
-                      );
-                    }
-                  }
-                  
-                  if (mounted) {
-                    Navigator.pop(context);
-                    _loadClients();
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erreur: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
+                // Note: Pour créer un nouveau client, on devrait créer un nouvel utilisateur
+                // Ceci est un placeholder - en réalité il faudrait implémenter la création d'utilisateur
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Fonctionnalité en cours de développement'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1E3D54),
+              foregroundColor: Colors.white,
             ),
-            child: Text(client == null ? 'Ajouter' : 'Mettre à jour'),
+            child: Text(client == null ? 'Ajouter' : 'Modifier'),
           ),
         ],
       ),
     );
   }
 
-  void _confirmDeleteClient(Client client) {
+  void _confirmDeleteClient(Map<String, dynamic> client) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Supprimer le client'),
-        content: Text('Êtes-vous sûr de vouloir supprimer ${client.name} ?'),
+        content: Text('Êtes-vous sûr de vouloir supprimer ${client['first_name']} ${client['last_name']} ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Annuler'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              try {
-                await SupabaseService.deleteClient(client.id);
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Client supprimé avec succès')),
-                  );
-                  _loadClients();
-                }
-              } catch (e) {
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Erreur lors de la suppression: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Suppression non autorisée - contactez l\'administrateur'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text('Supprimer'),
+            child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  void _viewClientDetails(Client client) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ClientDetailPage(client: client),
+  void _viewClientDetails(Map<String, dynamic> client) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${client['first_name']} ${client['last_name']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (client['company_name'] != null && client['company_name'].isNotEmpty)
+              _buildDetailRow('Entreprise', client['company_name']),
+            if (client['email'] != null && client['email'].isNotEmpty)
+              _buildDetailRow('Email', client['email']),
+            if (client['phone'] != null && client['phone'].isNotEmpty)
+              _buildDetailRow('Téléphone', client['phone']),
+            _buildDetailRow('Rôle', client['role'] ?? 'Client'),
+            if (client['status'] != null)
+              _buildDetailRow('Statut', client['status']),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fermer'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showInvoiceForm(client);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E3D54),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Créer une facture'),
+          ),
+        ],
       ),
-    ).then((_) => _loadClients());
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+
+  void _showInvoiceForm(Map<String, dynamic> client) {
+    final _formKey = GlobalKey<FormState>();
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final amountController = TextEditingController();
+    final taxRateController = TextEditingController(text: '20.00');
+    DateTime dueDate = DateTime.now().add(const Duration(days: 30));
+    DateTime invoiceDate = DateTime.now();
+    String status = 'draft';
+    String? selectedProjectId;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          title: Text('Créer une facture pour ${client['first_name']} ${client['last_name']}'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Titre de la facture *',
+                      icon: Icon(Icons.title),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Veuillez saisir un titre';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      icon: Icon(Icons.description),
+                    ),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String?>(
+                    value: selectedProjectId,
+                    decoration: const InputDecoration(
+                      labelText: 'Projet (optionnel)',
+                      icon: Icon(Icons.folder),
+                    ),
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('Aucun projet'),
+                      ),
+                      ..._projects.map((project) => DropdownMenuItem<String?>(
+                        value: project['id'].toString(),
+                        child: Text(project['name'] ?? 'Projet sans nom'),
+                      )),
+                    ],
+                    onChanged: (value) {
+                      setModalState(() {
+                        selectedProjectId = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: amountController,
+                          decoration: const InputDecoration(
+                            labelText: 'Montant HT (€) *',
+                            icon: Icon(Icons.euro),
+                          ),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                          ],
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Montant requis';
+                            }
+                            final amount = double.tryParse(value);
+                            if (amount == null || amount <= 0) {
+                              return 'Montant invalide';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextFormField(
+                          controller: taxRateController,
+                          decoration: const InputDecoration(
+                            labelText: 'TVA (%)',
+                            icon: Icon(Icons.percent),
+                          ),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: invoiceDate,
+                              firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (picked != null) {
+                              setModalState(() {
+                                invoiceDate = picked;
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.calendar_today, size: 20),
+                                const SizedBox(width: 8),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Date facture', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                    Text(DateFormat('dd/MM/yyyy').format(invoiceDate)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: dueDate,
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (picked != null) {
+                              setModalState(() {
+                                dueDate = picked;
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.schedule, size: 20),
+                                const SizedBox(width: 8),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Date échéance', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                    Text(DateFormat('dd/MM/yyyy').format(dueDate)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: status,
+                    decoration: const InputDecoration(
+                      labelText: 'Statut',
+                      icon: Icon(Icons.flag),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'draft', child: Text('Brouillon')),
+                      DropdownMenuItem(value: 'sent', child: Text('Envoyée')),
+                      DropdownMenuItem(value: 'pending', child: Text('En attente de paiement')),
+                    ],
+                    onChanged: (value) {
+                      setModalState(() {
+                        status = value!;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (_formKey.currentState!.validate()) {
+                  try {
+                    final amount = double.parse(amountController.text);
+                    final taxRate = double.tryParse(taxRateController.text) ?? 20.0;
+                    
+                    await SupabaseService.createInvoice(
+                      clientUserId: client['user_id'],
+                      title: titleController.text,
+                      description: descriptionController.text,
+                      amount: amount,
+                      dueDate: dueDate,
+                      projectId: selectedProjectId,
+                      taxRate: taxRate,
+                      invoiceDate: invoiceDate,
+                      status: status,
+                    );
+                    
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Facture créée avec succès !'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Erreur lors de la création de la facture: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E3D54),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Créer la facture'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -325,7 +583,12 @@ class _ClientsPageState extends State<ClientsPage> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredClients.isEmpty
-                    ? const Center(child: Text('Aucun client trouvé'))
+                    ? const Center(
+                        child: Text(
+                          'Aucun client trouvé',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      )
                     : _buildClientsList(),
           ),
         ],
@@ -333,14 +596,26 @@ class _ClientsPageState extends State<ClientsPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showClientForm(),
         backgroundColor: const Color(0xFF1E3D54),
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, color: Colors.white),
+        tooltip: 'Ajouter un client',
       ),
     );
   }
 
   Widget _buildFilters() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         children: [
           TextField(
@@ -416,9 +691,9 @@ class _ClientsPageState extends State<ClientsPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: client.status == 'actif'
+              color: (client['status'] == 'actif' || client['status'] == null)
                   ? Colors.green.withOpacity(0.3)
-                  : client.status == 'prospect'
+                  : client['status'] == 'prospect'
                       ? Colors.blue.withOpacity(0.3)
                       : Colors.grey.withOpacity(0.3),
               width: 1,
@@ -439,16 +714,16 @@ class _ClientsPageState extends State<ClientsPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              client.name,
+                              '${client['first_name'] ?? ''} ${client['last_name'] ?? ''}'.trim(),
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF1E3D54),
                               ),
                             ),
-                            if (client.company.isNotEmpty)
+                            if (client['company_name'] != null && client['company_name'].isNotEmpty)
                               Text(
-                                client.company,
+                                client['company_name'],
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey[700],
@@ -457,22 +732,22 @@ class _ClientsPageState extends State<ClientsPage> {
                           ],
                         ),
                       ),
-                      _buildStatusBadge(client.status),
+                      _buildStatusBadge(client['status'] ?? 'actif'),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      if (client.email.isNotEmpty) ...[
+                      if (client['email'] != null && client['email'].isNotEmpty) ...[
                         const Icon(Icons.email, size: 16, color: Colors.grey),
                         const SizedBox(width: 4),
-                        Text(client.email, style: const TextStyle(fontSize: 14)),
+                        Flexible(child: Text(client['email'], style: const TextStyle(fontSize: 14))),
                         const SizedBox(width: 16),
                       ],
-                      if (client.phone.isNotEmpty) ...[
+                      if (client['phone'] != null && client['phone'].isNotEmpty) ...[
                         const Icon(Icons.phone, size: 16, color: Colors.grey),
                         const SizedBox(width: 4),
-                        Text(client.phone, style: const TextStyle(fontSize: 14)),
+                        Text(client['phone'], style: const TextStyle(fontSize: 14)),
                       ],
                     ],
                   ),
@@ -484,6 +759,13 @@ class _ClientsPageState extends State<ClientsPage> {
                         icon: const Icon(Icons.edit, color: Color(0xFF1E3D54)),
                         onPressed: () => _showClientForm(client: client),
                         tooltip: 'Modifier',
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.all(8),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.receipt, color: Color(0xFF1E3D54)),
+                        onPressed: () => _showInvoiceForm(client),
+                        tooltip: 'Créer une facture',
                         constraints: const BoxConstraints(),
                         padding: const EdgeInsets.all(8),
                       ),
@@ -523,8 +805,8 @@ class _ClientsPageState extends State<ClientsPage> {
         label = 'Prospect';
         break;
       default:
-        color = Colors.grey;
-        label = 'Inconnu';
+        color = Colors.green;
+        label = 'Actif';
     }
     
     return Container(

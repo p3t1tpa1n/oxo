@@ -124,22 +124,6 @@ class SideMenu extends StatelessWidget {
         const SizedBox(height: 12),
         _buildMenuButton(
           context,
-          Icons.business_center,
-          'Projets',
-          '/client/projects',
-          isSelected: selectedRoute == '/client/projects',
-        ),
-        const SizedBox(height: 12),
-        _buildMenuButton(
-          context,
-          Icons.task_alt,
-          'Tâches',
-          '/client/tasks',
-          isSelected: selectedRoute == '/client/tasks',
-        ),
-        const SizedBox(height: 12),
-        _buildMenuButton(
-          context,
           Icons.receipt_long,
           'Factures',
           '/client/invoices',

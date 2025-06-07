@@ -32,32 +32,23 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
     });
 
     try {
-      // Récupérer l'ID du client associé à cet utilisateur
+      // Récupérer les informations de l'entreprise du client
       final user = SupabaseService.currentUser;
       if (user != null) {
-        final clientMapping = await SupabaseService.getClientMapping(user.id);
-        if (clientMapping != null && clientMapping.isNotEmpty) {
-          _clientId = clientMapping['client_id'];
-          
-          // Charger les informations du client
-          final clientInfo = await SupabaseService.getClientById(_clientId);
-          if (clientInfo != null) {
-            setState(() {
-              _clientInfo = clientInfo;
-            });
-          }
-          
-          // Charger les projets du client
-          final projects = await SupabaseService.getClientProjects(_clientId);
-          
-          // Charger les tâches associées aux projets du client
-          final tasks = await SupabaseService.getClientTasks(_clientId);
-          
-          setState(() {
-            _projects = projects;
-            _tasks = tasks;
-          });
-        }
+        // Utiliser les nouvelles méthodes d'entreprise
+        final companyStats = await SupabaseService.getClientCompanyStats();
+        final recentProjects = await SupabaseService.getClientRecentProjects();
+        final activeTasks = await SupabaseService.getClientActiveTasks();
+        final userCompany = await SupabaseService.getUserCompany();
+        
+        setState(() {
+          _clientInfo = {
+            'name': userCompany?['company_name'] ?? 'Entreprise',
+            'id': userCompany?['company_id'],
+          };
+          _projects = recentProjects;
+          _tasks = activeTasks;
+        });
       }
     } catch (e) {
       debugPrint('Erreur lors du chargement des données: $e');
@@ -216,14 +207,14 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
                 ),
                 const SizedBox(width: 16),
                 _buildActivityCard(
-                  '${_tasks.where((task) => task['status'] == 'in_progress').length}',
+                  '${_tasks.where((task) => task['status'] == 'in_progress' || task['status'] == 'todo').length}',
                   'Tâches en cours',
                   Icons.pending_actions,
                   Colors.orange,
                 ),
                 const SizedBox(width: 16),
                 _buildActivityCard(
-                  '${_tasks.where((task) => task['status'] == 'completed').length}',
+                  '${_tasks.where((task) => task['status'] == 'done' || task['status'] == 'completed').length}',
                   'Tâches terminées',
                   Icons.task_alt,
                   Colors.green,
@@ -342,7 +333,8 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
                   // Calculer le pourcentage d'avancement
                   int totalTasks = _tasks.where((task) => task['project_id'] == project['id']).length;
                   int completedTasks = _tasks.where((task) => 
-                      task['project_id'] == project['id'] && task['status'] == 'completed').length;
+                      task['project_id'] == project['id'] && 
+                      (task['status'] == 'done' || task['status'] == 'completed')).length;
                   
                   double progress = totalTasks > 0 ? completedTasks / totalTasks : 0;
                   

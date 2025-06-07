@@ -18,6 +18,7 @@ import 'pages/associate/figures_page.dart';
 import 'pages/shared/calendar_page.dart';
 import 'pages/dashboard/partner_dashboard_page.dart';
 import 'pages/dashboard/client_dashboard_page.dart';
+import 'pages/client/client_invoices_page.dart';
 import 'pages/associate/timesheet_page.dart';
 import 'pages/clients/clients_page.dart';
 import 'pages/admin/user_roles_page.dart';
@@ -237,7 +238,7 @@ class _MainAppState extends State<MainApp> {
       '/projects': (context) => const ProjectsPage(),
       '/client/projects': (context) => const ClientDashboardPage(),
       '/client/tasks': (context) => const ClientDashboardPage(),
-      '/client/invoices': (context) => const ClientDashboardPage(),
+      '/client/invoices': (context) => const ClientInvoicesPage(),
     };
 
     // Toujours définir ces routes, même si l'authentification n'est pas complète
