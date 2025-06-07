@@ -1,28 +1,15 @@
 {
-  "name": "oxo",
   "version": 2,
-  "public": false,
-  "framework": null,
-  "buildCommand": "flutter build web --release",
-  "outputDirectory": "build/web",
-  "installCommand": "flutter pub get",
+  "builds": [
+    {
+      "src": "build/web/**",
+      "use": "@vercel/static"
+    }
+  ],
   "routes": [
     {
       "src": "/(.*)",
       "dest": "/index.html"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/.*",
-      "dest": "/index.html"
-    }
-  ],
-  "builds": [
-    {
-      "src": "pubspec.yaml",
-      "use": "vercel-flutter"
     }
   ]
 } 
