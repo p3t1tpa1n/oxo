@@ -2,12 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:window_manager/window_manager.dart';
 import 'services/supabase_service.dart';
 import 'services/messaging_service.dart';
 import 'services/auth_middleware.dart';
 import 'models/user_role.dart';
+
+// Pages génériques
 import 'pages/auth/login_page.dart';
 import 'pages/dashboard/dashboard_page.dart';
 import 'pages/shared/profile_page.dart';
@@ -22,8 +25,16 @@ import 'pages/client/client_invoices_page.dart';
 import 'pages/associate/timesheet_page.dart';
 import 'pages/clients/clients_page.dart';
 import 'pages/admin/user_roles_page.dart';
+import 'pages/admin/client_requests_page.dart';
 import 'pages/partner/actions_page.dart';
 import 'pages/messaging/messaging_page.dart' as messaging;
+
+// Pages iOS spécifiques
+import 'pages/auth/ios_login_page.dart';
+import 'pages/dashboard/ios_dashboard_page.dart';
+
+// Configuration iOS
+import 'config/ios_theme.dart';
 
 // lib/main.dart
 void main() async {
@@ -57,8 +68,8 @@ void main() async {
       }
     }
 
-    // Initialisation de window_manager uniquement si ce n'est pas le web
-    if (!kIsWeb) {
+    // Initialisation de window_manager uniquement pour les plateformes desktop
+    if (!kIsWeb && !Platform.isIOS && !Platform.isAndroid) {
       await windowManager.ensureInitialized();
 
       // Configuration de la fenêtre
@@ -75,7 +86,7 @@ void main() async {
         await windowManager.show();
         await windowManager.focus();
       });
-    } else {
+    } else if (kIsWeb) {
       // Sur le web, masquer la barre d'URL et de navigation
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     }
@@ -101,6 +112,11 @@ class _MainAppState extends State<MainApp> {
   void initState() {
     super.initState();
     _checkInitialRoute();
+  }
+
+  /// Détermine si l'application s'exécute sur iOS
+  bool _isIOS() {
+    return !kIsWeb && Platform.isIOS;
   }
 
   Future<void> _checkInitialRoute() async {
@@ -136,7 +152,7 @@ class _MainAppState extends State<MainApp> {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-          backgroundColor: const Color(0xFF1E3D54),
+          backgroundColor: _isIOS() ? IOSTheme.systemGroupedBackground : const Color(0xFF1E3D54),
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -145,37 +161,44 @@ class _MainAppState extends State<MainApp> {
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    color: _isIOS() ? IOSTheme.primaryBlue : Colors.white,
+                    borderRadius: BorderRadius.circular(_isIOS() ? 22 : 16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withAlpha(26),
-                        blurRadius: 10,
-                        spreadRadius: 2,
+                        color: _isIOS() 
+                            ? IOSTheme.primaryBlue.withValues(alpha: 0.3)
+                            : Colors.black.withAlpha(26),
+                        blurRadius: _isIOS() ? 20 : 10,
+                        spreadRadius: _isIOS() ? 0 : 2,
+                        offset: _isIOS() ? const Offset(0, 8) : Offset.zero,
                       ),
                     ],
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text(
                       "OXO",
                       style: TextStyle(
-                        color: Color(0xFF1E3D54),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
+                        color: _isIOS() ? Colors.white : const Color(0xFF1E3D54),
+                        fontWeight: FontWeight.w700,
+                        fontSize: _isIOS() ? 28 : 24,
+                        fontFamily: _isIOS() ? '.SF Pro Display' : null,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
-                const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _isIOS() ? IOSTheme.primaryBlue : Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   "Chargement...",
                   style: TextStyle(
-                    color: Colors.white,
+                    color: _isIOS() ? IOSTheme.labelPrimary : Colors.white,
                     fontSize: 16,
+                    fontFamily: _isIOS() ? '.SF Pro Text' : null,
                   ),
                 ),
               ],
@@ -187,9 +210,10 @@ class _MainAppState extends State<MainApp> {
 
     return MaterialApp(
       title: 'Oxo',
-      theme: ThemeData(
+      debugShowCheckedModeBanner: false,
+      theme: _isIOS() ? IOSTheme.materialTheme : ThemeData(
         primarySwatch: Colors.blue,
-        textTheme: Theme.of(context).textTheme.apply(
+        textTheme: const TextTheme().apply(
           bodyColor: const Color(0xFF122b35),
           displayColor: const Color(0xFF122b35),
         ),
@@ -202,12 +226,18 @@ class _MainAppState extends State<MainApp> {
 
   Widget _getHomePage() {
     if (!SupabaseService.isAuthenticated) {
-      return const LoginPage();
+      return _isIOS() ? const IOSLoginPage() : const LoginPage();
     }
 
     final userRole = SupabaseService.currentUserRole;
     debugPrint('Rôle de l\'utilisateur pour la page d\'accueil: $userRole');
     
+    // Sur iOS, utiliser le dashboard iOS unifié avec navigation par onglets
+    if (_isIOS()) {
+      return const IOSDashboardPage();
+    }
+
+    // Sur les autres plateformes, utiliser la navigation basée sur les rôles
     if (userRole == UserRole.associe) {
       return const DashboardPage();
     } else if (userRole == UserRole.partenaire) {
@@ -221,18 +251,22 @@ class _MainAppState extends State<MainApp> {
 
     // Si le rôle n'est pas défini ou pas reconnu, rediriger vers la page de connexion
     debugPrint('Rôle non reconnu, redirection vers la page de connexion');
-    return const LoginPage();
+    return _isIOS() ? const IOSLoginPage() : const LoginPage();
   }
 
   Map<String, WidgetBuilder> _getRoutes() {
     final routes = <String, WidgetBuilder>{
-      '/login': (context) => const LoginPage(),
-      '/dashboard': (context) => const DashboardPage(),
-      '/partner_dashboard': (context) => const PartnerDashboardPage(),
-      '/client_dashboard': (context) => const ClientDashboardPage(),
+      // Routes principales avec support iOS
+      '/login': (context) => _isIOS() ? const IOSLoginPage() : const LoginPage(),
+      '/dashboard': (context) => _isIOS() ? const IOSDashboardPage() : const DashboardPage(),
+      '/partner_dashboard': (context) => _isIOS() ? const IOSDashboardPage() : const PartnerDashboardPage(),
+      '/client_dashboard': (context) => _isIOS() ? const IOSDashboardPage() : const ClientDashboardPage(),
+      
+      // Routes fonctionnelles communes
       '/profile': (context) => const ProfilePage(),
       '/clients': (context) => const ClientsPage(),
       '/admin/roles': (context) => const UserRolesPage(),
+      '/admin/client-requests': (context) => const ClientRequestsPage(),
       '/messaging': (context) => const messaging.MessagingPage(),
       '/settings': (context) => const ProfilePage(),
       '/projects': (context) => const ProjectsPage(),
@@ -241,11 +275,19 @@ class _MainAppState extends State<MainApp> {
       '/client/invoices': (context) => const ClientInvoicesPage(),
     };
 
-    // Toujours définir ces routes, même si l'authentification n'est pas complète
+    // Routes spécifiques iOS
+    if (_isIOS()) {
+      routes.addAll({
+        '/ios/login': (context) => const IOSLoginPage(),
+        '/ios/dashboard': (context) => const IOSDashboardPage(),
+      });
+    }
+
+    // Routes complémentaires avec support iOS
     routes.addAll({
-      '/associate': (context) => const DashboardPage(),
-      '/partner': (context) => const PartnerDashboardPage(),
-      '/client': (context) => const ClientDashboardPage(),
+      '/associate': (context) => _isIOS() ? const IOSDashboardPage() : const DashboardPage(),
+      '/partner': (context) => _isIOS() ? const IOSDashboardPage() : const PartnerDashboardPage(),
+      '/client': (context) => _isIOS() ? const IOSDashboardPage() : const ClientDashboardPage(),
       '/planning': (context) => const PlanningPage(),
       '/figures': (context) => const FiguresPage(),
       '/timesheet': (context) => const TimesheetPage(),

@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>fr</string>
 	<key>CFBundleDisplayName</key>
 	<string>Oxo</string>
 	<key>CFBundleExecutable</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>oxo</string>
+	<string>Oxo</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,11 +28,11 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+	
+	<!-- Interface Orientations -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
@@ -41,9 +41,120 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	
+	<!-- Status Bar Configuration -->
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleDefault</string>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+	
+	<!-- App Transport Security -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>supabase.co</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<false/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+			</dict>
+		</dict>
+	</dict>
+	
+	<!-- Privacy Permissions -->
+	<key>NSCameraUsageDescription</key>
+	<string>Cette application utilise l'appareil photo pour capturer des documents et images.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Cette application accède à votre photothèque pour sélectionner des images.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Cette application utilise le microphone pour les fonctionnalités de communication.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Cette application utilise votre localisation pour améliorer les services.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Cette application accède à votre calendrier pour synchroniser les événements.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Cette application accède à vos contacts pour faciliter la communication.</string>
+	
+	<!-- Background Modes -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>background-fetch</string>
+		<string>background-processing</string>
+	</array>
+	
+	<!-- Launch Screen -->
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchScreenBackground</string>
+		<key>UIImageName</key>
+		<string>LaunchImage</string>
+		<key>UIImageRespectsSafeAreaInsets</key>
+		<true/>
+	</dict>
+	
+	<!-- User Interface Style -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
+	
+	<!-- Requires Full Screen -->
+	<key>UIRequiresFullScreen</key>
+	<true/>
+	
+	<!-- Scene Configuration -->
+	<key>UISceneDelegate</key>
+	<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+	
+	<!-- Navigation Bar Appearance -->
+	<key>UINavigationBarHidden</key>
+	<false/>
+	
+	<!-- Tab Bar Appearance -->
+	<key>UITabBarHidden</key>
+	<false/>
+	
+	<!-- Performance optimizations -->
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- Content Protection -->
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	
+	<!-- Document Types (si nécessaire pour les factures) -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>PDF Document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.adobe.pdf</string>
+			</array>
+		</dict>
+	</array>
+	
+	<!-- URL Schemes -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>oxo-auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>oxo</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

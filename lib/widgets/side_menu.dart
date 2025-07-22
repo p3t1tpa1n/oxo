@@ -238,6 +238,16 @@ class SideMenu extends StatelessWidget {
           '/figures',
           isSelected: selectedRoute == '/figures',
         ),
+        if (isAssociate || isAdmin) ...[
+          const SizedBox(height: 12),
+          _buildMenuButton(
+            context,
+            Icons.request_page_outlined,
+            'Demandes Client',
+            '/admin/client-requests',
+            isSelected: selectedRoute == '/admin/client-requests',
+          ),
+        ],
         if (isAdmin) ...[
           const SizedBox(height: 12),
           _buildMenuButton(
