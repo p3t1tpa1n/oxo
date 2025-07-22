@@ -3,14 +3,16 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'dart:typed_data';
 import 'dart:convert';
-import 'dart:html' as html if (dart.library.html) '';
-import 'dart:io' if (dart.library.io) '';
-import 'package:path_provider/path_provider.dart' if (dart.library.io) '';
 import '../../models/user_role.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
 import '../../widgets/messaging_button.dart';
+
+// Imports spécifiques selon la plateforme
+import 'download_helper_stub.dart'
+    if (dart.library.html) 'download_helper_web.dart'
+    if (dart.library.io) 'download_helper_mobile.dart';
 
 class ClientRequestsPage extends StatefulWidget {
   const ClientRequestsPage({super.key});
@@ -887,222 +889,7 @@ class _ClientRequestsPageState extends State<ClientRequestsPage> with TickerProv
   }
 
   Future<void> _saveFileToDevice(String fileName, Uint8List fileBytes) async {
-    try {
-      if (kIsWeb) {
-        _downloadForWeb(fileName, fileBytes);
-      } else {
-        // Sauvegarder sur mobile/desktop
-        await _downloadForMobile(fileName, fileBytes);
-      }
-    } catch (e) {
-      debugPrint('Erreur lors de la sauvegarde: $e');
-      rethrow;
-    }
-  }
-
-  void _downloadForWeb(String fileName, Uint8List fileBytes) {
-    if (kIsWeb) {
-      try {
-        // Créer un Blob avec les données du fichier
-        final mimeType = _getMimeType(fileName);
-        final blob = html.Blob([fileBytes], mimeType);
-        
-        // Créer une URL temporaire pour le Blob
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        
-        // Créer un élément <a> pour forcer le téléchargement
-        final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download', fileName)
-          ..style.display = 'none';
-        
-        // Ajouter au DOM, cliquer pour déclencher le téléchargement, puis nettoyer
-        html.document.body?.children.add(anchor);
-        anchor.click();
-        html.document.body?.children.remove(anchor);
-        
-        // Libérer l'URL temporaire
-        html.Url.revokeObjectUrl(url);
-        
-        debugPrint('✅ Téléchargement web déclenché: $fileName');
-        
-        // Message de confirmation
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('📥 $fileName téléchargé dans votre dossier Téléchargements'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        
-      } catch (e) {
-        debugPrint('❌ Erreur téléchargement web: $e');
-        _showWebDownloadDialog(fileName, fileBytes);
-      }
-    }
-  }
-
-  String _getMimeType(String fileName) {
-    final extension = fileName.split('.').last.toLowerCase();
-    switch (extension) {
-      case 'pdf':
-        return 'application/pdf';
-      case 'doc':
-        return 'application/msword';
-      case 'docx':
-        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      case 'txt':
-        return 'text/plain';
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'png':
-        return 'image/png';
-      default:
-        return 'application/octet-stream';
-    }
-  }
-
-  void _showWebDownloadDialog(String fileName, Uint8List fileBytes) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.warning, color: Colors.orange),
-              SizedBox(width: 8),
-              Text('Téléchargement alternatif'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Le téléchargement automatique a échoué pour "$fileName".'),
-              const SizedBox(height: 12),
-              Text(
-                'Taille: ${(fileBytes.length / 1024).toStringAsFixed(1)} KB',
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Solutions alternatives:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text('• Vérifiez que les pop-ups ne sont pas bloquées'),
-              const Text('• Essayez avec un autre navigateur'),
-              const Text('• Contactez le support si le problème persiste'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Fermer'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _saveWebFileAlternative(fileName, fileBytes);
-              },
-              child: const Text('Réessayer'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _saveWebFileAlternative(String fileName, Uint8List fileBytes) {
-    try {
-      // Méthode alternative: créer un lien de données et l'ouvrir dans un nouvel onglet
-      final base64String = base64Encode(fileBytes);
-      final mimeType = _getMimeType(fileName);
-      final dataUrl = 'data:$mimeType;base64,$base64String';
-      
-      // Ouvrir dans un nouvel onglet
-      html.window.open(dataUrl, '_blank');
-      
-      final sizeKB = (fileBytes.length / 1024).toStringAsFixed(1);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('📂 $fileName ouvert dans un nouvel onglet'),
-              Text(
-                'Taille: $sizeKB KB - Clic droit > "Enregistrer sous..." pour télécharger',
-                style: const TextStyle(fontSize: 12, color: Colors.white70),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.blue,
-          duration: const Duration(seconds: 6),
-          action: SnackBarAction(
-            label: 'Compris',
-            textColor: Colors.white,
-            onPressed: () {},
-          ),
-        ),
-      );
-    } catch (e) {
-      debugPrint('❌ Erreur téléchargement alternatif: $e');
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Impossible de télécharger le fichier. Contactez le support.'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    }
-  }
-
-  Future<void> _downloadForMobile(String fileName, Uint8List fileBytes) async {
-    if (!kIsWeb) {
-      try {
-        // Pour mobile/desktop, sauvegarder dans le dossier Documents
-        final directory = await getApplicationDocumentsDirectory();
-        final file = File('${directory.path}/$fileName');
-        
-        await file.writeAsBytes(fileBytes);
-        
-        debugPrint('✅ Fichier sauvegardé: ${file.path}');
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('📥 $fileName téléchargé avec succès'),
-                Text(
-                  'Emplacement: ${file.path}',
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'OK',
-              textColor: Colors.white,
-              onPressed: () {},
-            ),
-          ),
-        );
-      } catch (e) {
-        debugPrint('❌ Erreur téléchargement mobile: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Erreur lors du téléchargement: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    await DownloadHelper.downloadFile(fileName, fileBytes, context);
   }
 
   Future<void> _updateProposalStatus(String proposalId, String status, String message) async {
