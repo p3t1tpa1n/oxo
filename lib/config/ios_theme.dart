@@ -298,11 +298,11 @@ class IOSTheme {
     
     // Switch theme
     switchTheme: SwitchThemeData(
-      thumbColor: WidgetStateProperty.resolveWith<Color>((states) {
+      thumbColor: MaterialStateProperty.resolveWith<Color>((states) {
         return Colors.white;
       }),
-      trackColor: WidgetStateProperty.resolveWith<Color>((states) {
-        if (states.contains(WidgetState.selected)) {
+      trackColor: MaterialStateProperty.resolveWith<Color>((states) {
+        if (states.contains(MaterialState.selected)) {
           return primaryBlue;
         }
         return systemGray3;
@@ -333,7 +333,7 @@ class IOSTheme {
   static MaterialColor createMaterialColor(Color color) {
     final List<double> strengths = <double>[.05];
     final Map<int, Color> swatch = <int, Color>{};
-    final int r = color.r.toInt(), g = color.g.toInt(), b = color.b.toInt();
+    final int r = color.red, g = color.green, b = color.blue;
 
     for (int i = 1; i < 10; i++) {
       strengths.add(0.1 * i);

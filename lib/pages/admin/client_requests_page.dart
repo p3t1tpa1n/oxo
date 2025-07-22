@@ -3,8 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'dart:typed_data';
 import 'dart:convert';
-import 'dart:io' if (dart.library.html) 'dart:typed_data';
-import 'package:path_provider/path_provider.dart' if (dart.library.html) 'dart:typed_data';
+// Imports conditionnels simplifiés
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/user_role.dart';
 import '../../services/supabase_service.dart';
@@ -891,6 +890,7 @@ class _ClientRequestsPageState extends State<ClientRequestsPage> with TickerProv
       if (kIsWeb) {
         _downloadForWeb(fileName, fileBytes);
       } else {
+        // Sauvegarder sur mobile/desktop
         await _downloadForMobile(fileName, fileBytes);
       }
     } catch (e) {
@@ -1011,31 +1011,16 @@ class _ClientRequestsPageState extends State<ClientRequestsPage> with TickerProv
 
   Future<void> _downloadForMobile(String fileName, Uint8List fileBytes) async {
     if (!kIsWeb) {
-      try {
-        // Obtenir le répertoire de téléchargement
-        final directory = await getApplicationDocumentsDirectory();
-        final file = File('${directory.path}/$fileName');
-        
-        // Écrire le fichier
-        await file.writeAsBytes(fileBytes);
-        
-        debugPrint('Fichier sauvegardé: ${file.path}');
-        
-        // Optionnel: afficher l'emplacement du fichier
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Fichier sauvegardé dans: ${file.path}'),
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'OK',
-              onPressed: () {},
-            ),
-          ),
-        );
-      } catch (e) {
-        debugPrint('Erreur téléchargement mobile: $e');
-        throw Exception('Erreur lors de la sauvegarde mobile');
-      }
+      // Version mobile/desktop 
+      // Cette fonction ne sera pas compilée pour le web
+      debugPrint('Téléchargement mobile désactivé temporairement');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Téléchargement mobile en cours de développement'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
   }
 

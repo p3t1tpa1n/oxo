@@ -98,7 +98,7 @@ class _IOSLoginPageState extends State<IOSLoginPage> {
                           borderRadius: BorderRadius.circular(22),
                           boxShadow: [
                             BoxShadow(
-                              color: IOSTheme.primaryBlue.withValues(alpha: 0.3),
+                              color: IOSTheme.primaryBlue.withOpacity(0.3),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),

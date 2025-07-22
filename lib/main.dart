@@ -166,7 +166,7 @@ class _MainAppState extends State<MainApp> {
                     boxShadow: [
                       BoxShadow(
                         color: _isIOS() 
-                            ? IOSTheme.primaryBlue.withValues(alpha: 0.3)
+                            ? IOSTheme.primaryBlue.withOpacity(0.3)
                             : Colors.black.withAlpha(26),
                         blurRadius: _isIOS() ? 20 : 10,
                         spreadRadius: _isIOS() ? 0 : 2,
