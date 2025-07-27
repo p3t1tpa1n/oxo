@@ -442,7 +442,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: IOSTheme.primaryBlue.withValues(alpha: 0.1),
+                        color: IOSTheme.primaryBlue.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(50),
                       ),
                       child: const Icon(
@@ -789,7 +789,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
           ? Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: IOSTheme.getPriorityColor(priority).withValues(alpha: 0.15),
+                color: IOSTheme.getPriorityColor(priority).withOpacity(0.15),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -803,7 +803,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
           : Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: IOSTheme.getPriorityColor(priority).withValues(alpha: 0.15),
+                color: IOSTheme.getPriorityColor(priority).withOpacity(0.15),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -827,7 +827,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: statusColor.withValues(alpha: 0.15),
+          color: statusColor.withOpacity(0.15),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
@@ -1006,7 +1006,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: IOSTheme.primaryBlue.withValues(alpha: 0.1),
+            color: IOSTheme.primaryBlue.withOpacity(0.1),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
@@ -1638,7 +1638,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            IOSTheme.primaryBlue.withValues(alpha: 0.05),
+            IOSTheme.primaryBlue.withOpacity(0.05),
             IOSTheme.systemBackground,
           ],
         ),
@@ -1652,7 +1652,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: IOSTheme.primaryBlue.withValues(alpha: 0.15),
+                  color: IOSTheme.primaryBlue.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(25),
                 ),
                 child: const Icon(
@@ -1824,7 +1824,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
+                color: color.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -1868,7 +1868,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
         decoration: IOSTheme.cardDecoration.copyWith(
           boxShadow: [
             BoxShadow(
-              color: color.withValues(alpha: 0.1),
+              color: color.withOpacity(0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -1882,7 +1882,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
               width: 44, // Légèrement réduit pour plus d'espace
               height: 44,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
+                color: color.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(

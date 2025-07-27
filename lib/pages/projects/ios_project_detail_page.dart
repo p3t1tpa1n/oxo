@@ -190,7 +190,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            statusColor.withValues(alpha: 0.05),
+            statusColor.withOpacity(0.05),
             IOSTheme.systemBackground,
           ],
         ),
@@ -203,7 +203,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.15),
+                  color: statusColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -262,7 +262,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: IOSTheme.primaryBlue.withValues(alpha: 0.15),
+              color: IOSTheme.primaryBlue.withOpacity(0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(CupertinoIcons.list_bullet, color: IOSTheme.primaryBlue, size: 18),
@@ -277,7 +277,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: IOSTheme.warningColor.withValues(alpha: 0.15),
+                color: IOSTheme.warningColor.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(CupertinoIcons.time, color: IOSTheme.warningColor, size: 18),
@@ -291,7 +291,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: IOSTheme.successColor.withValues(alpha: 0.15),
+                color: IOSTheme.successColor.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(CupertinoIcons.calendar, color: IOSTheme.successColor, size: 18),
@@ -332,7 +332,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: statusColor.withValues(alpha: 0.15),
+          color: statusColor.withOpacity(0.15),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
@@ -353,7 +353,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: priorityColor.withValues(alpha: 0.15),
+          color: priorityColor.withOpacity(0.15),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(

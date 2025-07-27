@@ -271,7 +271,7 @@ class _ProjectCreationFormPageState extends State<ProjectCreationFormPage> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          IOSTheme.primaryBlue.withValues(alpha: 0.05),
+                          IOSTheme.primaryBlue.withOpacity(0.05),
                           IOSTheme.systemBackground,
                         ],
                       ),
@@ -343,7 +343,7 @@ class _ProjectCreationFormPageState extends State<ProjectCreationFormPage> {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: IOSTheme.primaryBlue.withValues(alpha: 0.15),
+                            color: IOSTheme.primaryBlue.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
@@ -371,7 +371,7 @@ class _ProjectCreationFormPageState extends State<ProjectCreationFormPage> {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: IOSTheme.warningColor.withValues(alpha: 0.15),
+                            color: IOSTheme.warningColor.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(

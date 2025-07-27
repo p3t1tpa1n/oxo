@@ -179,7 +179,7 @@ class IOSTheme {
     borderRadius: BorderRadius.circular(12),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withValues(alpha: 0.05),
+        color: Colors.black.withOpacity(0.05),
         blurRadius: 10,
         offset: const Offset(0, 2),
       ),
@@ -193,7 +193,7 @@ class IOSTheme {
   
   // STYLES DE BOUTONS STANDARDISÉS
   static BoxDecoration primaryButtonDecoration(bool isPressed) => BoxDecoration(
-    color: isPressed ? primaryBlue.withValues(alpha: 0.8) : primaryBlue,
+    color: isPressed ? primaryBlue.withOpacity(0.8) : primaryBlue,
     borderRadius: BorderRadius.circular(8),
   );
   
@@ -265,14 +265,14 @@ class IOSTheme {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-          if (states.contains(WidgetState.pressed)) {
-            return primaryBlue.withValues(alpha: 0.8);
+        backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+          if (states.contains(MaterialState.pressed)) {
+            return primaryBlue.withOpacity(0.8);
           }
           return primaryBlue;
         }),
-        foregroundColor: WidgetStateProperty.all(Colors.white),
-        shape: WidgetStateProperty.all(
+        foregroundColor: MaterialStateProperty.all(Colors.white),
+        shape: MaterialStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),

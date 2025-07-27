@@ -387,7 +387,7 @@ class _IOSConversationDetailPageState extends State<IOSConversationDetailPage> {
                     formattedDate,
                     style: IOSTheme.caption2.copyWith(
                       color: isCurrentUser
-                          ? Colors.white.withValues(alpha: 0.7)
+                          ? Colors.white.withOpacity(0.7)
                           : IOSTheme.labelTertiary,
                     ),
                   ),
