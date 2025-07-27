@@ -889,23 +889,14 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
       // Ne pas convertir projectId - l'utiliser directement comme String (UUID)
       // La base de données déterminera le bon type
 
-      final response = await SupabaseService.client
-          .from('tasks')
-          .insert({
-            'title': title,
-            'description': description,
-            'project_id': projectId, // Utiliser directement le projectId (peut être UUID ou int)
-            'status': 'todo',
-            'due_date': dueDate?.toIso8601String(),
-            'created_at': DateTime.now().toIso8601String(),
-            'updated_at': DateTime.now().toIso8601String(),
-            'user_id': currentUser.id,
-            'created_by': currentUser.id,
-            'updated_by': currentUser.id,
-            'partner_id': currentUser.id,
-          })
-          .select()
-          .single();
+      await SupabaseService.createTaskForCompany(
+        projectId: projectId,
+        title: title,
+        description: description,
+        partnerId: currentUser.id, // Le partenaire connecté
+        assignedTo: currentUser.id,
+        dueDate: dueDate,
+      );
       
       await _loadTasks();
       

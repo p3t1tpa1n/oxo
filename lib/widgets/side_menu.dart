@@ -302,12 +302,15 @@ class SideMenu extends StatelessWidget {
                   size: 20,
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.white.withAlpha(isSelected ? 255 : 217),
-                    fontSize: 14,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(isSelected ? 255 : 217),
+                      fontSize: 14,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (isSelected) ...[

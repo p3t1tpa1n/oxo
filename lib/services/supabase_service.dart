@@ -61,6 +61,17 @@ class SupabaseService {
       
       _client = Supabase.instance.client;
       
+      // Écouter les changements d'authentification pour gérer les tokens expirés
+      _client!.auth.onAuthStateChange.listen((AuthState state) {
+        debugPrint('Auth state changed: ${state.event}');
+        if (state.event == AuthChangeEvent.tokenRefreshed) {
+          debugPrint('Token JWT rafraîchi automatiquement');
+        } else if (state.event == AuthChangeEvent.signedOut) {
+          debugPrint('Utilisateur déconnecté');
+          _currentUserRole = null;
+        }
+      });
+      
       // Vérifie si une session existe
       final session = _client!.auth.currentSession;
       if (session != null) {
@@ -1004,23 +1015,109 @@ class SupabaseService {
   /// Récupérer les projets de l'entreprise de l'utilisateur connecté
   static Future<List<Map<String, dynamic>>> getCompanyProjects() async {
     try {
-      final response = await client
-          .from('projects')
-          .select('''
-            *,
-            companies:company_id(name, id),
-            tasks:tasks(count)
-          ''')
-          .order('created_at', ascending: false);
+      // Pour les admins/associés : voir tous les projets
+      final userRole = await getCurrentUserRole();
       
-      return List<Map<String, dynamic>>.from(response);
+      if (userRole == UserRole.admin || userRole == UserRole.associe) {
+        final response = await client
+            .from('project_details') // Utiliser la vue qui inclut les noms clients
+            .select('*')
+            .order('created_at', ascending: false);
+        
+        debugPrint('Admin/Associé: ${response.length} projets récupérés');
+        return List<Map<String, dynamic>>.from(response);
+      } else {
+        // Pour les clients/partenaires : filtrer par entreprise
+        final userCompany = await getUserCompany();
+        if (userCompany == null || userCompany['company_id'] == null) {
+          debugPrint('Aucune entreprise trouvée pour l\'utilisateur');
+          return [];
+        }
+
+        final response = await client
+            .from('project_details') // Utiliser la vue qui inclut les noms clients
+            .select('*')
+            .eq('company_id', userCompany['company_id'])
+            .order('created_at', ascending: false);
+        
+        debugPrint('Client/Partenaire: ${response.length} projets récupérés pour l\'entreprise ${userCompany['company_name']}');
+        return List<Map<String, dynamic>>.from(response);
+      }
     } catch (e) {
       debugPrint('Erreur lors de la récupération des projets de l\'entreprise: $e');
+      // Fallback : essayer sans la vue
+      try {
+        final response = await client
+            .from('projects')
+            .select('*')
+            .order('created_at', ascending: false);
+        
+        debugPrint('Fallback: ${response.length} projets récupérés');
+        return List<Map<String, dynamic>>.from(response);
+      } catch (fallbackError) {
+        debugPrint('Erreur fallback: $fallbackError');
+        return [];
+      }
+    }
+  }
+
+  /// Récupérer les clients de l'entreprise (pour sélection lors de création projet)
+  static Future<List<Map<String, dynamic>>> getCompanyClients() async {
+    try {
+      final response = await client.rpc('get_company_clients');
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération des clients: $e');
       return [];
     }
   }
 
-  /// Créer un projet pour l'entreprise de l'utilisateur
+  /// Créer un projet avec client spécifié (pour les associés)
+  static Future<String?> createProjectWithClient({
+    required String name,
+    String? description,
+    required String clientId,
+    double? estimatedDays,
+    double? dailyRate,
+    DateTime? endDate,
+  }) async {
+    try {
+      final response = await client.rpc('create_project_with_client', params: {
+        'p_name': name,
+        'p_client_id': clientId,
+        'p_description': description,
+        'p_estimated_days': estimatedDays,
+        'p_daily_rate': dailyRate,
+        'p_end_date': endDate?.toIso8601String().split('T')[0], // Format DATE
+      });
+
+      return response.toString(); // ID du nouveau projet
+    } catch (e) {
+      debugPrint('Erreur lors de la création du projet avec client: $e');
+      return null;
+    }
+  }
+
+  /// Associer un client à un projet existant
+  static Future<bool> assignClientToProject({
+    required String projectId,
+    required String clientId,
+  }) async {
+    try {
+      final response = await client.rpc('assign_client_to_project', params: {
+        'p_project_id': projectId,
+        'p_client_id': clientId,
+      });
+
+      return response == true;
+    } catch (e) {
+      debugPrint('Erreur lors de l\'assignation du client au projet: $e');
+      return false;
+    }
+  }
+
+  /// Créer un projet pour l'entreprise de l'utilisateur (DÉPRÉCIÉ - Utiliser createProjectWithClient)
+  @deprecated
   static Future<Map<String, dynamic>?> createProjectForCompany({
     required String name,
     String? description,
@@ -1028,6 +1125,8 @@ class SupabaseService {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
+    debugPrint('⚠️ ATTENTION: createProjectForCompany est déprécié. Utilisez createProjectWithClient pour spécifier un client.');
+    
     try {
       // Récupérer l'entreprise de l'utilisateur
       final userCompany = await getUserCompany();
@@ -1044,6 +1143,7 @@ class SupabaseService {
             'start_date': startDate?.toIso8601String(),
             'end_date': endDate?.toIso8601String(),
             'company_id': userCompany['company_id'],
+            // NOTE: client_id sera NULL - Il faudra l'assigner plus tard
           })
           .select()
           .single();
@@ -1064,9 +1164,7 @@ class SupabaseService {
           .from('tasks')
           .select('''
             *,
-            projects:project_id(name, company_id),
-            assigned_user:assigned_to(email),
-            creator:created_by(email)
+            projects:project_id(name, company_id)
           ''')
           .order('created_at', ascending: false);
       
@@ -1077,10 +1175,11 @@ class SupabaseService {
     }
   }
 
-  /// Créer une tâche dans un projet de l'entreprise
+  /// Créer une tâche dans un projet de l'entreprise (avec partenaire OBLIGATOIRE)
   static Future<Map<String, dynamic>?> createTaskForCompany({
     required String projectId,
     required String title,
+    required String partnerId, // OBLIGATOIRE: chaque tâche doit avoir un partenaire
     String? description,
     String? status,
     String? priority,
@@ -1088,6 +1187,10 @@ class SupabaseService {
     String? assignedTo,
   }) async {
     try {
+      if (partnerId.isEmpty) {
+        throw Exception('Un partenaire doit être assigné à chaque tâche');
+      }
+
       final response = await client
           .from('tasks')
           .insert({
@@ -1098,11 +1201,14 @@ class SupabaseService {
             'priority': priority ?? 'medium',
             'due_date': dueDate?.toIso8601String(),
             'assigned_to': assignedTo,
+            'partner_id': partnerId, // NOUVEAU: Partenaire obligatoire
+            'user_id': assignedTo ?? currentUser!.id, // User assigné ou créateur
             'created_by': currentUser!.id,
           })
           .select()
           .single();
       
+      debugPrint('✅ Tâche créée avec partenaire: ${response['title']} -> Partenaire: $partnerId');
       return response;
     } catch (e) {
       debugPrint('Erreur lors de la création de la tâche: $e');

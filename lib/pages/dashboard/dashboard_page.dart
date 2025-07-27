@@ -306,19 +306,21 @@ class _DashboardPageState extends State<DashboardPage> {
                       projectId = selectedProject!;
                     }
 
-                    await SupabaseService.client
-                        .from('tasks')
-                        .insert({
-                          'title': titleController.text,
-                          'description': descriptionController.text,
-                          'due_date': selectedDate!.toIso8601String(),
-                          'status': 'todo',
-                          'project_id': projectId,
-                          'user_id': SupabaseService.currentUser!.id,
-                          'partner_id': selectedPartnerId,
-                          'created_by': SupabaseService.currentUser!.id,
-                          'updated_by': SupabaseService.currentUser!.id,
-                        });
+                    if (selectedPartnerId == null) {
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        const SnackBar(content: Text('Veuillez sélectionner un partenaire')),
+                      );
+                      return;
+                    }
+
+                    await SupabaseService.createTaskForCompany(
+                      projectId: projectId.toString(),
+                      title: titleController.text,
+                      description: descriptionController.text,
+                      partnerId: selectedPartnerId!,
+                      assignedTo: selectedPartnerId,
+                      dueDate: selectedDate,
+                    );
                     
                     if (!mounted) return;
                     Navigator.pop(context);

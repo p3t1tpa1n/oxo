@@ -9,6 +9,7 @@ import 'services/supabase_service.dart';
 import 'services/messaging_service.dart';
 import 'services/auth_middleware.dart';
 import 'models/user_role.dart';
+import 'utils/device_detector.dart';
 
 // Pages génériques
 import 'pages/auth/login_page.dart';
@@ -28,6 +29,7 @@ import 'pages/admin/user_roles_page.dart';
 import 'pages/admin/client_requests_page.dart';
 import 'pages/partner/actions_page.dart';
 import 'pages/messaging/messaging_page.dart' as messaging;
+import 'pages/projects/ios_project_detail_page.dart';
 
 // Pages iOS spécifiques
 import 'pages/auth/ios_login_page.dart';
@@ -111,12 +113,22 @@ class _MainAppState extends State<MainApp> {
   @override
   void initState() {
     super.initState();
+    _logDeviceInfo(); // Log des informations de détection d'appareil
     _checkInitialRoute();
   }
 
-  /// Détermine si l'application s'exécute sur iOS
+  /// Détermine si l'application doit utiliser l'interface iOS
+  /// - iOS natif → oui
+  /// - Web mobile (smartphone/tablette) → oui (interface tactile)
+  /// - Web desktop → non (interface macOS)
   bool _isIOS() {
-    return !kIsWeb && Platform.isIOS;
+    return DeviceDetector.shouldUseIOSInterface();
+  }
+  
+  /// Informations de debug sur l'appareil détecté
+  void _logDeviceInfo() {
+    debugPrint('🔍 Détection appareil: ${DeviceDetector.getDeviceInfo()}');
+    debugPrint('📱 Interface utilisée: ${_isIOS() ? 'iOS' : 'macOS'}');
   }
 
   Future<void> _checkInitialRoute() async {
@@ -152,7 +164,7 @@ class _MainAppState extends State<MainApp> {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-          backgroundColor: _isIOS() ? IOSTheme.systemGroupedBackground : const Color(0xFF1E3D54),
+          backgroundColor: _isIOS() ? IOSTheme.systemGroupedBackground : IOSTheme.darkBlue,
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -166,7 +178,7 @@ class _MainAppState extends State<MainApp> {
                     boxShadow: [
                       BoxShadow(
                         color: _isIOS() 
-                            ? IOSTheme.primaryBlue.withOpacity(0.3)
+                            ? IOSTheme.primaryBlue.withValues(alpha: 0.3)
                             : Colors.black.withAlpha(26),
                         blurRadius: _isIOS() ? 20 : 10,
                         spreadRadius: _isIOS() ? 0 : 2,
@@ -178,10 +190,11 @@ class _MainAppState extends State<MainApp> {
                     child: Text(
                       "OXO",
                       style: TextStyle(
-                        color: _isIOS() ? Colors.white : const Color(0xFF1E3D54),
+                        color: _isIOS() ? Colors.white : IOSTheme.darkBlue,
                         fontWeight: FontWeight.w700,
                         fontSize: _isIOS() ? 28 : 24,
                         fontFamily: _isIOS() ? '.SF Pro Display' : null,
+                        decoration: TextDecoration.none,
                       ),
                     ),
                   ),
@@ -199,6 +212,7 @@ class _MainAppState extends State<MainApp> {
                     color: _isIOS() ? IOSTheme.labelPrimary : Colors.white,
                     fontSize: 16,
                     fontFamily: _isIOS() ? '.SF Pro Text' : null,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ],
@@ -211,13 +225,7 @@ class _MainAppState extends State<MainApp> {
     return MaterialApp(
       title: 'Oxo',
       debugShowCheckedModeBanner: false,
-      theme: _isIOS() ? IOSTheme.materialTheme : ThemeData(
-        primarySwatch: Colors.blue,
-        textTheme: const TextTheme().apply(
-          bodyColor: const Color(0xFF122b35),
-          displayColor: const Color(0xFF122b35),
-        ),
-      ),
+      theme: IOSTheme.materialTheme,
       home: _getHomePage(),
       routes: _getRoutes(),
       navigatorObservers: [AuthMiddleware()],
@@ -262,17 +270,24 @@ class _MainAppState extends State<MainApp> {
       '/partner_dashboard': (context) => _isIOS() ? const IOSDashboardPage() : const PartnerDashboardPage(),
       '/client_dashboard': (context) => _isIOS() ? const IOSDashboardPage() : const ClientDashboardPage(),
       
-      // Routes fonctionnelles communes
+      // Routes fonctionnelles avec adaptation iOS
       '/profile': (context) => const ProfilePage(),
       '/clients': (context) => const ClientsPage(),
       '/admin/roles': (context) => const UserRolesPage(),
       '/admin/client-requests': (context) => const ClientRequestsPage(),
-      '/messaging': (context) => const messaging.MessagingPage(),
+      '/messaging': (context) => _isIOS() ? const IOSDashboardPage() : const messaging.MessagingPage(),
       '/settings': (context) => const ProfilePage(),
-      '/projects': (context) => const ProjectsPage(),
-      '/client/projects': (context) => const ClientDashboardPage(),
-      '/client/tasks': (context) => const ClientDashboardPage(),
-      '/client/invoices': (context) => const ClientInvoicesPage(),
+      '/projects': (context) => _isIOS() ? const IOSDashboardPage() : const ProjectsPage(),
+      '/project_detail': (context) {
+        final arguments = ModalRoute.of(context)?.settings.arguments;
+        if (_isIOS() && arguments != null) {
+          return IOSProjectDetailPage(projectId: arguments.toString());
+        }
+        return const ProjectsPage();
+      },
+      '/client/projects': (context) => _isIOS() ? const IOSDashboardPage() : const ClientDashboardPage(),
+      '/client/tasks': (context) => _isIOS() ? const IOSDashboardPage() : const ClientDashboardPage(),
+      '/client/invoices': (context) => _isIOS() ? const IOSDashboardPage() : const ClientInvoicesPage(),
     };
 
     // Routes spécifiques iOS
@@ -288,11 +303,13 @@ class _MainAppState extends State<MainApp> {
       '/associate': (context) => _isIOS() ? const IOSDashboardPage() : const DashboardPage(),
       '/partner': (context) => _isIOS() ? const IOSDashboardPage() : const PartnerDashboardPage(),
       '/client': (context) => _isIOS() ? const IOSDashboardPage() : const ClientDashboardPage(),
-      '/planning': (context) => const PlanningPage(),
-      '/figures': (context) => const FiguresPage(),
-      '/timesheet': (context) => const TimesheetPage(),
-      '/partners': (context) => const PartnersPage(),
-      '/actions': (context) => const ActionsPage(),
+      '/planning': (context) => _isIOS() ? const IOSDashboardPage() : const PlanningPage(),
+      '/figures': (context) => _isIOS() ? const IOSDashboardPage() : const FiguresPage(),
+      '/timesheet': (context) => _isIOS() ? const IOSDashboardPage() : const TimesheetPage(),
+      '/partners': (context) => _isIOS() ? const IOSDashboardPage() : const PartnersPage(),
+      '/actions': (context) => _isIOS() ? const IOSDashboardPage() : const ActionsPage(),
+      '/add_user': (context) => _isIOS() ? const IOSDashboardPage() : const UserRolesPage(),
+      '/calendar': (context) => _isIOS() ? const IOSDashboardPage() : const CalendarPage(),
     });
 
     return routes;

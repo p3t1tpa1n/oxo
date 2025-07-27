@@ -2,30 +2,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+/// Design System iOS unifié avec les couleurs de marque
+/// Toutes les couleurs et styles de l'application doivent utiliser cette classe
 class IOSTheme {
-  static const Color primaryBlue = Color(0xFF007AFF);
-  static const Color secondaryBlue = Color(0xFF5AC8FA);
-  static const Color systemGray = Color(0xFF8E8E93);
-  static const Color systemGray2 = Color(0xFFAEAEB2);
-  static const Color systemGray3 = Color(0xFFC7C7CC);
-  static const Color systemGray4 = Color(0xFFD1D1D6);
-  static const Color systemGray5 = Color(0xFFE5E5EA);
-  static const Color systemGray6 = Color(0xFFF2F2F7);
+  // COULEURS DE MARQUE PRINCIPALES
+  static const Color primaryBlue = Color(0xFF1784AF);      // Bleu principal #1784af
+  static const Color darkBlue = Color(0xFF122B35);         // Bleu foncé #122b35
+  static const Color secondaryBlue = Color(0xFF5AC8FA);    // Bleu clair Apple
   
-  static const Color labelPrimary = Color(0xFF000000);
-  static const Color labelSecondary = Color(0xFF3C3C43);
-  static const Color labelTertiary = Color(0xFF3C3C43);
-  
-  static const Color systemBackground = Color(0xFFFFFFFF);
-  static const Color secondarySystemBackground = Color(0xFFF2F2F7);
-  static const Color tertiarySystemBackground = Color(0xFFFFFFFF);
-  
-  static const Color systemGroupedBackground = Color(0xFFF2F2F7);
-  static const Color secondarySystemGroupedBackground = Color(0xFFFFFFFF);
-  
-  static const Color separator = Color(0x543C3C43);
-  static const Color opaqueSeparator = Color(0xFFC6C6C8);
-  
+  // COULEURS SYSTÈME APPLE (conservées pour cohérence)
   static const Color systemRed = Color(0xFFFF3B30);
   static const Color systemOrange = Color(0xFFFF9500);
   static const Color systemYellow = Color(0xFFFFCC00);
@@ -34,312 +19,276 @@ class IOSTheme {
   static const Color systemIndigo = Color(0xFF5856D6);
   static const Color systemPurple = Color(0xFFAF52DE);
   static const Color systemPink = Color(0xFFFF2D92);
+  
+  // COULEURS DE FOND (Hiérarchie Apple)
+  static const Color systemBackground = Color(0xFFFFFFFF);           // Fond principal
+  static const Color secondarySystemBackground = Color(0xFFF2F2F7);  // Fond secondaire
+  static const Color tertiarySystemBackground = Color(0xFFFFFFFF);   // Fond tertiaire
+  static const Color systemGroupedBackground = Color(0xFFF2F2F7);    // Fond groupé
+  static const Color secondarySystemGroupedBackground = Color(0xFFFFFFFF); // Fond groupé secondaire
+  
+  // COULEURS DE TEXTE (Hiérarchie Apple)
+  static const Color labelPrimary = Color(0xFF000000);      // Texte principal
+  static const Color labelSecondary = Color(0xFF3C3C43);    // Texte secondaire  
+  static const Color labelTertiary = Color(0xFF3C3C4399);   // Texte tertiaire
+  static const Color labelQuaternary = Color(0xFF3C3C4366); // Texte quaternaire
+  
+  // COULEURS GRISES (Système Apple)
+  static const Color systemGray = Color(0xFF8E8E93);
+  static const Color systemGray2 = Color(0xFFAEAEB2);
+  static const Color systemGray3 = Color(0xFFC7C7CC);
+  static const Color systemGray4 = Color(0xFFD1D1D6);
+  static const Color systemGray5 = Color(0xFFE5E5EA);
+  static const Color systemGray6 = Color(0xFFF2F2F7);
+  
+  // SÉPARATEURS
+  static const Color separator = Color(0x543C3C43);
+  static const Color opaqueSeparator = Color(0xFFC6C6C8);
+  
+  // COULEURS STATUT STANDARDISÉES
+  static const Color successColor = systemGreen;
+  static const Color warningColor = systemOrange;
+  static const Color errorColor = systemRed;
+  static const Color infoColor = primaryBlue;
+  
+  // COULEURS PRIORITÉ (Uniformes dans toute l'app)
+  static const Color urgentColor = systemRed;
+  static const Color highPriorityColor = systemOrange;
+  static const Color mediumPriorityColor = primaryBlue;
+  static const Color lowPriorityColor = systemGreen;
+  
+  // TYPOGRAPHIE STANDARDISÉE (SANS SOULIGNEMENT)
+  static const TextStyle largeTitle = TextStyle(
+    fontSize: 34,
+    fontWeight: FontWeight.w700,
+    color: labelPrimary,
+    fontFamily: '.SF Pro Display',
+    decoration: TextDecoration.none,
+  );
+  
+  static const TextStyle title1 = TextStyle(
+    fontSize: 28,
+    fontWeight: FontWeight.w700,
+    color: labelPrimary,
+    fontFamily: '.SF Pro Display',
+    decoration: TextDecoration.none,
+  );
+  
+  static const TextStyle title2 = TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w600,
+    color: labelPrimary,
+    fontFamily: '.SF Pro Display',
+    decoration: TextDecoration.none,
+  );
+  
+  static const TextStyle title3 = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    color: labelPrimary,
+    fontFamily: '.SF Pro Display',
+    decoration: TextDecoration.none,
+  );
+  
+  static const TextStyle headline = TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.w600,
+    color: labelPrimary,
+    fontFamily: '.SF Pro Text',
+    decoration: TextDecoration.none,
+  );
+  
+  static const TextStyle body = TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.w400,
+    color: labelPrimary,
+    fontFamily: '.SF Pro Text',
+    decoration: TextDecoration.none,
+  );
+  
+  static const TextStyle callout = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    color: labelPrimary,
+    fontFamily: '.SF Pro Text',
+    decoration: TextDecoration.none,
+  );
+  
+  static const TextStyle subheadline = TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w400,
+    color: labelPrimary,
+    fontFamily: '.SF Pro Text',
+    decoration: TextDecoration.none,
+  );
+  
+  static const TextStyle footnote = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w400,
+    color: labelSecondary,
+    fontFamily: '.SF Pro Text',
+    decoration: TextDecoration.none,
+  );
+  
+  static const TextStyle caption1 = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: labelSecondary,
+    fontFamily: '.SF Pro Text',
+    decoration: TextDecoration.none,
+  );
+  
+  static const TextStyle caption2 = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w400,
+    color: labelSecondary,
+    fontFamily: '.SF Pro Text',
+    decoration: TextDecoration.none,
+  );
 
+  // THÈME CUPERTINO UNIFIÉ
   static final CupertinoThemeData cupertinoTheme = CupertinoThemeData(
     primaryColor: primaryBlue,
-    scaffoldBackgroundColor: systemBackground,
+    scaffoldBackgroundColor: systemGroupedBackground,
     barBackgroundColor: systemBackground,
     textTheme: const CupertinoTextThemeData(
       primaryColor: labelPrimary,
-      textStyle: TextStyle(
-        color: labelPrimary,
+      textStyle: body,
+      navTitleTextStyle: headline,
+      navLargeTitleTextStyle: largeTitle,
+      actionTextStyle: TextStyle(
+        color: primaryBlue,
         fontSize: 17,
-        fontFamily: '.SF Pro Text',
         fontWeight: FontWeight.w400,
-      ),
-      navTitleTextStyle: TextStyle(
-        color: labelPrimary,
-        fontSize: 17,
         fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w600,
+        decoration: TextDecoration.none,
       ),
-      navLargeTitleTextStyle: TextStyle(
-        color: labelPrimary,
-        fontSize: 34,
-        fontFamily: '.SF Pro Display',
-        fontWeight: FontWeight.w700,
+      tabLabelTextStyle: TextStyle(
+        color: labelSecondary,
+        fontSize: 10,
+        fontWeight: FontWeight.w500,
+        fontFamily: '.SF Pro Text',
+        decoration: TextDecoration.none,
       ),
     ),
   );
+  
+  // STYLES DE CARTES STANDARDISÉS
+  static BoxDecoration get cardDecoration => BoxDecoration(
+    color: systemBackground,
+    borderRadius: BorderRadius.circular(12),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.05),
+        blurRadius: 10,
+        offset: const Offset(0, 2),
+      ),
+    ],
+  );
+  
+  static BoxDecoration get groupedCardDecoration => BoxDecoration(
+    color: secondarySystemGroupedBackground,
+    borderRadius: BorderRadius.circular(10),
+  );
+  
+  // STYLES DE BOUTONS STANDARDISÉS
+  static BoxDecoration primaryButtonDecoration(bool isPressed) => BoxDecoration(
+    color: isPressed ? primaryBlue.withValues(alpha: 0.8) : primaryBlue,
+    borderRadius: BorderRadius.circular(8),
+  );
+  
+  static BoxDecoration secondaryButtonDecoration(bool isPressed) => BoxDecoration(
+    color: isPressed ? systemGray6 : systemGray5,
+    borderRadius: BorderRadius.circular(8),
+  );
+  
+  // MÉTHODES UTILITAIRES POUR LES COULEURS
+  static Color getPriorityColor(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'urgent': return urgentColor;
+      case 'high': return highPriorityColor;
+      case 'medium': return mediumPriorityColor;
+      case 'low': return lowPriorityColor;
+      default: return mediumPriorityColor;
+    }
+  }
+  
+  static String getPriorityLabel(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'urgent': return 'URGENT';
+      case 'high': return 'Haute';
+      case 'medium': return 'Moyenne';
+      case 'low': return 'Basse';
+      default: return 'Moyenne';
+    }
+  }
+  
+  static Color getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'done': 
+      case 'completed': 
+      case 'success': return successColor;
+      case 'in_progress': 
+      case 'pending': return warningColor;
+      case 'error': 
+      case 'failed': return errorColor;
+      default: return infoColor;
+    }
+  }
 
+  // THÈME MATERIAL POUR COMPATIBILITÉ
   static final ThemeData materialTheme = ThemeData(
-    platform: TargetPlatform.iOS,
-    primaryColor: primaryBlue,
     primarySwatch: createMaterialColor(primaryBlue),
-    scaffoldBackgroundColor: systemBackground,
-    cardColor: secondarySystemBackground,
+    primaryColor: primaryBlue,
+    scaffoldBackgroundColor: systemGroupedBackground,
+    cardColor: systemBackground,
     dividerColor: separator,
-    
-    // AppBar theme
+    textTheme: const TextTheme(
+      headlineLarge: largeTitle,
+      headlineMedium: title1,
+      headlineSmall: title2,
+      titleLarge: title3,
+      titleMedium: headline,
+      bodyLarge: body,
+      bodyMedium: callout,
+      bodySmall: footnote,
+    ),
     appBarTheme: const AppBarTheme(
       backgroundColor: systemBackground,
       foregroundColor: labelPrimary,
       elevation: 0,
-      centerTitle: true,
-      titleTextStyle: TextStyle(
-        color: labelPrimary,
-        fontSize: 17,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w600,
-      ),
-      systemOverlayStyle: SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
     ),
-    
-    // Card theme
     cardTheme: CardTheme(
-      color: secondarySystemBackground,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: systemBackground,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 1,
     ),
-    
-    // Button themes
     elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: primaryBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        textStyle: const TextStyle(
-          fontSize: 17,
-          fontFamily: '.SF Pro Text',
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    ),
-    
-    textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        foregroundColor: primaryBlue,
-        textStyle: const TextStyle(
-          fontSize: 17,
-          fontFamily: '.SF Pro Text',
-          fontWeight: FontWeight.w400,
-        ),
-      ),
-    ),
-    
-    // Input decoration theme
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: tertiarySystemBackground,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: systemGray4),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: systemGray4),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: primaryBlue, width: 2),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      labelStyle: const TextStyle(
-        color: labelSecondary,
-        fontSize: 17,
-        fontFamily: '.SF Pro Text',
-      ),
-      hintStyle: const TextStyle(
-        color: systemGray,
-        fontSize: 17,
-        fontFamily: '.SF Pro Text',
-      ),
-    ),
-    
-    // List tile theme
-    listTileTheme: const ListTileThemeData(
-      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      iconColor: systemGray,
-      textColor: labelPrimary,
-      titleTextStyle: TextStyle(
-        color: labelPrimary,
-        fontSize: 17,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w400,
-      ),
-      subtitleTextStyle: TextStyle(
-        color: labelSecondary,
-        fontSize: 15,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w400,
-      ),
-    ),
-    
-    // Text theme
-    textTheme: const TextTheme(
-      displayLarge: TextStyle(
-        color: labelPrimary,
-        fontSize: 34,
-        fontFamily: '.SF Pro Display',
-        fontWeight: FontWeight.w700,
-      ),
-      displayMedium: TextStyle(
-        color: labelPrimary,
-        fontSize: 28,
-        fontFamily: '.SF Pro Display',
-        fontWeight: FontWeight.w700,
-      ),
-      displaySmall: TextStyle(
-        color: labelPrimary,
-        fontSize: 22,
-        fontFamily: '.SF Pro Display',
-        fontWeight: FontWeight.w600,
-      ),
-      headlineLarge: TextStyle(
-        color: labelPrimary,
-        fontSize: 20,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w600,
-      ),
-      headlineMedium: TextStyle(
-        color: labelPrimary,
-        fontSize: 17,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w600,
-      ),
-      headlineSmall: TextStyle(
-        color: labelPrimary,
-        fontSize: 16,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w600,
-      ),
-      bodyLarge: TextStyle(
-        color: labelPrimary,
-        fontSize: 17,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w400,
-      ),
-      bodyMedium: TextStyle(
-        color: labelPrimary,
-        fontSize: 15,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w400,
-      ),
-      bodySmall: TextStyle(
-        color: labelSecondary,
-        fontSize: 13,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w400,
-      ),
-      labelLarge: TextStyle(
-        color: labelPrimary,
-        fontSize: 17,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w600,
-      ),
-      labelMedium: TextStyle(
-        color: labelSecondary,
-        fontSize: 15,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w400,
-      ),
-      labelSmall: TextStyle(
-        color: labelTertiary,
-        fontSize: 13,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w400,
-      ),
-    ),
-    
-    // Icon theme
-    iconTheme: const IconThemeData(
-      color: systemGray,
-      size: 24,
-    ),
-    
-    // Bottom navigation bar theme
-    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: systemBackground,
-      selectedItemColor: primaryBlue,
-      unselectedItemColor: systemGray,
-      type: BottomNavigationBarType.fixed,
-      elevation: 0,
-      selectedLabelStyle: TextStyle(
-        fontSize: 10,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w400,
-      ),
-      unselectedLabelStyle: TextStyle(
-        fontSize: 10,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w400,
-      ),
-    ),
-    
-    // Tab bar theme
-    tabBarTheme: const TabBarTheme(
-      labelColor: primaryBlue,
-      unselectedLabelColor: systemGray,
-      indicator: UnderlineTabIndicator(
-        borderSide: BorderSide(color: primaryBlue, width: 2),
-      ),
-      labelStyle: TextStyle(
-        fontSize: 17,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w600,
-      ),
-      unselectedLabelStyle: TextStyle(
-        fontSize: 17,
-        fontFamily: '.SF Pro Text',
-        fontWeight: FontWeight.w400,
-      ),
-    ),
-    
-    // Switch theme
-    switchTheme: SwitchThemeData(
-      thumbColor: MaterialStateProperty.resolveWith<Color>((states) {
-        return Colors.white;
-      }),
-      trackColor: MaterialStateProperty.resolveWith<Color>((states) {
-        if (states.contains(MaterialState.selected)) {
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return primaryBlue.withValues(alpha: 0.8);
+          }
           return primaryBlue;
-        }
-        return systemGray3;
-      }),
-    ),
-    
-    // Slider theme
-    sliderTheme: const SliderThemeData(
-      activeTrackColor: primaryBlue,
-      inactiveTrackColor: systemGray4,
-      thumbColor: Colors.white,
-      overlayColor: Color(0x1F007AFF),
-    ),
-    
-    colorScheme: const ColorScheme.light(
-      primary: primaryBlue,
-      secondary: secondaryBlue,
-      surface: systemBackground,
-      error: systemRed,
-      onPrimary: Colors.white,
-      onSecondary: Colors.white,
-      onSurface: labelPrimary,
-      onError: Colors.white,
-      brightness: Brightness.light,
+        }),
+        foregroundColor: WidgetStateProperty.all(Colors.white),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
     ),
   );
 
+  // CRÉER UN MATERIALSWATCH À PARTIR D'UNE COULEUR
   static MaterialColor createMaterialColor(Color color) {
-    final List<double> strengths = <double>[.05];
-    final Map<int, Color> swatch = <int, Color>{};
+    List strengths = <double>[.05];
+    final swatch = <int, Color>{};
     final int r = color.red, g = color.green, b = color.blue;
 
     for (int i = 1; i < 10; i++) {
       strengths.add(0.1 * i);
     }
-    
-    for (final strength in strengths) {
+    for (var strength in strengths) {
       final double ds = 0.5 - strength;
       swatch[(strength * 1000).round()] = Color.fromRGBO(
         r + ((ds < 0 ? r : (255 - r)) * ds).round(),
@@ -350,4 +299,11 @@ class IOSTheme {
     }
     return MaterialColor(color.value, swatch);
   }
+}
+
+/// Extension pour faciliter l'usage des couleurs de statut
+extension StatusColorExtension on String {
+  Color get statusColor => IOSTheme.getStatusColor(this);
+  Color get priorityColor => IOSTheme.getPriorityColor(this);
+  String get priorityLabel => IOSTheme.getPriorityLabel(this);
 } 
