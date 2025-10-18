@@ -6,6 +6,7 @@ import '../../services/supabase_service.dart';
 import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
 import '../../widgets/messaging_button.dart';
+import '../../utils/progress_utils.dart';
 
 class ClientDashboardPage extends StatefulWidget {
   const ClientDashboardPage({super.key});
@@ -347,6 +348,9 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
                   final endDate = project['end_date'] != null
                       ? DateTime.parse(project['end_date'])
                       : null;
+                  final createdAt = project['created_at'] != null
+                      ? DateTime.parse(project['created_at'])
+                      : null;
                   
                   // Calculer le pourcentage d'avancement des tâches
                   int totalTasks = _tasks.where((task) => task['project_id'] == project['id']).length;
@@ -356,10 +360,18 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
                   
                   double taskProgress = totalTasks > 0 ? completedTasks / totalTasks : 0;
                   
-                  // Simuler les données de temps (en jours)
-                  double estimatedDays = project['estimated_days']?.toDouble() ?? 20.0;
-                  double workedDays = project['worked_days']?.toDouble() ?? (estimatedDays * taskProgress);
-                  double timeProgress = estimatedDays > 0 ? (workedDays / estimatedDays).clamp(0.0, 1.0) : 0;
+                  // Calculer la progression temporelle réelle basée sur les dates
+                  final timeProgressDetails = ProgressUtils.calculateTimeProgressDetails(
+                    startDate: startDate,
+                    endDate: endDate,
+                    createdAt: createdAt,
+                  );
+                  
+                  double timeProgress = timeProgressDetails['progress'];
+                  int daysElapsed = timeProgressDetails['daysElapsed'];
+                  int totalDays = timeProgressDetails['totalDays'];
+                  String timeStatus = timeProgressDetails['status'];
+                  bool isOverdue = timeProgressDetails['isOverdue'];
                   
                   return Container(
                     margin: const EdgeInsets.only(bottom: 16),
@@ -482,7 +494,7 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'Temps: ${workedDays.toStringAsFixed(0)}j / ${estimatedDays.toStringAsFixed(0)}j',
+                                        'Temps: ${daysElapsed}j / ${totalDays}j',
                                         style: const TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
@@ -493,7 +505,7 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
-                                          color: _getTimeProgressColor(timeProgress, taskProgress),
+                                          color: _getTimeProgressColor(timeProgress, isOverdue),
                                         ),
                                       ),
                                     ],
@@ -503,7 +515,7 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
                                     value: timeProgress,
                                     backgroundColor: Colors.grey[200],
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                      _getTimeProgressColor(timeProgress, taskProgress),
+                                      _getTimeProgressColor(timeProgress, isOverdue),
                                     ),
                                     minHeight: 6,
                                     borderRadius: BorderRadius.circular(3),
@@ -798,18 +810,17 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
     return status != 'completed' && status != 'cancelled' && dueDate.isBefore(DateTime.now());
   }
 
-  // Nouvelle méthode pour la couleur de progression du temps
-  Color _getTimeProgressColor(double timeProgress, double taskProgress) {
-    // Si le temps dépasse mais les tâches ne sont pas terminées = rouge
-    if (timeProgress >= 1.0 && taskProgress < 1.0) {
-      return Colors.red;
+  // Nouvelle méthode pour la couleur de progression du temps basée sur les dates réelles
+  Color _getTimeProgressColor(double timeProgress, bool isOverdue) {
+    if (isOverdue) {
+      return const Color(0xFFFF3B30); // Rouge iOS pour en retard
+    } else if (timeProgress >= 0.8) {
+      return const Color(0xFFFF9500); // Orange iOS pour fin proche
+    } else if (timeProgress >= 0.5) {
+      return const Color(0xFFFFCC00); // Jaune iOS pour à mi-chemin
+    } else {
+      return const Color(0xFF34C759); // Vert iOS pour dans les temps
     }
-    // Si le temps est en avance par rapport aux tâches = vert
-    if (timeProgress < taskProgress) {
-      return Colors.green;
-    }
-    // Sinon utiliser la couleur normale basée sur le progrès
-    return _getProgressColor(timeProgress);
   }
 
 

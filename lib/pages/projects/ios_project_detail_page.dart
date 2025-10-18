@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../config/ios_theme.dart';
 import '../../widgets/ios_widgets.dart';
 import '../../services/supabase_service.dart';
+import '../../utils/progress_utils.dart';
 
 class IOSProjectDetailPage extends StatefulWidget {
   final String projectId;
@@ -254,6 +255,17 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
     final completedTasks = _tasks.where((t) => t['status'] == 'done' || t['status'] == 'completed').length;
     final progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks * 100).round() : 0;
     
+    // Calculer la progression temporelle
+    final startDate = _project!['start_date'] != null ? DateTime.parse(_project!['start_date']) : null;
+    final endDate = _project!['end_date'] != null ? DateTime.parse(_project!['end_date']) : null;
+    final createdAt = _project!['created_at'] != null ? DateTime.parse(_project!['created_at']) : null;
+    
+    final timeProgressDetails = ProgressUtils.calculateTimeProgressDetails(
+      startDate: startDate,
+      endDate: endDate,
+      createdAt: createdAt,
+    );
+    
     return IOSListSection(
       title: "Statistiques",
       children: [
@@ -271,6 +283,35 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
           subtitle: Text('$completedTasks/$totalTasks terminées', style: IOSTheme.footnote),
           trailing: Text('$progressPercentage%', style: IOSTheme.body.copyWith(fontWeight: FontWeight.w600)),
         ),
+        // Progression temporelle
+        if (endDate != null)
+          IOSListTile(
+            leading: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: (timeProgressDetails['isOverdue'] ? IOSTheme.errorColor : IOSTheme.successColor).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                CupertinoIcons.clock, 
+                color: timeProgressDetails['isOverdue'] ? IOSTheme.errorColor : IOSTheme.successColor, 
+                size: 18
+              ),
+            ),
+            title: const Text('Progression temporelle', style: IOSTheme.body),
+            subtitle: Text(
+              '${timeProgressDetails['daysElapsed']}/${timeProgressDetails['totalDays']} jours - ${timeProgressDetails['status']}', 
+              style: IOSTheme.footnote
+            ),
+            trailing: Text(
+              '${timeProgressDetails['percentage']}%', 
+              style: IOSTheme.body.copyWith(
+                fontWeight: FontWeight.w600,
+                color: timeProgressDetails['isOverdue'] ? IOSTheme.errorColor : null,
+              )
+            ),
+          ),
         if (_project!['estimated_days'] != null)
           IOSListTile(
             leading: Container(

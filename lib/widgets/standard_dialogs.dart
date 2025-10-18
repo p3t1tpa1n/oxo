@@ -204,9 +204,11 @@ class StandardDialogs {
           actions: [
             TextButton(
               onPressed: () {
-                // Nettoyer les contrôleurs
-                controllers.values.forEach((controller) => controller.dispose());
                 Navigator.of(context).pop();
+                // Nettoyer les contrôleurs après la fermeture du dialogue
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  controllers.values.forEach((controller) => controller.dispose());
+                });
               },
               child: Text(cancelText),
             ),
@@ -223,9 +225,11 @@ class StandardDialogs {
                     }
                   }
                   
-                  // Nettoyer les contrôleurs
-                  controllers.values.forEach((controller) => controller.dispose());
                   Navigator.of(context).pop(result);
+                  // Nettoyer les contrôleurs après la fermeture du dialogue
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    controllers.values.forEach((controller) => controller.dispose());
+                  });
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -307,11 +311,29 @@ class StandardDialogs {
             ),
             child: Text(
               values[field.key] != null
-                  ? '${values[field.key].day}/${values[field.key].month}/${values[field.key].year}'
+                  ? _formatDateValue(values[field.key])
                   : 'Sélectionner une date',
             ),
           ),
         );
+    }
+  }
+
+  /// Helper pour formater une valeur de date (String ou DateTime)
+  static String _formatDateValue(dynamic dateValue) {
+    if (dateValue == null) return 'Sélectionner une date';
+    
+    DateTime? date;
+    if (dateValue is DateTime) {
+      date = dateValue;
+    } else if (dateValue is String) {
+      date = DateTime.tryParse(dateValue);
+    }
+    
+    if (date != null) {
+      return '${date.day}/${date.month}/${date.year}';
+    } else {
+      return 'Date invalide';
     }
   }
 }

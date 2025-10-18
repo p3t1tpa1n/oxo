@@ -18,6 +18,8 @@ import 'pages/shared/profile_page.dart';
 import 'pages/shared/planning_page.dart';
 import 'pages/shared/projects_page.dart';
 import 'pages/partner/partners_page.dart';
+import 'pages/partner/ios_partners_page.dart';
+import 'pages/partner/availability_page.dart';
 import 'pages/associate/figures_page.dart';
 import 'pages/shared/calendar_page.dart';
 import 'pages/dashboard/partner_dashboard_page.dart';
@@ -29,11 +31,36 @@ import 'pages/admin/user_roles_page.dart';
 import 'pages/admin/client_requests_page.dart';
 import 'pages/partner/actions_page.dart';
 import 'pages/messaging/messaging_page.dart' as messaging;
+import 'pages/messaging/ios_messaging_page.dart';
 import 'pages/projects/ios_project_detail_page.dart';
 
 // Pages iOS spécifiques
 import 'pages/auth/ios_login_page.dart';
 import 'pages/dashboard/ios_dashboard_page.dart';
+
+// Nouvelles pages iOS UX-Optimisées
+import 'pages/associate/ios_mobile_timesheet_page.dart';
+import 'pages/admin/ios_mobile_admin_clients_page.dart';
+import 'pages/partner/ios_mobile_actions_page.dart';
+import 'pages/admin/ios_mobile_client_requests_page.dart';
+import 'pages/partner/ios_mobile_availability_page.dart';
+
+// Pages système de missions
+import 'pages/partner/ios_mobile_missions_page.dart';
+import 'pages/associate/ios_mobile_mission_management_page.dart';
+
+// Pages création de clients
+import 'pages/admin/ios_mobile_create_client_page.dart';
+import 'pages/admin/create_client_page.dart';
+
+// Pages questionnaire partenaire
+import 'pages/partner/ios_partner_questionnaire_page.dart';
+
+// Pages profils partenaires pour associés
+import 'pages/associate/ios_partner_profiles_page.dart';
+import 'pages/associate/ios_partner_detail_page.dart';
+import 'pages/associate/partner_profiles_page.dart';
+import 'pages/associate/partner_detail_page.dart';
 
 // Configuration iOS
 import 'config/ios_theme.dart';
@@ -239,26 +266,24 @@ class _MainAppState extends State<MainApp> {
 
     final userRole = SupabaseService.currentUserRole;
     debugPrint('Rôle de l\'utilisateur pour la page d\'accueil: $userRole');
-    
-    // Sur iOS, utiliser le dashboard iOS unifié avec navigation par onglets
+
+    // Sur iOS, utiliser le dashboard iOS unifié avec onglets
     if (_isIOS()) {
       return const IOSDashboardPage();
     }
 
-    // Sur les autres plateformes, utiliser la navigation basée sur les rôles
+    // Sur desktop, utiliser la navigation basée sur les rôles
     if (userRole == UserRole.associe) {
       return const DashboardPage();
     } else if (userRole == UserRole.partenaire) {
       return const PartnerDashboardPage();
     } else if (userRole == UserRole.admin) {
-      // Dans le cas d'un administrateur, on pourrait rediriger vers une page d'administration
       return const DashboardPage();
     } else if (userRole == UserRole.client) {
       return const ClientDashboardPage();
     }
 
-    // Si le rôle n'est pas défini ou pas reconnu, rediriger vers la page de connexion
-    debugPrint('Rôle non reconnu, redirection vers la page de connexion');
+    // Fallback
     return _isIOS() ? const IOSLoginPage() : const LoginPage();
   }
 
@@ -272,22 +297,25 @@ class _MainAppState extends State<MainApp> {
       
       // Routes fonctionnelles avec adaptation iOS
       '/profile': (context) => const ProfilePage(),
-      '/clients': (context) => const ClientsPage(),
+      '/clients': (context) => _isIOS() ? const IOSMobileAdminClientsPage() : const ClientsPage(),
       '/admin/roles': (context) => const UserRolesPage(),
-      '/admin/client-requests': (context) => const ClientRequestsPage(),
-      '/messaging': (context) => _isIOS() ? const IOSDashboardPage() : const messaging.MessagingPage(),
+      '/admin/client-requests': (context) => _isIOS() ? const IOSMobileClientRequestsPage() : const ClientRequestsPage(),
+      '/messaging': (context) => _isIOS() ? const IOSMessagingPage() : const messaging.MessagingPage(),
       '/settings': (context) => const ProfilePage(),
-      '/projects': (context) => _isIOS() ? const IOSDashboardPage() : const ProjectsPage(),
+      '/projects': (context) {
+        // final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?; // Variable non utilisée
+        return const ProjectsPage();
+      },
       '/project_detail': (context) {
         final arguments = ModalRoute.of(context)?.settings.arguments;
-        if (_isIOS() && arguments != null) {
+        if (arguments != null) {
           return IOSProjectDetailPage(projectId: arguments.toString());
         }
         return const ProjectsPage();
       },
-      '/client/projects': (context) => _isIOS() ? const IOSDashboardPage() : const ClientDashboardPage(),
-      '/client/tasks': (context) => _isIOS() ? const IOSDashboardPage() : const ClientDashboardPage(),
-      '/client/invoices': (context) => _isIOS() ? const IOSDashboardPage() : const ClientInvoicesPage(),
+      '/client/projects': (context) => const ClientDashboardPage(),
+      '/client/tasks': (context) => const ClientDashboardPage(),
+      '/client/invoices': (context) => const ClientInvoicesPage(),
     };
 
     // Routes spécifiques iOS
@@ -300,16 +328,22 @@ class _MainAppState extends State<MainApp> {
 
     // Routes complémentaires avec support iOS
     routes.addAll({
-      '/associate': (context) => _isIOS() ? const IOSDashboardPage() : const DashboardPage(),
-      '/partner': (context) => _isIOS() ? const IOSDashboardPage() : const PartnerDashboardPage(),
-      '/client': (context) => _isIOS() ? const IOSDashboardPage() : const ClientDashboardPage(),
-      '/planning': (context) => _isIOS() ? const IOSDashboardPage() : const PlanningPage(),
-      '/figures': (context) => _isIOS() ? const IOSDashboardPage() : const FiguresPage(),
-      '/timesheet': (context) => _isIOS() ? const IOSDashboardPage() : const TimesheetPage(),
-      '/partners': (context) => _isIOS() ? const IOSDashboardPage() : const PartnersPage(),
-      '/actions': (context) => _isIOS() ? const IOSDashboardPage() : const ActionsPage(),
-      '/add_user': (context) => _isIOS() ? const IOSDashboardPage() : const UserRolesPage(),
-      '/calendar': (context) => _isIOS() ? const IOSDashboardPage() : const CalendarPage(),
+      '/associate': (context) => const DashboardPage(),
+      '/partner': (context) => const PartnerDashboardPage(),
+      '/client': (context) => const ClientDashboardPage(),
+      '/planning': (context) => const PlanningPage(),
+      '/figures': (context) => const FiguresPage(),
+      '/timesheet': (context) => _isIOS() ? const IOSMobileTimesheetPage() : const TimesheetPage(),
+      '/partners': (context) => _isIOS() ? const IOSPartnersPage() : const PartnersPage(),
+      '/availability': (context) => _isIOS() ? const IOSMobileAvailabilityPage() : const AvailabilityPage(),
+      '/actions': (context) => _isIOS() ? const IOSMobileActionsPage() : const ActionsPage(),
+      '/missions': (context) => _isIOS() ? const IOSMobileMissionsPage() : const ActionsPage(),
+      '/mission-management': (context) => _isIOS() ? const IOSMobileMissionManagementPage() : const ActionsPage(),
+      '/create-client': (context) => _isIOS() ? const IOSMobileCreateClientPage() : const CreateClientPage(),
+      '/partner-questionnaire': (context) => const IOSPartnerQuestionnairePage(),
+      '/partner-profiles': (context) => _isIOS() ? const IOSPartnerProfilesPage() : const PartnerProfilesPage(),
+      '/add_user': (context) => const UserRolesPage(),
+      '/calendar': (context) => const CalendarPage(),
     });
 
     return routes;

@@ -60,7 +60,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _updateTaskStatus(Map<String, dynamic> taskData, String newStatus) async {
     if (!mounted) return;
-    final localContext = context;
+    
     try {
       await SupabaseService.client
           .from('tasks')
@@ -71,14 +71,14 @@ class _DashboardPageState extends State<DashboardPage> {
       
       await _loadTasks();
       if (mounted) {
-        ScaffoldMessenger.of(localContext).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Statut mis à jour avec succès')),
         );
       }
     } catch (e) {
       debugPrint('Erreur lors de la mise à jour du statut: $e');
       if (mounted) {
-        ScaffoldMessenger.of(localContext).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur lors de la mise à jour: ${e.toString()}')),
         );
       }
@@ -279,9 +279,11 @@ class _DashboardPageState extends State<DashboardPage> {
                   if (titleController.text.isEmpty || selectedDate == null || 
                       (isCreatingNewProject && projectNameController.text.isEmpty) ||
                       (!isCreatingNewProject && selectedProject == null)) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Veuillez remplir tous les champs obligatoires')),
-                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Veuillez remplir tous les champs obligatoires')),
+                      );
+                    }
                     return;
                   }
 
@@ -307,9 +309,11 @@ class _DashboardPageState extends State<DashboardPage> {
                     }
 
                     if (selectedPartnerId == null) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        const SnackBar(content: Text('Veuillez sélectionner un partenaire')),
-                      );
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Veuillez sélectionner un partenaire')),
+                        );
+                      }
                       return;
                     }
 
@@ -325,20 +329,23 @@ class _DashboardPageState extends State<DashboardPage> {
                     if (!mounted) return;
                     Navigator.pop(context);
                     await _loadTasks();
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          isCreatingNewProject 
-                            ? 'Projet et tâche créés avec succès' 
-                            : 'Tâche créée avec succès'
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isCreatingNewProject 
+                              ? 'Projet et tâche créés avec succès' 
+                              : 'Tâche créée avec succès'
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    }
                   } catch (e) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(content: Text('Erreur: ${e.toString()}')),
-                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Erreur: ${e.toString()}')),
+                      );
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -391,19 +398,22 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          MessagingFloatingButton(
-            backgroundColor: const Color(0xFF1784af),
-          ),
-          const SizedBox(height: 16),
-          FloatingActionButton(
-            onPressed: _showAddTaskDialog,
-            backgroundColor: const Color(0xFF1784af),
-            child: const Icon(Icons.add),
-          ),
-        ],
+      floatingActionButton: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 150), // Limiter la hauteur
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            MessagingFloatingButton(
+              backgroundColor: const Color(0xFF1784af),
+            ),
+            const SizedBox(height: 16),
+            FloatingActionButton(
+              onPressed: _showAddTaskDialog,
+              backgroundColor: const Color(0xFF1784af),
+              child: const Icon(Icons.add),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -442,7 +452,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildTasksSection() {
     return Card(
       elevation: 8,
-      shadowColor: Colors.black.withOpacity(0.2),
+      shadowColor: Colors.black.withValues(alpha: 0.2),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -452,7 +462,7 @@ class _DashboardPageState extends State<DashboardPage> {
           border: Border.all(color: const Color(0xFF1784af), width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -494,7 +504,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             borderRadius: const BorderRadius.all(Radius.circular(8)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -582,7 +592,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             borderRadius: const BorderRadius.all(Radius.circular(8)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -656,7 +666,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             borderRadius: const BorderRadius.all(Radius.circular(8)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -742,7 +752,7 @@ class _DashboardPageState extends State<DashboardPage> {
       childrenDelegate: SliverChildListDelegate([
         Card(
           elevation: 8,
-          shadowColor: Colors.black.withOpacity(0.2),
+          shadowColor: Colors.black.withValues(alpha: 0.2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -751,7 +761,7 @@ class _DashboardPageState extends State<DashboardPage> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -771,7 +781,7 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         Card(
           elevation: 8,
-          shadowColor: Colors.black.withOpacity(0.2),
+          shadowColor: Colors.black.withValues(alpha: 0.2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -780,7 +790,7 @@ class _DashboardPageState extends State<DashboardPage> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -858,7 +868,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildTaskCardContent(String title, String description, DateTime dueDate, {bool isDone = false}) {
     return Card(
       elevation: 3,
-      shadowColor: Colors.black.withOpacity(0.1),
+      shadowColor: Colors.black.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -931,34 +941,6 @@ class _DashboardPageState extends State<DashboardPage> {
           ],
         ),
       ),
-    );
-  }
-
-  // ✅ Menu Déroulant en haut pour petit écran
-  Widget _buildDropdownMenu() {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.menu, color: Colors.white),
-      onSelected: (String route) {
-        Navigator.of(context).pushNamed(route);
-      },
-      itemBuilder: (BuildContext context) {
-        return [
-          _buildMenuItem('Fiche Associé', '/associate'),
-          _buildMenuItem('Planning Global', '/planning'),
-          _buildMenuItem('Partenaires', '/partners'),
-          _buildMenuItem('Messagerie', '/messaging'),
-          _buildMenuItem('Actions Commerciales', '/actions'),
-          _buildMenuItem('Chiffres Entreprise', '/figures'),
-        ];
-      },
-    );
-  }
-
-  // ✅ Fonction pour générer un élément du menu déroulant
-  PopupMenuItem<String> _buildMenuItem(String title, String route) {
-    return PopupMenuItem<String>(
-      value: route,
-      child: Text(title, style: const TextStyle(color: Color(0xFF122b35))),
     );
   }
 }

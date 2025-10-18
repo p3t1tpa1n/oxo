@@ -1,12 +1,16 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../config/ios_theme.dart';
 import '../../widgets/ios_widgets.dart';
 import '../../services/supabase_service.dart';
 import '../../models/user_role.dart';
+import '../../utils/progress_utils.dart';
 import '../messaging/ios_messaging_page.dart';
 import '../client/project_request_form_page.dart';
 import '../admin/project_creation_form_page.dart';
+import '../partner/ios_partners_page.dart';
+import '../associate/ios_partner_profiles_page.dart';
 
 class IOSDashboardPage extends StatefulWidget {
   const IOSDashboardPage({Key? key}) : super(key: key);
@@ -43,7 +47,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
       case UserRole.admin:
         return 5; // Accueil, Projets, Tâches, Gestion, Profil
       case UserRole.associe:
-        return 4; // Accueil, Projets, Tâches, Profil
+        return 5; // Accueil, Projets, Tâches, Partenaires, Profil
       case UserRole.partenaire:
         return 4; // Accueil, Mes Projets, Mes Tâches, Profil
       case UserRole.client:
@@ -68,6 +72,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
           BottomNavigationBarItem(icon: Icon(CupertinoIcons.home), label: 'Accueil'),
           BottomNavigationBarItem(icon: Icon(CupertinoIcons.doc_text), label: 'Projets'),
           BottomNavigationBarItem(icon: Icon(CupertinoIcons.checkmark_alt_circle), label: 'Tâches'),
+          BottomNavigationBarItem(icon: Icon(CupertinoIcons.person_2), label: 'Partenaires'),
           BottomNavigationBarItem(icon: Icon(CupertinoIcons.person), label: 'Profil'),
         ];
       case UserRole.partenaire:
@@ -142,6 +147,33 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
       final urgentTasks = tasks.where((t) => t['priority'] == 'urgent' && t['status'] != 'done').length;
       final inProgressProjects = projects.where((p) => p['status'] == 'in_progress').length;
 
+      // Calculer la progression temporelle moyenne des projets
+      double totalTimeProgress = 0;
+      int projectsWithEndDate = 0;
+      int overdueProjects = 0;
+      
+      for (final project in projects) {
+        final startDate = project['start_date'] != null ? DateTime.parse(project['start_date']) : null;
+        final endDate = project['end_date'] != null ? DateTime.parse(project['end_date']) : null;
+        final createdAt = project['created_at'] != null ? DateTime.parse(project['created_at']) : null;
+        
+        if (endDate != null) {
+          projectsWithEndDate++;
+          final timeProgressDetails = ProgressUtils.calculateTimeProgressDetails(
+            startDate: startDate,
+            endDate: endDate,
+            createdAt: createdAt,
+          );
+          totalTimeProgress += timeProgressDetails['progress'];
+          if (timeProgressDetails['isOverdue']) {
+            overdueProjects++;
+          }
+        }
+      }
+      
+      final avgTimeProgress = projectsWithEndDate > 0 ? 
+        (totalTimeProgress / projectsWithEndDate * 100).round() : 0;
+
       setState(() {
         _tasks = tasks.take(10).toList();
         _projects = projects.take(5).toList();
@@ -151,6 +183,9 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
           'urgent_tasks': urgentTasks,
           'in_progress_projects': inProgressProjects,
           'completion_rate': totalTasks > 0 ? (completedTasks / totalTasks * 100).round() : 0,
+          'time_progress': avgTimeProgress,
+          'overdue_projects': overdueProjects,
+          'projects_with_end_date': projectsWithEndDate,
         };
         _isLoading = false;
       });
@@ -187,7 +222,8 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
               case 0: return _buildHomeTab();
               case 1: return _buildProjectsTab();
               case 2: return _buildTasksTab();
-              case 3: return _buildProfileTab();
+              case 3: return const IOSPartnerProfilesPage();
+              case 4: return _buildProfileTab();
               default: return _buildHomeTab();
             }
           case UserRole.partenaire:
@@ -218,6 +254,51 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
   }
 
   // ================================
+  // CORRECTION RENDU WEB SAFARI
+  // ================================
+
+  /// Widget optimisé pour corriger les problèmes de rendu sur Safari mobile
+  Widget _buildWebOptimizedScrollView(List<Widget> children) {
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(), // Plus compatible Safari
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // Wrap chaque section pour éviter les artifacts de rendu
+                ...children.map((child) => _buildWebOptimizedWidget(child)),
+              ]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Wrapper pour optimiser le rendu des widgets sur Safari mobile
+  Widget _buildWebOptimizedWidget(Widget child) {
+    // Appliquer les optimisations seulement sur web pour éviter l'impact sur les plateformes natives
+    if (!kIsWeb) {
+      return child;
+    }
+
+    return RepaintBoundary(
+      child: Container(
+        // Force un nouveau contexte de rendu pour éviter les glitches Safari
+        clipBehavior: Clip.antiAlias,
+        decoration: const BoxDecoration(),
+        child: Transform.translate(
+          offset: Offset.zero, // Force une nouvelle couche de rendu
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  // ================================
   // ONGLETS POUR ADMIN/ASSOCIÉ
   // ================================
   
@@ -239,27 +320,17 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
       ),
       body: _isLoading
           ? const Center(child: CupertinoActivityIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildWelcomeHeader(),
-                    const SizedBox(height: 24),
-                    _buildStatsOverview(),
-                    const SizedBox(height: 24),
-                    _buildQuickActions(),
-                    const SizedBox(height: 24),
-                    _buildRecentTasks(),
-                    const SizedBox(height: 24),
-                    _buildRecentProjects(),
-                  ],
-                ),
-              ),
-            ),
+          : _buildWebOptimizedScrollView([
+              _buildWelcomeHeader(),
+              const SizedBox(height: 24),
+              _buildStatsOverview(),
+              const SizedBox(height: 24),
+              _buildQuickActions(),
+              const SizedBox(height: 24),
+              _buildRecentTasks(),
+              const SizedBox(height: 24),
+              _buildRecentProjects(),
+            ]),
     );
   }
 
@@ -285,27 +356,17 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
       ),
       body: _isLoading
           ? const Center(child: CupertinoActivityIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildPartnerWelcomeHeader(),
-                    const SizedBox(height: 24),
-                    _buildPartnerStatsOverview(),
-                    const SizedBox(height: 24),
-                    _buildPartnerQuickActions(),
-                    const SizedBox(height: 24),
-                    _buildMyRecentTasks(),
-                    const SizedBox(height: 24),
-                    _buildMyRecentProjects(),
-                  ],
-                ),
-              ),
-            ),
+          : _buildWebOptimizedScrollView([
+              _buildPartnerWelcomeHeader(),
+              const SizedBox(height: 24),
+              _buildPartnerStatsOverview(),
+              const SizedBox(height: 24),
+              _buildPartnerQuickActions(),
+              const SizedBox(height: 24),
+              _buildMyRecentTasks(),
+              const SizedBox(height: 24),
+              _buildMyRecentProjects(),
+            ]),
     );
   }
 
@@ -373,27 +434,17 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
       ),
       body: _isLoading
           ? const Center(child: CupertinoActivityIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildClientWelcomeHeader(),
-                    const SizedBox(height: 24),
-                    _buildClientStatsOverview(),
-                    const SizedBox(height: 24),
-                    _buildClientQuickActions(),
-                    const SizedBox(height: 24),
-                    _buildMyRecentProjects(),
-                    const SizedBox(height: 24),
-                    _buildMyActiveTasks(),
-                  ],
-                ),
-              ),
-            ),
+          : _buildWebOptimizedScrollView([
+              _buildClientWelcomeHeader(),
+              const SizedBox(height: 24),
+              _buildClientStatsOverview(),
+              const SizedBox(height: 24),
+              _buildClientQuickActions(),
+              const SizedBox(height: 24),
+              _buildMyRecentProjects(),
+              const SizedBox(height: 24),
+              _buildMyActiveTasks(),
+            ]),
     );
   }
 
@@ -532,6 +583,29 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                     // TODO: Navigation vers demandes clients
                   },
                 ),
+                IOSListTile(
+                  leading: const Icon(CupertinoIcons.person_2_fill, color: IOSTheme.primaryBlue),
+                  title: const Text('Partenaires', style: IOSTheme.body),
+                  subtitle: const Text('Gérer les partenaires de l\'entreprise', style: IOSTheme.footnote),
+                  trailing: const Icon(CupertinoIcons.chevron_right, color: IOSTheme.systemGray),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      CupertinoPageRoute(
+                        builder: (context) => const IOSPartnersPage(),
+                      ),
+                    );
+                  },
+                ),
+                IOSListTile(
+                  leading: const Icon(CupertinoIcons.briefcase_fill, color: IOSTheme.warningColor),
+                  title: const Text('Actions commerciales', style: IOSTheme.body),
+                  subtitle: const Text('Suivi de la prospection et des ventes', style: IOSTheme.footnote),
+                  trailing: const Icon(CupertinoIcons.chevron_right, color: IOSTheme.systemGray),
+                  onTap: () {
+                    // TODO: Créer une page iOS pour les actions commerciales ou rediriger
+                    Navigator.pushNamed(context, '/actions');
+                  },
+                ),
               ],
             ),
           ],
@@ -551,7 +625,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
         children: [
           Text(
             "$greeting $userName",
-            style: IOSTheme.largeTitle,
+            style: IOSTheme.largeTitle.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           Text(
@@ -576,7 +650,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Vue d'ensemble", style: IOSTheme.title3),
+          Text("Vue d'ensemble", style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -616,11 +690,35 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
-                  title: "Progression",
+                  title: "Tâches",
                   value: "${_stats['completion_rate']}%",
-                  subtitle: "Complété",
+                  subtitle: "Complétées",
                   color: IOSTheme.primaryBlue,
                   icon: CupertinoIcons.chart_pie_fill,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  title: "Progression temporelle",
+                  value: "${_stats['time_progress']}%",
+                  subtitle: "Du temps écoulé",
+                  color: (_stats['time_progress'] ?? 0) > 80 ? IOSTheme.warningColor : IOSTheme.primaryBlue,
+                  icon: CupertinoIcons.clock_fill,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  title: "En retard",
+                  value: "${_stats['overdue_projects']}",
+                  subtitle: "Projet${(_stats['overdue_projects'] ?? 0) > 1 ? 's' : ''}",
+                  color: (_stats['overdue_projects'] ?? 0) > 0 ? IOSTheme.errorColor : IOSTheme.successColor,
+                  icon: (_stats['overdue_projects'] ?? 0) > 0 ? CupertinoIcons.exclamationmark_triangle_fill : CupertinoIcons.checkmark_circle_fill,
                 ),
               ),
             ],
@@ -639,21 +737,25 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: IOSTheme.cardDecoration,
+      decoration: BoxDecoration(
+        color: IOSTheme.systemBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: IOSTheme.systemGray5, width: 1),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: IOSTheme.footnote),
+              Text(title, style: IOSTheme.footnote.copyWith(fontWeight: FontWeight.w500)),
               Icon(icon, color: color, size: 20),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            style: IOSTheme.title2.copyWith(color: color),
+            style: IOSTheme.title2.copyWith(color: color, fontWeight: FontWeight.w700),
           ),
           Text(
             subtitle,
@@ -680,12 +782,48 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
           title: "Nouveau projet",
           onTap: _showCreateProjectDialog,
         ),
-        if (_userRole == 'admin' || _userRole == 'associe') ...[
+        if (_userRole == UserRole.admin || _userRole == UserRole.associe) ...[
           _buildQuickActionTile(
             icon: CupertinoIcons.person_add,
             iconColor: IOSTheme.systemGreen,
             title: "Inviter un utilisateur",
             onTap: () => Navigator.of(context).pushNamed('/add_user'),
+          ),
+          _buildQuickActionTile(
+            icon: CupertinoIcons.calendar,
+            iconColor: IOSTheme.systemOrange,
+            title: "Timesheet",
+            onTap: () => Navigator.of(context).pushNamed('/timesheet'),
+          ),
+          _buildQuickActionTile(
+            icon: CupertinoIcons.calendar_today,
+            iconColor: IOSTheme.primaryBlue,
+            title: "Disponibilités",
+            onTap: () => Navigator.of(context).pushNamed('/availability'),
+          ),
+          _buildQuickActionTile(
+            icon: CupertinoIcons.person_2,
+            iconColor: IOSTheme.primaryBlue,
+            title: "Clients",
+            onTap: () => Navigator.of(context).pushNamed('/clients'),
+          ),
+          _buildQuickActionTile(
+            icon: CupertinoIcons.doc_text,
+            iconColor: IOSTheme.systemGreen,
+            title: "Demandes clients",
+            onTap: () => Navigator.of(context).pushNamed('/admin/client-requests'),
+          ),
+          _buildQuickActionTile(
+            icon: CupertinoIcons.briefcase,
+            iconColor: IOSTheme.warningColor,
+            title: "Actions commerciales",
+            onTap: () => Navigator.of(context).pushNamed('/actions'),
+          ),
+          _buildQuickActionTile(
+            icon: CupertinoIcons.paperplane,
+            iconColor: IOSTheme.systemPurple,
+            title: "Gestion missions",
+            onTap: () => Navigator.of(context).pushNamed('/mission-management'),
           ),
         ],
         _buildQuickActionTile(
@@ -1449,13 +1587,17 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
     
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: IOSTheme.cardDecoration,
+      decoration: BoxDecoration(
+        color: IOSTheme.systemBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: IOSTheme.systemGray5, width: 1),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             "$greeting $userName",
-            style: IOSTheme.largeTitle,
+            style: IOSTheme.largeTitle.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1477,7 +1619,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Mon activité", style: IOSTheme.title3),
+          Text("Mon activité", style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -1513,10 +1655,20 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Actions rapides", style: IOSTheme.title3),
+          Text("Actions rapides", style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 16),
           Row(
             children: [
+              Expanded(
+                child: _buildActionCard(
+                  title: "Mes Missions",
+                  subtitle: "Voir mes missions",
+                  icon: CupertinoIcons.paperplane_fill,
+                  color: IOSTheme.systemPurple,
+                  onTap: () => Navigator.of(context).pushNamed('/missions'),
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildActionCard(
                   title: "Messagerie",
@@ -1528,16 +1680,6 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                       builder: (context) => const IOSMessagingPage(),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionCard(
-                  title: "Profil",
-                  subtitle: "Mes informations",
-                  icon: CupertinoIcons.person_fill,
-                  color: IOSTheme.systemGray,
-                  onTap: () => _tabController.animateTo(3),
                 ),
               ),
             ],
@@ -1556,7 +1698,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Mes tâches récentes", style: IOSTheme.title3),
+              Text("Mes tâches récentes", style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600)),
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: () => _tabController.animateTo(2),
@@ -1593,7 +1735,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Mes projets", style: IOSTheme.title3),
+              Text("Mes projets", style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600)),
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: () => _tabController.animateTo(1),
@@ -1694,7 +1836,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Mes projets", style: IOSTheme.title3),
+          Text("Mes projets", style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -1773,7 +1915,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Mes tâches actives", style: IOSTheme.title3),
+          Text("Mes tâches actives", style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 16),
           if (_tasks.isEmpty)
             _buildEmptyState(

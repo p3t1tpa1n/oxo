@@ -41,6 +41,7 @@ class _IOSLoginPageState extends State<IOSLoginPage> {
       );
 
       if (result.user != null) {
+        // iOS: rediriger vers le tableau de bord iOS unifié
         if (mounted) {
           Navigator.of(context).pushReplacementNamed('/dashboard');
         }
@@ -86,7 +87,7 @@ class _IOSLoginPageState extends State<IOSLoginPage> {
               children: [
                 const SizedBox(height: 60),
                 
-                // Logo et titre
+                // Logo et titre - Style minimal
                 Center(
                   child: Column(
                     children: [
@@ -96,13 +97,6 @@ class _IOSLoginPageState extends State<IOSLoginPage> {
                         decoration: BoxDecoration(
                           color: IOSTheme.primaryBlue,
                           borderRadius: BorderRadius.circular(22),
-                          boxShadow: [
-                            BoxShadow(
-                              color: IOSTheme.primaryBlue.withOpacity(0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
                         ),
                         child: const Center(
                           child: Text(
@@ -111,30 +105,19 @@ class _IOSLoginPageState extends State<IOSLoginPage> {
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
                               fontSize: 28,
-                              fontFamily: '.SF Pro Display',
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
+                      Text(
                         "Bienvenue",
-                        style: TextStyle(
-                          color: IOSTheme.labelPrimary,
-                          fontSize: 34,
-                          fontWeight: FontWeight.w700,
-                          fontFamily: '.SF Pro Display',
-                        ),
+                        style: IOSTheme.largeTitle.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         "Connectez-vous à votre compte",
-                        style: TextStyle(
-                          color: IOSTheme.labelSecondary,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w400,
-                          fontFamily: '.SF Pro Text',
-                        ),
+                        style: IOSTheme.body.copyWith(color: IOSTheme.labelSecondary),
                       ),
                     ],
                   ),
@@ -225,14 +208,9 @@ class _IOSLoginPageState extends State<IOSLoginPage> {
                         confirmText: 'OK',
                       );
                     },
-                    child: const Text(
+                    child: Text(
                       "Mot de passe oublié ?",
-                      style: TextStyle(
-                        color: IOSTheme.primaryBlue,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w400,
-                        fontFamily: '.SF Pro Text',
-                      ),
+                      style: IOSTheme.body.copyWith(color: IOSTheme.primaryBlue),
                     ),
                   ),
                 ),

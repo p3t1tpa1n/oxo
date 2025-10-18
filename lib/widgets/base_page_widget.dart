@@ -176,12 +176,15 @@ class _BasePageWidgetState extends State<BasePageWidget> {
     
     if (buttons.length == 1) return buttons.first;
     
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: buttons
-          .expand((button) => [button, const SizedBox(height: 16)])
-          .take(buttons.length * 2 - 1)
-          .toList(),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 200), // Limiter la hauteur
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: buttons
+            .expand((button) => [button, const SizedBox(height: 16)])
+            .take(buttons.length * 2 - 1)
+            .toList(),
+      ),
     );
   }
 }

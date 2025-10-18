@@ -36,87 +36,17 @@ class _ActionsPageState extends State<ActionsPage> {
     });
 
     try {
-      // Pour l'instant, créer des données fictives car il n'y a pas encore de table actions
-      await Future.delayed(const Duration(milliseconds: 500)); // Simuler le chargement
+      // Charger les vraies actions commerciales depuis Supabase
+      final actions = await SupabaseService.getCommercialActions();
       
-      final mockActions = [
-        {
-          'id': '1',
-          'title': 'Appel prospect ClientCorp',
-          'description': 'Premier contact avec ClientCorp pour présenter nos services',
-          'type': 'call',
-          'status': 'planned',
-          'priority': 'high',
-          'due_date': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
-          'client_name': 'ClientCorp',
-          'contact_person': 'Jean Dubois',
-          'contact_email': 'jean.dubois@clientcorp.com',
-          'contact_phone': '+33 1 23 45 67 89',
-          'estimated_value': 15000.0,
-          'notes': 'Client intéressé par nos solutions de gestion de projet',
-          'created_at': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
-          'updated_at': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
-        },
-        {
-          'id': '2',
-          'title': 'Présentation TechStart',
-          'description': 'Démonstration de notre plateforme à TechStart',
-          'type': 'meeting',
-          'status': 'in_progress',
-          'priority': 'urgent',
-          'due_date': DateTime.now().add(const Duration(hours: 3)).toIso8601String(),
-          'client_name': 'TechStart',
-          'contact_person': 'Marie Martin',
-          'contact_email': 'marie.martin@techstart.fr',
-          'contact_phone': '+33 1 98 76 54 32',
-          'estimated_value': 25000.0,
-          'notes': 'Startup en croissance, budget confirmé',
-          'created_at': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
-          'updated_at': DateTime.now().subtract(const Duration(minutes: 30)).toIso8601String(),
-        },
-        {
-          'id': '3',
-          'title': 'Suivi InnovaCorp',
-          'description': 'Relance après envoi de devis',
-          'type': 'follow_up',
-          'status': 'completed',
-          'priority': 'medium',
-          'due_date': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
-          'client_name': 'InnovaCorp',
-          'contact_person': 'Paul Durand',
-          'contact_email': 'paul.durand@innovacorp.com',
-          'contact_phone': '+33 1 11 22 33 44',
-          'estimated_value': 8000.0,
-          'notes': 'Devis accepté, contrat en préparation',
-          'created_at': DateTime.now().subtract(const Duration(days: 10)).toIso8601String(),
-          'updated_at': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
-        },
-        {
-          'id': '4',
-          'title': 'Email de prospection GlobalTech',
-          'description': 'Envoi d\'email de présentation et demande de RDV',
-          'type': 'email',
-          'status': 'planned',
-          'priority': 'low',
-          'due_date': DateTime.now().add(const Duration(days: 3)).toIso8601String(),
-          'client_name': 'GlobalTech',
-          'contact_person': 'Sophie Leblanc',
-          'contact_email': 'sophie.leblanc@globaltech.com',
-          'estimated_value': 12000.0,
-          'notes': 'Contact obtenu via LinkedIn',
-          'created_at': DateTime.now().subtract(const Duration(hours: 6)).toIso8601String(),
-          'updated_at': DateTime.now().subtract(const Duration(hours: 6)).toIso8601String(),
-        },
-      ];
-
       setState(() {
-        _actions = mockActions;
+        _actions = actions;
         _applyFilters();
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = 'Erreur lors du chargement des actions commerciales: $e';
         _isLoading = false;
       });
     }
@@ -616,6 +546,8 @@ class _ActionsPageState extends State<ActionsPage> {
             dialogs.SelectionItem(value: 'email', label: 'Email'),
             dialogs.SelectionItem(value: 'meeting', label: 'Réunion'),
             dialogs.SelectionItem(value: 'follow_up', label: 'Suivi'),
+            dialogs.SelectionItem(value: 'proposal', label: 'Proposition'),
+            dialogs.SelectionItem(value: 'negotiation', label: 'Négociation'),
           ],
         ),
         dialogs.FormField(
@@ -646,6 +578,16 @@ class _ActionsPageState extends State<ActionsPage> {
           label: 'Email de contact',
           type: dialogs.FormFieldType.email,
         ),
+        const dialogs.FormField(
+          key: 'contact_phone',
+          label: 'Téléphone de contact',
+          type: dialogs.FormFieldType.text,
+        ),
+        const dialogs.FormField(
+          key: 'estimated_value',
+          label: 'Valeur estimée (€)',
+          type: dialogs.FormFieldType.text,
+        ),
         dialogs.FormField(
           key: 'due_date',
           label: 'Date d\'échéance',
@@ -653,30 +595,239 @@ class _ActionsPageState extends State<ActionsPage> {
           required: true,
           context: context,
         ),
+        const dialogs.FormField(
+          key: 'notes',
+          label: 'Notes',
+          type: dialogs.FormFieldType.text,
+        ),
       ],
-    ).then((result) {
+    ).then((result) async {
       if (result != null) {
-        // Ici, on ajouterait normalement l'action à la base de données
-        context.showSuccess('Action commerciale créée avec succès');
-        _loadActions(); // Recharger les données
+        try {
+          // Convertir la valeur estimée en double si fournie
+          double? estimatedValue;
+          if (result['estimated_value'] != null && result['estimated_value'].toString().isNotEmpty) {
+            estimatedValue = double.tryParse(result['estimated_value'].toString().replaceAll(',', '.'));
+          }
+
+          // Convertir la date d'échéance
+          DateTime? dueDate;
+          if (result['due_date'] != null) {
+            dueDate = DateTime.tryParse(result['due_date'].toString());
+          }
+
+          // Créer l'action commerciale dans Supabase
+          final action = await SupabaseService.createCommercialAction(
+            title: result['title'],
+            description: result['description'] ?? '',
+            type: result['type'],
+            clientName: result['client_name'],
+            priority: result['priority'],
+            contactPerson: result['contact_person'],
+            contactEmail: result['contact_email'],
+            contactPhone: result['contact_phone'],
+            estimatedValue: estimatedValue,
+            dueDate: dueDate,
+            notes: result['notes'],
+          );
+
+          if (action != null) {
+            if (mounted) {
+              context.showSuccess('Action commerciale créée avec succès');
+              _loadActions(); // Recharger les données
+            }
+          } else {
+            if (mounted) {
+              context.showError('Erreur lors de la création de l\'action commerciale');
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            context.showError('Erreur lors de la création: $e');
+          }
+        }
       }
     });
   }
 
   void _showEditActionDialog(Map<String, dynamic> action) {
-    // Implémenter l'édition
-    context.showInfo('Fonctionnalité d\'édition en cours de développement');
+    // Préparer les valeurs par défaut avec les données de l'action existante
+    final initialValues = {
+      'title': action['title'],
+      'description': action['description'],
+      'type': action['type'],
+      'priority': action['priority'],
+      'client_name': action['client_name'],
+      'contact_person': action['contact_person'],
+      'contact_email': action['contact_email'],
+      'contact_phone': action['contact_phone'],
+      'estimated_value': action['estimated_value']?.toString(),
+      'due_date': action['due_date'],
+      'notes': action['notes'],
+    };
+
+    dialogs.StandardDialogs.showFormDialog(
+      context: context,
+      title: 'Modifier l\'Action Commerciale',
+      initialValues: initialValues,
+      fields: [
+        const dialogs.FormField(
+          key: 'title',
+          label: 'Titre',
+          type: dialogs.FormFieldType.text,
+          required: true,
+        ),
+        const dialogs.FormField(
+          key: 'description',
+          label: 'Description',
+          type: dialogs.FormFieldType.text,
+        ),
+        dialogs.FormField(
+          key: 'type',
+          label: 'Type',
+          type: dialogs.FormFieldType.dropdown,
+          required: true,
+          options: const [
+            dialogs.SelectionItem(value: 'call', label: 'Appel téléphonique'),
+            dialogs.SelectionItem(value: 'email', label: 'Email'),
+            dialogs.SelectionItem(value: 'meeting', label: 'Réunion'),
+            dialogs.SelectionItem(value: 'follow_up', label: 'Suivi'),
+            dialogs.SelectionItem(value: 'proposal', label: 'Proposition'),
+            dialogs.SelectionItem(value: 'negotiation', label: 'Négociation'),
+          ],
+        ),
+        dialogs.FormField(
+          key: 'status',
+          label: 'Statut',
+          type: dialogs.FormFieldType.dropdown,
+          required: true,
+          options: const [
+            dialogs.SelectionItem(value: 'planned', label: 'Planifiée'),
+            dialogs.SelectionItem(value: 'in_progress', label: 'En cours'),
+            dialogs.SelectionItem(value: 'completed', label: 'Terminée'),
+            dialogs.SelectionItem(value: 'cancelled', label: 'Annulée'),
+          ],
+        ),
+        dialogs.FormField(
+          key: 'priority',
+          label: 'Priorité',
+          type: dialogs.FormFieldType.dropdown,
+          required: true,
+          options: const [
+            dialogs.SelectionItem(value: 'low', label: 'Basse'),
+            dialogs.SelectionItem(value: 'medium', label: 'Moyenne'),
+            dialogs.SelectionItem(value: 'high', label: 'Haute'),
+            dialogs.SelectionItem(value: 'urgent', label: 'Urgente'),
+          ],
+        ),
+        const dialogs.FormField(
+          key: 'client_name',
+          label: 'Nom du client',
+          type: dialogs.FormFieldType.text,
+          required: true,
+        ),
+        const dialogs.FormField(
+          key: 'contact_person',
+          label: 'Personne de contact',
+          type: dialogs.FormFieldType.text,
+        ),
+        const dialogs.FormField(
+          key: 'contact_email',
+          label: 'Email de contact',
+          type: dialogs.FormFieldType.email,
+        ),
+        const dialogs.FormField(
+          key: 'contact_phone',
+          label: 'Téléphone de contact',
+          type: dialogs.FormFieldType.text,
+        ),
+        const dialogs.FormField(
+          key: 'estimated_value',
+          label: 'Valeur estimée (€)',
+          type: dialogs.FormFieldType.text,
+        ),
+        dialogs.FormField(
+          key: 'due_date',
+          label: 'Date d\'échéance',
+          type: dialogs.FormFieldType.date,
+          required: true,
+          context: context,
+        ),
+        const dialogs.FormField(
+          key: 'notes',
+          label: 'Notes',
+          type: dialogs.FormFieldType.text,
+        ),
+      ],
+    ).then((result) async {
+      if (result != null) {
+        try {
+          // Convertir la valeur estimée en double si fournie
+          double? estimatedValue;
+          if (result['estimated_value'] != null && result['estimated_value'].toString().isNotEmpty) {
+            estimatedValue = double.tryParse(result['estimated_value'].toString().replaceAll(',', '.'));
+          }
+
+          // Convertir la date d'échéance
+          DateTime? dueDate;
+          if (result['due_date'] != null) {
+            dueDate = DateTime.tryParse(result['due_date'].toString());
+          }
+
+          // Mettre à jour l'action commerciale dans Supabase
+          final success = await SupabaseService.updateCommercialAction(
+            actionId: action['id'],
+            title: result['title'],
+            description: result['description'],
+            type: result['type'],
+            status: result['status'],
+            priority: result['priority'],
+            clientName: result['client_name'],
+            contactPerson: result['contact_person'],
+            contactEmail: result['contact_email'],
+            contactPhone: result['contact_phone'],
+            estimatedValue: estimatedValue,
+            dueDate: dueDate,
+            notes: result['notes'],
+          );
+
+          if (success && mounted) {
+            context.showSuccess('Action commerciale modifiée avec succès');
+            _loadActions(); // Recharger les données
+          } else if (mounted) {
+            context.showError('Erreur lors de la modification de l\'action commerciale');
+          }
+        } catch (e) {
+          if (mounted) {
+            context.showError('Erreur lors de la modification: $e');
+          }
+        }
+      }
+    });
   }
 
   void _markAsCompleted(Map<String, dynamic> action) {
     context.showConfirm(
       'Marquer comme terminée',
       'Êtes-vous sûr de vouloir marquer cette action comme terminée ?',
-    ).then((confirmed) {
+    ).then((confirmed) async {
       if (confirmed == true) {
-        // Ici, on mettrait à jour le statut dans la base de données
-        context.showSuccess('Action marquée comme terminée');
-        _loadActions();
+        try {
+          final success = await SupabaseService.completeCommercialAction(
+            actionId: action['id'],
+          );
+          
+          if (success && mounted) {
+            context.showSuccess('Action marquée comme terminée');
+            _loadActions();
+          } else if (mounted) {
+            context.showError('Erreur lors de la mise à jour de l\'action');
+          }
+        } catch (e) {
+          if (mounted) {
+            context.showError('Erreur lors de la mise à jour: $e');
+          }
+        }
       }
     });
   }
@@ -685,11 +836,22 @@ class _ActionsPageState extends State<ActionsPage> {
     context.showDelete(
       action['title'],
       itemType: 'action commerciale',
-    ).then((confirmed) {
+    ).then((confirmed) async {
       if (confirmed == true) {
-        // Ici, on supprimerait l'action de la base de données
-        context.showSuccess('Action supprimée avec succès');
-        _loadActions();
+        try {
+          final success = await SupabaseService.deleteCommercialAction(action['id']);
+          
+          if (success && mounted) {
+            context.showSuccess('Action supprimée avec succès');
+            _loadActions();
+          } else if (mounted) {
+            context.showError('Erreur lors de la suppression de l\'action');
+          }
+        } catch (e) {
+          if (mounted) {
+            context.showError('Erreur lors de la suppression: $e');
+          }
+        }
       }
     });
   }

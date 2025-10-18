@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
-import '../../widgets/custom_app_bar.dart';
-import 'client_detail_page.dart';
-import 'package:uuid/uuid.dart';
 
 class ClientsPage extends StatefulWidget {
   const ClientsPage({super.key});
@@ -94,7 +91,7 @@ class _ClientsPageState extends State<ClientsPage> {
   }
 
   void _showClientForm({Map<String, dynamic>? client}) {
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
     final firstNameController = TextEditingController(text: client?['first_name'] ?? '');
     final lastNameController = TextEditingController(text: client?['last_name'] ?? '');
     final emailController = TextEditingController(text: client?['email'] ?? '');
@@ -107,7 +104,7 @@ class _ClientsPageState extends State<ClientsPage> {
         title: Text(client == null ? 'Ajouter un client' : 'Modifier le client'),
         content: SingleChildScrollView(
           child: Form(
-            key: _formKey,
+            key: formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -192,7 +189,7 @@ class _ClientsPageState extends State<ClientsPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (_formKey.currentState!.validate()) {
+              if (formKey.currentState!.validate()) {
                 // Note: Pour créer un nouveau client, on devrait créer un nouvel utilisateur
                 // Ceci est un placeholder - en réalité il faudrait implémenter la création d'utilisateur
                 Navigator.pop(context);
@@ -305,7 +302,7 @@ class _ClientsPageState extends State<ClientsPage> {
   }
 
   void _showInvoiceForm(Map<String, dynamic> client) {
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
     final amountController = TextEditingController();
@@ -322,7 +319,7 @@ class _ClientsPageState extends State<ClientsPage> {
           title: Text('Créer une facture pour ${client['first_name']} ${client['last_name']}'),
           content: SingleChildScrollView(
             child: Form(
-              key: _formKey,
+              key: formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -522,7 +519,7 @@ class _ClientsPageState extends State<ClientsPage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (_formKey.currentState!.validate()) {
+                if (formKey.currentState!.validate()) {
                   try {
                     final amount = double.parse(amountController.text);
                     final taxRate = double.tryParse(taxRateController.text) ?? 20.0;
@@ -541,12 +538,14 @@ class _ClientsPageState extends State<ClientsPage> {
                     
                     if (mounted) {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Facture créée avec succès !'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Facture créée avec succès !'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
                     }
                   } catch (e) {
                     if (mounted) {
@@ -575,7 +574,19 @@ class _ClientsPageState extends State<ClientsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Clients'),
+      appBar: AppBar(
+        title: const Text('Clients'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () => Navigator.of(context).pushNamed('/create-client'),
+            tooltip: 'Créer un nouveau client',
+          ),
+        ],
+      ),
       body: Column(
         children: [
           _buildFilters(),
@@ -596,8 +607,8 @@ class _ClientsPageState extends State<ClientsPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showClientForm(),
         backgroundColor: const Color(0xFF1E3D54),
-        child: const Icon(Icons.add, color: Colors.white),
         tooltip: 'Ajouter un client',
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -609,7 +620,7 @@ class _ClientsPageState extends State<ClientsPage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, 2),
@@ -665,7 +676,7 @@ class _ClientsPageState extends State<ClientsPage> {
         });
       },
       backgroundColor: Colors.white,
-      selectedColor: const Color(0xFF1E3D54).withOpacity(0.2),
+      selectedColor: const Color(0xFF1E3D54).withValues(alpha: 0.2),
       checkmarkColor: const Color(0xFF1E3D54),
       side: BorderSide(
         color: isSelected 
@@ -692,10 +703,10 @@ class _ClientsPageState extends State<ClientsPage> {
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
               color: (client['status'] == 'actif' || client['status'] == null)
-                  ? Colors.green.withOpacity(0.3)
+                  ? Colors.green.withValues(alpha: 0.3)
                   : client['status'] == 'prospect'
-                      ? Colors.blue.withOpacity(0.3)
-                      : Colors.grey.withOpacity(0.3),
+                      ? Colors.blue.withValues(alpha: 0.3)
+                      : Colors.grey.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
@@ -812,9 +823,9 @@ class _ClientsPageState extends State<ClientsPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
         label,

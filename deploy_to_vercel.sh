@@ -4,9 +4,15 @@
 
 echo "===== Déploiement sur Vercel ====="
 
-# Construction de l'application web
+# Construction de l'application web avec les bonnes variables d'environnement
 echo "Construction de l'application web..."
-flutter build web --release
+flutter build web \
+    --web-renderer canvaskit \
+    --release \
+    --pwa-strategy offline-first \
+    --base-href "/" \
+    --dart-define=SUPABASE_URL=https://dswirxxbzbyhnxsrzyzi.supabase.co \
+    --dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzd2lyeHhiemJ5aG54c3J6eXppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkxMTE0MTksImV4cCI6MjA2NDY4NzQxOX0.eIpOuCszUaldsiIxb9WzQcra34VbImWaRHx5lysPtOg
 
 # Installation de Vercel CLI si ce n'est pas déjà fait
 if ! command -v vercel &> /dev/null; then

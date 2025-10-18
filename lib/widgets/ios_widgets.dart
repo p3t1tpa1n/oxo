@@ -41,12 +41,8 @@ class IOSNavigationBar extends StatelessWidget implements ObstructingPreferredSi
           : null,
       automaticallyImplyLeading: automaticallyImplyLeading,
       previousPageTitle: previousPageTitle ? 'Retour' : null,
-      border: const Border(
-        bottom: BorderSide(
-          color: IOSTheme.separator,
-          width: 0.5,
-        ),
-      ),
+      // Flat: pas de bordure inférieure ni d'ombre
+      border: null,
     );
   }
 
@@ -80,20 +76,18 @@ class IOSCard extends StatelessWidget {
       margin: margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: IOSTheme.secondarySystemBackground,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 1,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        // Flat: suppression des ombres, fine bordure discrète
+        border: Border.all(
+          color: IOSTheme.systemGray4,
+          width: 1,
+        ),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: padding ?? const EdgeInsets.all(16),
             child: child,
@@ -132,15 +126,16 @@ class IOSListSection extends StatelessWidget {
                 style: const TextStyle(
                   color: IOSTheme.labelSecondary,
                   fontSize: 13,
-                  fontWeight: FontWeight.w400,
+                  fontWeight: FontWeight.w600, // Hiérarchie renforcée
                   fontFamily: '.SF Pro Text',
                 ),
               ),
             ),
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: IOSTheme.secondarySystemGroupedBackground,
-              borderRadius: BorderRadius.all(Radius.circular(10)),
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
+              border: Border.all(color: IOSTheme.systemGray4, width: 1), // Flat
             ),
             margin: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
@@ -266,7 +261,7 @@ class IOSPrimaryButton extends StatelessWidget {
       height: 50,
       child: CupertinoButton(
         color: isEnabled ? IOSTheme.primaryBlue : IOSTheme.systemGray4,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         onPressed: isEnabled && !isLoading ? onPressed : null,
         child: isLoading
             ? const CupertinoActivityIndicator(color: Colors.white)
@@ -275,7 +270,7 @@ class IOSPrimaryButton extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 17,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700, // bouton principal mis en avant
                   fontFamily: '.SF Pro Text',
                 ),
               ),
@@ -304,7 +299,7 @@ class IOSSecondaryButton extends StatelessWidget {
       height: 50,
       child: CupertinoButton(
         color: IOSTheme.systemGray6,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         onPressed: isEnabled ? onPressed : null,
         child: Text(
           text,

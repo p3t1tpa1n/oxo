@@ -50,8 +50,8 @@ flutter build web \
     --release \
     --pwa-strategy offline-first \
     --base-href "/" \
-    --dart-define=SUPABASE_URL=votre_url_supabase \
-    --dart-define=SUPABASE_ANON_KEY=votre_cle_anon
+    --dart-define=SUPABASE_URL=https://dswirxxbzbyhnxsrzyzi.supabase.co \
+    --dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzd2lyeHhiemJ5aG54c3J6eXppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkxMTE0MTksImV4cCI6MjA2NDY4NzQxOX0.eIpOuCszUaldsiIxb9WzQcra34VbImWaRHx5lysPtOg
 
 # 7. Copier le service worker personnalisé
 echo -e "${GREEN}Configuration du service worker...${NC}"

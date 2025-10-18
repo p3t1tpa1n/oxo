@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'dart:async';
 import '../../services/supabase_service.dart';
 import '../../services/messaging_service.dart';
@@ -59,9 +58,12 @@ class _MessagingPageState extends State<MessagingPage> {
       debugPrint('Utilisateurs chargés: ${usersList.length}');
       debugPrint('Premier utilisateur: ${usersList.isNotEmpty ? usersList.first : 'Aucun'}');
       
+      // Filtrer les utilisateurs selon les restrictions de messagerie
+      final filteredUsersList = await _filterUsersForMessaging(usersList);
+      
       setState(() {
-        users = usersList;
-        filteredUsers = usersList;
+        users = filteredUsersList;
+        filteredUsers = filteredUsersList;
       });
     } catch (e) {
       debugPrint('Erreur lors du chargement des utilisateurs: $e');
@@ -99,6 +101,28 @@ class _MessagingPageState extends State<MessagingPage> {
         isLoading = false;
       });
     }
+  }
+
+  /// Filtre les utilisateurs selon les restrictions de messagerie :
+  /// - Associés : peuvent parler à tout le monde
+  /// - Clients/Partenaires : peuvent parler seulement aux associés
+  Future<List<Map<String, dynamic>>> _filterUsersForMessaging(List<Map<String, dynamic>> allUsers) async {
+    final currentUserRole = await SupabaseService.getCurrentUserRole();
+    
+    if (currentUserRole == null) {
+      return allUsers; // Par défaut, retourner tous les utilisateurs
+    }
+    
+    // Les associés et admins peuvent parler à tout le monde
+    if (currentUserRole.value == 'associe' || currentUserRole.value == 'admin') {
+      return allUsers;
+    }
+    
+    // Les clients et partenaires ne peuvent parler qu'aux associés et admins
+    return allUsers.where((user) {
+      final userRole = user['user_role']?.toString().toLowerCase();
+      return userRole == 'associe' || userRole == 'admin';
+    }).toList();
   }
 
   void _filterUsers(String query) {

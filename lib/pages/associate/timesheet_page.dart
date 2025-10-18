@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
-import '../../models/user_role.dart';
 import '../../services/supabase_service.dart';
 
 class TimesheetPage extends StatefulWidget {
@@ -16,7 +15,12 @@ class _TimesheetPageState extends State<TimesheetPage> {
   List<Map<String, dynamic>> _timesheetEntries = [];
   List<Map<String, dynamic>> _filteredEntries = [];
   List<Map<String, dynamic>> _partners = [];
+  List<Map<String, dynamic>> _availabilities = [];
   bool _isLoading = true;
+  DateTime _selectedAvailabilityDate = DateTime.now();
+  bool _twoWeeksView = false; // Vue 2 prochaines semaines
+  List<Map<String, dynamic>> _topAvailablePartners = [];
+  bool _loadingAvailablePartners = false;
   
   // Filtres
   String _selectedPartnerId = 'all';
@@ -30,6 +34,7 @@ class _TimesheetPageState extends State<TimesheetPage> {
   void initState() {
     super.initState();
     _loadData();
+    _loadTopAvailablePartners();
   }
 
   Future<void> _loadData() async {
@@ -41,6 +46,7 @@ class _TimesheetPageState extends State<TimesheetPage> {
       await Future.wait([
         _loadPartners(),
         _loadTimesheetEntries(),
+        _loadAvailabilities(),
       ]);
     } catch (e) {
       debugPrint('Erreur lors du chargement des données: $e');
@@ -55,45 +61,75 @@ class _TimesheetPageState extends State<TimesheetPage> {
 
   Future<void> _loadPartners() async {
     try {
-      final response = await SupabaseService.client
-          .from('profiles')
-          .select('user_id, user_email, first_name, last_name, user_role')
-          .eq('user_role', 'partenaire');
-
+      // Utiliser la fonction get_users qui existe déjà
+      final partners = await SupabaseService.getPartners();
+      
       setState(() {
-        _partners = List<Map<String, dynamic>>.from(response);
+        _partners = partners.map((partner) => {
+          'user_id': partner['user_id'],
+          'user_email': partner['email'] ?? 'Utilisateur inconnu', // Utiliser 'email' directement
+          'first_name': partner['first_name'],
+          'last_name': partner['last_name'],
+          'user_role': partner['role']
+        }).toList();
       });
     } catch (e) {
       debugPrint('Erreur lors du chargement des partenaires: $e');
-      // Si la requête échoue, essayer avec la vue ou auth.users directement
-      try {
-        final response = await SupabaseService.client
-            .from('auth.users')
-            .select('id, email')
-            .limit(50); // Limiter pour éviter trop de données
-
-        setState(() {
-          _partners = response.map((user) => {
-            'user_id': user['id'],
-            'user_email': user['email'],
-            'first_name': '',
-            'last_name': '',
-            'user_role': 'partenaire'
-          }).toList();
-        });
-      } catch (e2) {
-        debugPrint('Erreur fallback lors du chargement des partenaires: $e2');
-      }
+      setState(() {
+        _partners = [];
+      });
     }
   }
 
   Future<void> _loadTimesheetEntries() async {
     try {
-      // Utiliser la vue créée dans le script SQL
+      // Charger les entrées de timesheet directement
       final response = await SupabaseService.client
-          .from('timesheet_entries_with_user')
+          .from('timesheet_entries')
           .select('*')
           .order('date', ascending: false);
+
+      // Charger tous les utilisateurs une seule fois
+      final allUsers = await SupabaseService.client.rpc('get_users');
+      final usersMap = <String, Map<String, dynamic>>{};
+      for (var user in allUsers) {
+        usersMap[user['user_id']] = user;
+      }
+
+      // Enrichir les entrées avec les données utilisateur et tâche
+      for (var entry in response) {
+        // Ajouter les données utilisateur
+        final user = usersMap[entry['user_id']];
+        entry['user_email'] = user?['email'] ?? 'Utilisateur inconnu';
+        entry['user_first_name'] = user?['first_name'] ?? '';
+        entry['user_last_name'] = user?['last_name'] ?? '';
+
+        // Charger les données de tâche si nécessaire
+        try {
+          if (entry['task_id'] != null) {
+            final taskResponse = await SupabaseService.client
+                .from('tasks')
+                .select('title, project_id')
+                .eq('id', entry['task_id'])
+                .single();
+            
+            entry['task'] = {'title': taskResponse['title']};
+            
+            // Charger le projet si possible
+            if (taskResponse['project_id'] != null) {
+              final projectResponse = await SupabaseService.client
+                  .from('projects')
+                  .select('name')
+                  .eq('id', taskResponse['project_id'])
+                  .single();
+              entry['task']['project'] = {'name': projectResponse['name']};
+            }
+          }
+        } catch (taskError) {
+          debugPrint('Erreur lors du chargement de la tâche: $taskError');
+          entry['task'] = {'title': 'Tâche inconnue', 'project': {'name': 'Projet inconnu'}};
+        }
+      }
 
       setState(() {
         _timesheetEntries = List<Map<String, dynamic>>.from(response);
@@ -102,70 +138,19 @@ class _TimesheetPageState extends State<TimesheetPage> {
       
       _applyFiltersAndSort();
     } catch (e) {
-      debugPrint('Erreur lors du chargement avec la vue, essai avec requête manuelle: $e');
-      
-      // Fallback : requête manuelle sans JOIN complexe
-      try {
-        final response = await SupabaseService.client
-            .from('timesheet_entries')
-            .select('*')
-            .order('date', ascending: false);
-
-        // Enrichir manuellement avec les données utilisateur
-        for (var entry in response) {
-          try {
-            final userResponse = await SupabaseService.client
-                .from('auth.users')
-                .select('email')
-                .eq('id', entry['user_id'])
-                .single();
-            entry['user_email'] = userResponse['email'];
-          } catch (userError) {
-            entry['user_email'] = 'Utilisateur inconnu';
-          }
-
-          // Essayer de charger les données de tâche
-          try {
-            if (entry['task_id'] != null) {
-              final taskResponse = await SupabaseService.client
-                  .from('tasks')
-                  .select('title, project_id')
-                  .eq('id', entry['task_id'])
-                  .single();
-              
-              entry['task'] = {'title': taskResponse['title']};
-              
-              // Charger le projet si possible
-              if (taskResponse['project_id'] != null) {
-                final projectResponse = await SupabaseService.client
-                    .from('projects')
-                    .select('name')
-                    .eq('id', taskResponse['project_id'])
-                    .single();
-                entry['task']['project'] = {'name': projectResponse['name']};
-              }
-            }
-          } catch (taskError) {
-            entry['task'] = {'title': 'Tâche inconnue', 'project': {'name': 'Projet inconnu'}};
-          }
-        }
-
+      debugPrint('Erreur lors du chargement des entrées timesheet: $e');
+      if (mounted) {
         setState(() {
-          _timesheetEntries = List<Map<String, dynamic>>.from(response);
-          _filteredEntries = _timesheetEntries;
+          _isLoading = false;
+          _timesheetEntries = [];
+          _filteredEntries = [];
         });
-        
-        _applyFiltersAndSort();
-      } catch (e2) {
-        debugPrint('Erreur lors du chargement des entrées timesheet (fallback): $e2');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erreur lors du chargement des données: $e2'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors du chargement des données: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -239,26 +224,49 @@ class _TimesheetPageState extends State<TimesheetPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: [
-          SideMenu(
-            userRole: SupabaseService.currentUserRole,
-            selectedRoute: '/timesheet',
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                const TopBar(title: 'Timesheet des Partenaires'),
-                Expanded(
-                  child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : _buildTimesheetContent(),
-                ),
-              ],
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        body: Row(
+          children: [
+            SideMenu(
+              userRole: SupabaseService.currentUserRole,
+              selectedRoute: '/timesheet',
             ),
-          ),
-        ],
+            Expanded(
+              child: Column(
+                children: [
+                  const TopBar(title: 'Timesheet des Partenaires'),
+                  const TabBar(
+                    labelColor: Color(0xFF1784af),
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: Color(0xFF1784af),
+                    tabs: [
+                      Tab(
+                        icon: Icon(Icons.schedule),
+                        text: 'Timesheet',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.calendar_today),
+                        text: 'Disponibilités',
+                      ),
+                    ],
+                  ),
+                  Expanded(
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : TabBarView(
+                            children: [
+                              _buildTimesheetContent(),
+                              _buildAvailabilityContent(),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -978,5 +986,613 @@ class _TimesheetPageState extends State<TimesheetPage> {
     
     // Fallback
     return 'Partenaire';
+  }
+
+  // ==========================================
+  // GESTION DES DISPONIBILITÉS DES PARTENAIRES
+  // ==========================================
+
+  Future<void> _loadAvailabilities() async {
+    try {
+      debugPrint('Chargement des disponibilités des partenaires...');
+      
+      DateTime startDate;
+      DateTime endDate;
+      if (_twoWeeksView) {
+        final now = DateTime.now();
+        startDate = DateTime(now.year, now.month, now.day);
+        endDate = startDate.add(const Duration(days: 13));
+      } else {
+        startDate = DateTime(_selectedAvailabilityDate.year, _selectedAvailabilityDate.month, 1);
+        endDate = DateTime(_selectedAvailabilityDate.year, _selectedAvailabilityDate.month + 1, 0);
+      }
+      
+      debugPrint('Période demandée: ${startDate.toIso8601String().split('T')[0]} - ${endDate.toIso8601String().split('T')[0]}');
+      
+      final availabilities = await SupabaseService.getPartnerAvailabilityForPeriod(
+        startDate: startDate,
+        endDate: endDate,
+      );
+      
+      debugPrint('${availabilities.length} disponibilités chargées');
+      
+      setState(() {
+        _availabilities = availabilities;
+      });
+      
+      debugPrint('State mis à jour avec ${_availabilities.length} disponibilités');
+    } catch (e) {
+      debugPrint('Erreur lors du chargement des disponibilités: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors du chargement des disponibilités: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadTopAvailablePartners() async {
+    setState(() => _loadingAvailablePartners = true);
+    try {
+      final partners = await SupabaseService.getPartnersAvailableAtLeast(periodDays: 14, minAvailableDays: 7);
+      if (mounted) setState(() => _topAvailablePartners = partners);
+    } catch (e) {
+      debugPrint('Erreur chargement partenaires >=7/14: $e');
+      if (mounted) setState(() => _topAvailablePartners = []);
+    } finally {
+      if (mounted) setState(() => _loadingAvailablePartners = false);
+    }
+  }
+
+  Widget _buildAvailabilityContent() {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        children: [
+          _buildAvailabilityHeader(),
+          const SizedBox(height: 16),
+          _buildAvailabilityFilters(),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _buildAvailabilityList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvailabilityHeader() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.calendar_today,
+                  color: Color(0xFF1784af),
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Disponibilités des Partenaires',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1784af),
+                  ),
+                ),
+                const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: _loadAvailabilities,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Actualiser'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1784af),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Consultez les disponibilités de vos partenaires pour planifier efficacement vos projets.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvailabilityFilters() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            // Sélecteur de mois
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Mois de consultation',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _selectedAvailabilityDate = DateTime(
+                                _selectedAvailabilityDate.year,
+                                _selectedAvailabilityDate.month - 1,
+                              );
+                            });
+                            _loadAvailabilities();
+                          },
+                          icon: const Icon(Icons.chevron_left),
+                          iconSize: 20,
+                        ),
+                        Expanded(
+                          child: Text(
+                            DateFormat('MMMM yyyy', 'fr_FR').format(_selectedAvailabilityDate),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _selectedAvailabilityDate = DateTime(
+                                _selectedAvailabilityDate.year,
+                                _selectedAvailabilityDate.month + 1,
+                              );
+                            });
+                            _loadAvailabilities();
+                          },
+                          icon: const Icon(Icons.chevron_right),
+                          iconSize: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Toggle 2 prochaines semaines
+            ElevatedButton.icon(
+              onPressed: () async {
+                setState(() {
+                  _twoWeeksView = !_twoWeeksView;
+                });
+                await _loadAvailabilities();
+              },
+              icon: const Icon(Icons.view_week),
+              label: Text(_twoWeeksView ? 'Vue mois' : '2 prochaines semaines'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _twoWeeksView ? const Color(0xFF1784af) : Colors.blueGrey,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Bouton partenaires disponibles >= 7 jours / 14
+            ElevatedButton.icon(
+              onPressed: _loadingAvailablePartners
+                  ? null
+                  : () async {
+                      if (_topAvailablePartners.isEmpty) {
+                        await _loadTopAvailablePartners();
+                      }
+                      _showTopAvailablePartnersDialog();
+                    },
+              icon: const Icon(Icons.filter_alt),
+              label: Text(_loadingAvailablePartners ? 'Chargement...' : 'Dispo ≥ 7/14'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Bouton pour voir aujourd'hui
+            ElevatedButton.icon(
+              onPressed: () async {
+                final partners = await SupabaseService.getAvailablePartnersForDate(DateTime.now());
+                _showAvailablePartnersDialog(DateTime.now(), partners);
+              },
+              icon: const Icon(Icons.today),
+              label: const Text('Disponibles aujourd\'hui'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvailabilityList() {
+    if (_availabilities.isEmpty) {
+      return _buildEmptyAvailabilityState();
+    }
+
+    // Grouper les disponibilités par date
+    final Map<String, List<Map<String, dynamic>>> groupedAvailabilities = {};
+    for (var availability in _availabilities) {
+      final date = availability['date'];
+      if (groupedAvailabilities[date] == null) {
+        groupedAvailabilities[date] = [];
+      }
+      groupedAvailabilities[date]!.add(availability);
+    }
+
+    final sortedDates = groupedAvailabilities.keys.toList()
+      ..sort((a, b) => DateTime.parse(a).compareTo(DateTime.parse(b)));
+
+    return ListView.builder(
+      itemCount: sortedDates.length,
+      itemBuilder: (context, index) {
+        final date = sortedDates[index];
+        final dayAvailabilities = groupedAvailabilities[date]!;
+        final parsedDate = DateTime.parse(date);
+        
+        return _buildDayAvailabilityCard(parsedDate, dayAvailabilities);
+      },
+    );
+  }
+
+  Widget _buildDayAvailabilityCard(DateTime date, List<Map<String, dynamic>> dayAvailabilities) {
+    final availablePartners = dayAvailabilities.where((a) => a['is_available'] == true).toList();
+    final unavailablePartners = dayAvailabilities.where((a) => a['is_available'] == false).toList();
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _getDateColor(date),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    DateFormat('EEEE d MMMM', 'fr_FR').format(date),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${availablePartners.length} disponible(s) • ${unavailablePartners.length} indisponible(s)',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (availablePartners.isNotEmpty) ...[
+              const Text(
+                '✅ Partenaires disponibles',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.green,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: availablePartners.map((partner) => _buildPartnerChip(partner, true)).toList(),
+              ),
+            ],
+            if (unavailablePartners.isNotEmpty) ...[
+              if (availablePartners.isNotEmpty) const SizedBox(height: 12),
+              const Text(
+                '❌ Partenaires indisponibles',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.red,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: unavailablePartners.map((partner) => _buildPartnerChip(partner, false)).toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPartnerChip(Map<String, dynamic> partner, bool isAvailable) {
+    final name = partner['partner_name'] ?? 'Partenaire inconnu';
+    final type = partner['availability_type'];
+    final startTime = partner['start_time'];
+    final endTime = partner['end_time'];
+    
+    String subtitle = '';
+    if (isAvailable && type == 'partial_day' && startTime != null && endTime != null) {
+      subtitle = ' ($startTime - $endTime)';
+    }
+
+    return Chip(
+      avatar: CircleAvatar(
+        backgroundColor: isAvailable ? Colors.green : Colors.red,
+        child: Text(
+          name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase(),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      label: Text('$name$subtitle'),
+      backgroundColor: isAvailable ? Colors.green.shade50 : Colors.red.shade50,
+      side: BorderSide(
+        color: isAvailable ? Colors.green.shade200 : Colors.red.shade200,
+      ),
+      onDeleted: partner['notes'] != null ? () {
+        _showPartnerAvailabilityDetails(partner);
+      } : null,
+      deleteIcon: partner['notes'] != null ? const Icon(Icons.info_outline, size: 16) : null,
+    );
+  }
+
+  Widget _buildEmptyAvailabilityState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.calendar_today_outlined,
+            size: 64,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Aucune disponibilité trouvée',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Les partenaires n\'ont pas encore défini leurs disponibilités\npour ce mois.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _loadAvailabilities,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Actualiser'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1784af),
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getDateColor(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final targetDate = DateTime(date.year, date.month, date.day);
+    
+    if (targetDate.isAtSameMomentAs(today)) {
+      return const Color(0xFF1784af); // Aujourd'hui
+    } else if (targetDate.isBefore(today)) {
+      return Colors.grey; // Passé
+    } else {
+      return Colors.blue; // Futur
+    }
+  }
+
+  void _showAvailablePartnersDialog(DateTime date, List<Map<String, dynamic>> partners) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Partenaires disponibles le ${DateFormat('dd/MM/yyyy').format(date)}'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 300,
+          child: partners.isEmpty
+              ? const Center(
+                  child: Text('Aucun partenaire disponible ce jour'),
+                )
+              : ListView.builder(
+                  itemCount: partners.length,
+                  itemBuilder: (context, index) {
+                    final partner = partners[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.green,
+                        child: Text(
+                          (partner['partner_name'] ?? '')
+                              .split(' ')
+                              .map((e) => e.isNotEmpty ? e[0] : '')
+                              .take(2)
+                              .join()
+                              .toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      title: Text(partner['partner_name'] ?? 'Partenaire inconnu'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(partner['partner_email'] ?? ''),
+                          if (partner['start_time'] != null && partner['end_time'] != null)
+                            Text('Horaires: ${partner['start_time']} - ${partner['end_time']}'),
+                        ],
+                      ),
+                      trailing: partner['availability_type'] == 'partial_day'
+                          ? const Chip(
+                              label: Text('Partiel'),
+                              backgroundColor: Colors.orange,
+                            )
+                          : const Chip(
+                              label: Text('Complet'),
+                              backgroundColor: Colors.green,
+                            ),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTopAvailablePartnersDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Partenaires disponibles ≥ 7 jours sur 14'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 360,
+          child: _topAvailablePartners.isEmpty
+              ? const Center(child: Text('Aucun partenaire ne satisfait ce critère.'))
+              : ListView.builder(
+                  itemCount: _topAvailablePartners.length,
+                  itemBuilder: (context, index) {
+                    final p = _topAvailablePartners[index];
+                    final name = (p['partner_name'] ?? '').toString();
+                    final email = (p['partner_email'] ?? '').toString();
+                    final available = (p['available_days'] ?? 0) as int;
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.green,
+                        child: Text(
+                          name
+                              .split(' ')
+                              .map((e) => e.isNotEmpty ? e[0] : '')
+                              .take(2)
+                              .join()
+                              .toUpperCase(),
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                      ),
+                      title: Text(name.isNotEmpty ? name : 'Partenaire'),
+                      subtitle: Text(email),
+                      trailing: Chip(
+                        label: Text('$available/14 j'),
+                        backgroundColor: Colors.green.shade50,
+                        side: BorderSide(color: Colors.green.shade200),
+                      ),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPartnerAvailabilityDetails(Map<String, dynamic> partner) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Détails - ${partner['partner_name']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('📧 Email: ${partner['partner_email'] ?? 'Non spécifié'}'),
+            const SizedBox(height: 8),
+            Text('📋 Statut: ${partner['is_available'] == true ? "Disponible" : "Indisponible"}'),
+            const SizedBox(height: 8),
+            Text('📌 Type: ${_getAvailabilityTypeLabel(partner['availability_type'])}'),
+            if (partner['start_time'] != null || partner['end_time'] != null) ...[
+              const SizedBox(height: 8),
+              Text('⏰ Horaires: ${partner['start_time'] ?? "Non défini"} - ${partner['end_time'] ?? "Non défini"}'),
+            ],
+            if (partner['notes'] != null && partner['notes'].toString().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('📝 Notes: ${partner['notes']}'),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getAvailabilityTypeLabel(String? type) {
+    switch (type) {
+      case 'full_day':
+        return 'Journée complète';
+      case 'partial_day':
+        return 'Journée partielle';
+      case 'unavailable':
+        return 'Indisponible';
+      default:
+        return 'Non défini';
+    }
   }
 } 

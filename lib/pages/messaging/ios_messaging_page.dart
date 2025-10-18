@@ -58,9 +58,12 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
       final usersList = await SupabaseService.getAllUsers();
       debugPrint('Utilisateurs chargés: ${usersList.length}');
       
+      // Filtrer les utilisateurs selon les restrictions de messagerie
+      final filteredUsersList = await _filterUsersForMessaging(usersList);
+      
       setState(() {
-        users = usersList;
-        filteredUsers = usersList;
+        users = filteredUsersList;
+        filteredUsers = filteredUsersList;
       });
     } catch (e) {
       debugPrint('Erreur lors du chargement des utilisateurs: $e');
@@ -68,6 +71,28 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
         error = 'Erreur lors du chargement des utilisateurs: $e';
       });
     }
+  }
+
+  /// Filtre les utilisateurs selon les restrictions de messagerie :
+  /// - Associés : peuvent parler à tout le monde
+  /// - Clients/Partenaires : peuvent parler seulement aux associés
+  Future<List<Map<String, dynamic>>> _filterUsersForMessaging(List<Map<String, dynamic>> allUsers) async {
+    final currentUserRole = await SupabaseService.getCurrentUserRole();
+    
+    if (currentUserRole == null) {
+      return allUsers; // Par défaut, retourner tous les utilisateurs
+    }
+    
+    // Les associés et admins peuvent parler à tout le monde
+    if (currentUserRole.value == 'associe' || currentUserRole.value == 'admin') {
+      return allUsers;
+    }
+    
+    // Les clients et partenaires ne peuvent parler qu'aux associés et admins
+    return allUsers.where((user) {
+      final userRole = user['user_role']?.toString().toLowerCase();
+      return userRole == 'associe' || userRole == 'admin';
+    }).toList();
   }
 
   void _filterUsers(String query) {
@@ -92,7 +117,7 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
       // Créer ou récupérer la conversation
       final conversationId = await MessagingService().getOrCreateConversation(userId);
       
-      if (conversationId != null && mounted) {
+      if (mounted) {
         Navigator.of(context).push(
           CupertinoPageRoute(
             builder: (context) => IOSConversationDetailPage(
@@ -275,7 +300,11 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: IOSTheme.cardDecoration,
+      decoration: BoxDecoration(
+        color: IOSTheme.systemBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: IOSTheme.systemGray5, width: 1),
+      ),
       child: IOSListTile(
         leading: CircleAvatar(
           backgroundColor: IOSTheme.primaryBlue,

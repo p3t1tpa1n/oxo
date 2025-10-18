@@ -1,0 +1,10 @@
+# Fichiers à ignorer pour Vercel
+node_modules/
+.git/
+.dart_tool/
+build/
+*.log
+.env
+*.md
+supabase/
+test/

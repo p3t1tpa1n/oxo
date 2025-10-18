@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/calendar_widget.dart';
+import '../../widgets/standard_dialogs.dart' as dialogs;
 import 'dart:async';
 import '../../widgets/messaging_button.dart';
 
@@ -32,10 +34,31 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
   // Variables pour le timesheet
   Map<String, double> _taskHours = {};
 
+  // Variables pour les disponibilités
+  List<Map<String, dynamic>> _availabilities = [];
+  DateTime _selectedDay = DateTime.now();
+  DateTime _focusedDay = DateTime.now();
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _checkQuestionnaireCompletion();
+  }
+
+  Future<void> _checkQuestionnaireCompletion() async {
+    try {
+      final hasCompleted = await SupabaseService.hasCompletedQuestionnaire();
+      if (!hasCompleted && mounted) {
+        // Rediriger vers le questionnaire
+        Navigator.pushReplacementNamed(context, '/partner-questionnaire');
+        return;
+      }
+      _loadData();
+    } catch (e) {
+      debugPrint('Erreur lors de la vérification du questionnaire: $e');
+      _loadData(); // Continuer même en cas d'erreur
+    }
   }
 
   @override
@@ -272,6 +295,11 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                 setState(() {
                   _selectedIndex = index;
                 });
+                
+                // Charger les disponibilités si c'est l'onglet correspondant
+                if (index == 2) {
+                  _loadAvailabilities();
+                }
               }
             },
             labelType: NavigationRailLabelType.none,
@@ -307,6 +335,11 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                 icon: Icon(Icons.chat_outlined, color: Colors.white70),
                 selectedIcon: Icon(Icons.chat, color: Colors.white),
                 label: Text('Discussion', style: TextStyle(color: Colors.white)),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.event_available_outlined, color: Colors.white70),
+                selectedIcon: Icon(Icons.event_available, color: Colors.white),
+                label: Text('Disponibilités', style: TextStyle(color: Colors.white)),
               ),
             ],
             trailing: Padding(
@@ -403,7 +436,18 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
   }
 
   Widget _buildDashboardPage() {
-    debugPrint('_buildDashboardPage: Construction du dashboard');
+    switch (_selectedIndex) {
+      case 0:
+        return _buildMainDashboard();
+      case 2:
+        return _buildAvailabilityTab();
+      default:
+        return _buildMainDashboard();
+    }
+  }
+
+  Widget _buildMainDashboard() {
+    debugPrint('_buildMainDashboard: Construction du dashboard principal');
     debugPrint('Nombre total de tâches: ${_tasks.length}');
     debugPrint('Tâches en cours: ${_tasks.where((t) => t['status'] == 'in_progress').length}');
     debugPrint('Tâches terminées: ${_tasks.where((t) => t['status'] == 'done').length}');
@@ -1034,5 +1078,605 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
         ],
       ),
     );
+  }
+
+  // ==========================================
+  // GESTION DES DISPONIBILITÉS
+  // ==========================================
+
+  Future<void> _loadAvailabilities() async {
+    try {
+      debugPrint('Chargement des disponibilités...');
+      
+      final startDate = DateTime(_focusedDay.year, _focusedDay.month, 1);
+      final endDate = DateTime(_focusedDay.year, _focusedDay.month + 1, 0);
+      
+      final availabilities = await SupabaseService.getPartnerOwnAvailability(
+        startDate: startDate,
+        endDate: endDate,
+      );
+      
+      setState(() {
+        _availabilities = availabilities;
+      });
+      
+      debugPrint('${availabilities.length} disponibilités chargées');
+    } catch (e) {
+      debugPrint('Erreur lors du chargement des disponibilités: $e');
+    }
+  }
+
+  Map<String, dynamic> _getAvailabilityForDate(DateTime date) {
+    final dateStr = date.toIso8601String().split('T')[0];
+    return _availabilities.firstWhere(
+      (availability) => availability['date'] == dateStr,
+      orElse: () => <String, dynamic>{},
+    );
+  }
+
+  bool _isAvailableOnDate(DateTime date) {
+    final availability = _getAvailabilityForDate(date);
+    return availability.isNotEmpty ? availability['is_available'] == true : true;
+  }
+
+  Color _getColorForDate(DateTime date) {
+    final availability = _getAvailabilityForDate(date);
+    if (availability.isEmpty) return Colors.green.shade100; // Par défaut disponible
+    
+    if (availability['is_available'] == true) {
+      switch (availability['availability_type']) {
+        case 'full_day':
+          return Colors.green.shade200;
+        case 'partial_day':
+          return Colors.orange.shade200;
+        default:
+          return Colors.green.shade100;
+      }
+    } else {
+      return Colors.red.shade200;
+    }
+  }
+
+  Widget _buildAvailabilityTab() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Gérer mes disponibilités',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: Row(
+              children: [
+                // Calendrier
+                Expanded(
+                  flex: 2,
+                  child: _buildCalendarSection(),
+                ),
+                const SizedBox(width: 24),
+                // Détails du jour sélectionné
+                Expanded(
+                  child: _buildSelectedDayDetails(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCalendarSection() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.calendar_month, color: Color(0xFF1784af)),
+                const SizedBox(width: 8),
+                const Text(
+                  'Calendrier des disponibilités',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: _createDefaultAvailabilities,
+                  icon: const Icon(Icons.auto_fix_high),
+                  tooltip: 'Créer disponibilités par défaut',
+                ),
+                IconButton(
+                  onPressed: () => _showBulkAvailabilityDialog(),
+                  icon: const Icon(Icons.edit_calendar),
+                  tooltip: 'Définir période',
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: TableCalendar(
+                firstDay: DateTime.now().subtract(const Duration(days: 30)),
+                lastDay: DateTime.now().add(const Duration(days: 365)),
+                focusedDay: _focusedDay,
+                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                calendarFormat: _calendarFormat,
+                startingDayOfWeek: StartingDayOfWeek.monday,
+                calendarBuilders: CalendarBuilders(
+                  defaultBuilder: (context, day, focusedDay) {
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: _getColorForDate(day),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _isAvailableOnDate(day) ? Colors.green : Colors.red,
+                          width: 1,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(
+                            color: _isAvailableOnDate(day) ? Colors.green.shade800 : Colors.red.shade800,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  selectedBuilder: (context, day, focusedDay) {
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: _getColorForDate(day),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: const Color(0xFF1784af),
+                          width: 3,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: const TextStyle(
+                            color: Color(0xFF1784af),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                onDaySelected: (selectedDay, focusedDay) {
+                  setState(() {
+                    _selectedDay = selectedDay;
+                    _focusedDay = focusedDay;
+                  });
+                },
+                onFormatChanged: (format) {
+                  setState(() {
+                    _calendarFormat = format;
+                  });
+                },
+                onPageChanged: (focusedDay) {
+                  setState(() {
+                    _focusedDay = focusedDay;
+                  });
+                  _loadAvailabilities();
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedDayDetails() {
+    final availability = _getAvailabilityForDate(_selectedDay);
+    final isAvailable = availability.isNotEmpty ? availability['is_available'] == true : true;
+    
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  isAvailable ? Icons.check_circle : Icons.cancel,
+                  color: isAvailable ? Colors.green : Colors.red,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Détails pour ${DateFormat('EEEE d MMMM yyyy', 'fr_FR').format(_selectedDay)}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => _showEditAvailabilityDialog(_selectedDay, availability),
+              icon: const Icon(Icons.edit),
+              label: const Text('Modifier'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1784af),
+                foregroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildAvailabilityDetails(availability, isAvailable),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvailabilityDetails(Map<String, dynamic> availability, bool isAvailable) {
+    if (availability.isEmpty) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('📋 Statut: Disponible (par défaut)'),
+          SizedBox(height: 8),
+          Text('⏰ Horaires: Journée complète'),
+          SizedBox(height: 8),
+          Text('📝 Notes: Aucune note spécifique'),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '📋 Statut: ${isAvailable ? "Disponible" : "Indisponible"}',
+          style: TextStyle(
+            color: isAvailable ? Colors.green.shade700 : Colors.red.shade700,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text('📌 Type: ${_getAvailabilityTypeLabel(availability['availability_type'])}'),
+        if (availability['start_time'] != null || availability['end_time'] != null) ...[
+          const SizedBox(height: 8),
+          Text('⏰ Horaires: ${availability['start_time'] ?? "Non défini"} - ${availability['end_time'] ?? "Non défini"}'),
+        ],
+        if (availability['unavailability_reason'] != null) ...[
+          const SizedBox(height: 8),
+          Text('🔍 Raison: ${_getUnavailabilityReasonLabel(availability['unavailability_reason'])}'),
+        ],
+        if (availability['notes'] != null && availability['notes'].toString().isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text('📝 Notes: ${availability['notes']}'),
+        ],
+      ],
+    );
+  }
+
+  String _getAvailabilityTypeLabel(String? type) {
+    switch (type) {
+      case 'full_day':
+        return 'Journée complète';
+      case 'partial_day':
+        return 'Journée partielle';
+      case 'unavailable':
+        return 'Indisponible';
+      default:
+        return 'Non défini';
+    }
+  }
+
+  String _getUnavailabilityReasonLabel(String? reason) {
+    switch (reason) {
+      case 'vacation':
+        return 'Congés';
+      case 'sick':
+        return 'Maladie';
+      case 'personal':
+        return 'Personnel';
+      case 'training':
+        return 'Formation';
+      case 'other':
+        return 'Autre';
+      default:
+        return reason ?? 'Non spécifié';
+    }
+  }
+
+  void _showEditAvailabilityDialog(DateTime date, Map<String, dynamic> currentAvailability) {
+    final isCurrentlyAvailable = currentAvailability.isNotEmpty ? currentAvailability['is_available'] == true : true;
+    final currentType = currentAvailability['availability_type'] ?? 'full_day';
+    final currentStartTime = currentAvailability['start_time'];
+    final currentEndTime = currentAvailability['end_time'];
+    final currentNotes = currentAvailability['notes'] ?? '';
+    final currentReason = currentAvailability['unavailability_reason'];
+
+    // Préparer les valeurs initiales
+    final initialValues = {
+      'is_available': isCurrentlyAvailable ? 'true' : 'false',
+      'availability_type': currentType,
+      'start_time': currentStartTime,
+      'end_time': currentEndTime,
+      'notes': currentNotes,
+      'unavailability_reason': currentReason,
+    };
+
+    dialogs.StandardDialogs.showFormDialog(
+      context: context,
+      title: 'Modifier la disponibilité',
+      initialValues: initialValues,
+      fields: [
+        const dialogs.FormField(
+          key: 'is_available',
+          label: 'Disponibilité',
+          type: dialogs.FormFieldType.dropdown,
+          required: true,
+          options: [
+            dialogs.SelectionItem(value: 'true', label: 'Disponible'),
+            dialogs.SelectionItem(value: 'false', label: 'Indisponible'),
+          ],
+        ),
+        const dialogs.FormField(
+          key: 'availability_type',
+          label: 'Type de disponibilité',
+          type: dialogs.FormFieldType.dropdown,
+          required: true,
+          options: [
+            dialogs.SelectionItem(value: 'full_day', label: 'Journée complète'),
+            dialogs.SelectionItem(value: 'partial_day', label: 'Journée partielle'),
+            dialogs.SelectionItem(value: 'unavailable', label: 'Indisponible'),
+          ],
+        ),
+        const dialogs.FormField(
+          key: 'start_time',
+          label: 'Heure de début (ex: 09:00)',
+          type: dialogs.FormFieldType.text,
+        ),
+        const dialogs.FormField(
+          key: 'end_time',
+          label: 'Heure de fin (ex: 17:00)',
+          type: dialogs.FormFieldType.text,
+        ),
+        const dialogs.FormField(
+          key: 'unavailability_reason',
+          label: 'Raison de l\'indisponibilité',
+          type: dialogs.FormFieldType.dropdown,
+          options: [
+            dialogs.SelectionItem(value: '', label: 'Aucune'),
+            dialogs.SelectionItem(value: 'vacation', label: 'Congés'),
+            dialogs.SelectionItem(value: 'sick', label: 'Maladie'),
+            dialogs.SelectionItem(value: 'personal', label: 'Personnel'),
+            dialogs.SelectionItem(value: 'training', label: 'Formation'),
+            dialogs.SelectionItem(value: 'other', label: 'Autre'),
+          ],
+        ),
+        const dialogs.FormField(
+          key: 'notes',
+          label: 'Notes',
+          type: dialogs.FormFieldType.text,
+        ),
+      ],
+    ).then((result) async {
+      if (result != null) {
+        await _saveAvailability(date, result);
+      }
+    });
+  }
+
+  Future<void> _saveAvailability(DateTime date, Map<String, dynamic> data) async {
+    try {
+      final isAvailable = data['is_available'] == 'true';
+      
+      TimeOfDay? startTime;
+      TimeOfDay? endTime;
+      
+      if (data['start_time'] != null && data['start_time'].toString().isNotEmpty) {
+        final startParts = data['start_time'].toString().split(':');
+        if (startParts.length >= 2) {
+          startTime = TimeOfDay(
+            hour: int.tryParse(startParts[0]) ?? 9,
+            minute: int.tryParse(startParts[1]) ?? 0,
+          );
+        }
+      }
+      
+      if (data['end_time'] != null && data['end_time'].toString().isNotEmpty) {
+        final endParts = data['end_time'].toString().split(':');
+        if (endParts.length >= 2) {
+          endTime = TimeOfDay(
+            hour: int.tryParse(endParts[0]) ?? 17,
+            minute: int.tryParse(endParts[1]) ?? 0,
+          );
+        }
+      }
+
+      final result = await SupabaseService.setPartnerAvailability(
+        date: date,
+        isAvailable: isAvailable,
+        availabilityType: data['availability_type'] ?? 'full_day',
+        startTime: startTime,
+        endTime: endTime,
+        notes: data['notes']?.isNotEmpty == true ? data['notes'] : null,
+        unavailabilityReason: data['unavailability_reason']?.isNotEmpty == true ? data['unavailability_reason'] : null,
+      );
+
+      if (result != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Disponibilité mise à jour avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _loadAvailabilities();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur lors de la mise à jour'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showBulkAvailabilityDialog() {
+    dialogs.StandardDialogs.showFormDialog(
+      context: context,
+      title: 'Définir une période',
+      fields: [
+        dialogs.FormField(
+          key: 'start_date',
+          label: 'Date de début',
+          type: dialogs.FormFieldType.date,
+          required: true,
+          context: context,
+        ),
+        dialogs.FormField(
+          key: 'end_date',
+          label: 'Date de fin',
+          type: dialogs.FormFieldType.date,
+          required: true,
+          context: context,
+        ),
+        const dialogs.FormField(
+          key: 'is_available',
+          label: 'Disponibilité',
+          type: dialogs.FormFieldType.dropdown,
+          required: true,
+          options: [
+            dialogs.SelectionItem(value: 'true', label: 'Disponible'),
+            dialogs.SelectionItem(value: 'false', label: 'Indisponible'),
+          ],
+        ),
+        const dialogs.FormField(
+          key: 'availability_type',
+          label: 'Type de disponibilité',
+          type: dialogs.FormFieldType.dropdown,
+          required: true,
+          options: [
+            dialogs.SelectionItem(value: 'full_day', label: 'Journée complète'),
+            dialogs.SelectionItem(value: 'partial_day', label: 'Journée partielle'),
+            dialogs.SelectionItem(value: 'unavailable', label: 'Indisponible'),
+          ],
+        ),
+        const dialogs.FormField(
+          key: 'notes',
+          label: 'Notes',
+          type: dialogs.FormFieldType.text,
+        ),
+      ],
+    ).then((result) async {
+      if (result != null) {
+        await _saveBulkAvailability(result);
+      }
+    });
+  }
+
+  Future<void> _saveBulkAvailability(Map<String, dynamic> data) async {
+    try {
+      final startDate = DateTime.tryParse(data['start_date'].toString());
+      final endDate = DateTime.tryParse(data['end_date'].toString());
+      
+      if (startDate == null || endDate == null) {
+        throw Exception('Dates invalides');
+      }
+
+      final isAvailable = data['is_available'] == 'true';
+      
+      final success = await SupabaseService.setPartnerAvailabilityBulk(
+        startDate: startDate,
+        endDate: endDate,
+        isAvailable: isAvailable,
+        availabilityType: data['availability_type'] ?? 'full_day',
+        notes: data['notes']?.isNotEmpty == true ? data['notes'] : null,
+      );
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Période définie avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _loadAvailabilities();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur lors de la définition de la période'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _createDefaultAvailabilities() async {
+    try {
+      final success = await SupabaseService.createDefaultAvailabilityForPartner();
+      
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Disponibilités par défaut créées'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _loadAvailabilities();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur lors de la création des disponibilités par défaut'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 } 

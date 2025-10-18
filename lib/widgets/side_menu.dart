@@ -18,6 +18,7 @@ class SideMenu extends StatelessWidget {
     final bool isAssociate = userRole == UserRole.associe;
     final bool isAdmin = userRole == UserRole.admin;
     final bool isClient = userRole == UserRole.client;
+    final bool isPartner = userRole == UserRole.partenaire;
 
     return Container(
       width: 250,
@@ -28,7 +29,7 @@ class SideMenu extends StatelessWidget {
           if (isClient)
             _buildClientMenu(context)
           else
-            _buildStandardMenu(context, isAssociate, isAdmin, isClient),
+            _buildStandardMenu(context, isAssociate, isAdmin, isClient, isPartner),
           const Spacer(),
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -149,7 +150,7 @@ class SideMenu extends StatelessWidget {
     );
   }
 
-  Widget _buildStandardMenu(BuildContext context, bool isAssociate, bool isAdmin, bool isClient) {
+  Widget _buildStandardMenu(BuildContext context, bool isAssociate, bool isAdmin, bool isClient, bool isPartner) {
     return Column(
       children: [
         if (!isAssociate) ...[
@@ -204,6 +205,17 @@ class SideMenu extends StatelessWidget {
           '/timesheet',
           isSelected: selectedRoute == '/timesheet',
         ),
+        // Menu spécifique aux partenaires : Disponibilités
+        if (isPartner) ...[
+          const SizedBox(height: 12),
+          _buildMenuButton(
+            context,
+            Icons.event_available,
+            'Mes Disponibilités',
+            '/availability',
+            isSelected: selectedRoute == '/availability',
+          ),
+        ],
         if (!isAssociate) ...[
           const SizedBox(height: 12),
           _buildMenuButton(
@@ -212,6 +224,17 @@ class SideMenu extends StatelessWidget {
             'Partenaires',
             '/partners',
             isSelected: selectedRoute == '/partners',
+          ),
+        ],
+        // Menu spécifique aux associés : Profils Partenaires
+        if (isAssociate) ...[
+          const SizedBox(height: 12),
+          _buildMenuButton(
+            context,
+            Icons.people_alt,
+            'Profils Partenaires',
+            '/partner-profiles',
+            isSelected: selectedRoute == '/partner-profiles',
           ),
         ],
         const SizedBox(height: 12),
