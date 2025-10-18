@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
-import '../../widgets/calendar_widget.dart';
 import '../../widgets/messaging_button.dart';
 import '../shared/calendar_page.dart';
 
@@ -750,68 +749,6 @@ class _DashboardPageState extends State<DashboardPage> {
         childAspectRatio: aspectRatio,
       ),
       childrenDelegate: SliverChildListDelegate([
-        Card(
-          elevation: 8,
-          shadowColor: Colors.black.withOpacity(0.2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: CalendarWidget(
-              showTitle: true,
-              title: 'Planning Global',
-              isExpanded: false,
-              onExpandToggle: () {},
-              isTimesheet: false,
-              onDaySelected: (date) {
-                debugPrint('Selected date: $date');
-              },
-            ),
-          ),
-        ),
-        Card(
-          elevation: 8,
-          shadowColor: Colors.black.withOpacity(0.2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: CalendarWidget(
-              showTitle: true,
-              title: 'Timesheet Personnel',
-              isExpanded: false,
-              onExpandToggle: () {},
-              isTimesheet: true,
-              onDaySelected: (date) async {
-                if (!mounted) return;
-                await showDialog(
-                  context: context,
-                  builder: (context) => TimesheetDialog(selectedDate: date),
-                );
-              },
-            ),
-          ),
-        ),
       ]),
     );
   }
