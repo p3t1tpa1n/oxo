@@ -85,10 +85,10 @@ class IOSPartnerDetailPage extends StatelessWidget {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: IOSTheme.primaryBlue.withValues(alpha: 0.1),
+              color: IOSTheme.primaryBlue.withOpacity(0.1),
               borderRadius: BorderRadius.circular(50),
               border: Border.all(
-                color: IOSTheme.primaryBlue.withValues(alpha: 0.3),
+                color: IOSTheme.primaryBlue.withOpacity(0.3),
                 width: 2,
               ),
             ),
@@ -397,10 +397,10 @@ class IOSPartnerDetailPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: IOSTheme.primaryBlue.withValues(alpha: 0.1),
+        color: IOSTheme.primaryBlue.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: IOSTheme.primaryBlue.withValues(alpha: 0.3),
+          color: IOSTheme.primaryBlue.withOpacity(0.3),
         ),
       ),
       child: Text(

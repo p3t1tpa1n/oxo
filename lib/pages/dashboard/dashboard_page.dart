@@ -452,7 +452,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildTasksSection() {
     return Card(
       elevation: 8,
-      shadowColor: Colors.black.withValues(alpha: 0.2),
+      shadowColor: Colors.black.withOpacity(0.2),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -462,7 +462,7 @@ class _DashboardPageState extends State<DashboardPage> {
           border: Border.all(color: const Color(0xFF1784af), width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -504,7 +504,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             borderRadius: const BorderRadius.all(Radius.circular(8)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
+                                color: Colors.black.withOpacity(0.05),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -592,7 +592,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             borderRadius: const BorderRadius.all(Radius.circular(8)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
+                                color: Colors.black.withOpacity(0.05),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -666,7 +666,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             borderRadius: const BorderRadius.all(Radius.circular(8)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
+                                color: Colors.black.withOpacity(0.05),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -752,7 +752,7 @@ class _DashboardPageState extends State<DashboardPage> {
       childrenDelegate: SliverChildListDelegate([
         Card(
           elevation: 8,
-          shadowColor: Colors.black.withValues(alpha: 0.2),
+          shadowColor: Colors.black.withOpacity(0.2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -761,7 +761,7 @@ class _DashboardPageState extends State<DashboardPage> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -781,7 +781,7 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         Card(
           elevation: 8,
-          shadowColor: Colors.black.withValues(alpha: 0.2),
+          shadowColor: Colors.black.withOpacity(0.2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -790,7 +790,7 @@ class _DashboardPageState extends State<DashboardPage> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -868,7 +868,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildTaskCardContent(String title, String description, DateTime dueDate, {bool isDone = false}) {
     return Card(
       elevation: 3,
-      shadowColor: Colors.black.withValues(alpha: 0.1),
+      shadowColor: Colors.black.withOpacity(0.1),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Container(
         padding: const EdgeInsets.all(12),

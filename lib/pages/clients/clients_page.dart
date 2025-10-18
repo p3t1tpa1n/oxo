@@ -620,7 +620,7 @@ class _ClientsPageState extends State<ClientsPage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: Colors.grey.withOpacity(0.1),
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, 2),
@@ -676,7 +676,7 @@ class _ClientsPageState extends State<ClientsPage> {
         });
       },
       backgroundColor: Colors.white,
-      selectedColor: const Color(0xFF1E3D54).withValues(alpha: 0.2),
+      selectedColor: const Color(0xFF1E3D54).withOpacity(0.2),
       checkmarkColor: const Color(0xFF1E3D54),
       side: BorderSide(
         color: isSelected 
@@ -703,10 +703,10 @@ class _ClientsPageState extends State<ClientsPage> {
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
               color: (client['status'] == 'actif' || client['status'] == null)
-                  ? Colors.green.withValues(alpha: 0.3)
+                  ? Colors.green.withOpacity(0.3)
                   : client['status'] == 'prospect'
-                      ? Colors.blue.withValues(alpha: 0.3)
-                      : Colors.grey.withValues(alpha: 0.3),
+                      ? Colors.blue.withOpacity(0.3)
+                      : Colors.grey.withOpacity(0.3),
               width: 1,
             ),
           ),
@@ -823,9 +823,9 @@ class _ClientsPageState extends State<ClientsPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        border: Border.all(color: color.withOpacity(0.5)),
       ),
       child: Text(
         label,

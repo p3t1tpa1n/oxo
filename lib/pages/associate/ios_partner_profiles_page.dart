@@ -247,7 +247,7 @@ class _IOSPartnerProfilesPageState extends State<IOSPartnerProfilesPage> {
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: IOSTheme.primaryBlue.withValues(alpha: 0.1),
+                      color: IOSTheme.primaryBlue.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(25),
                     ),
                     child: Center(
@@ -292,8 +292,8 @@ class _IOSPartnerProfilesPageState extends State<IOSPartnerProfilesPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: partner['questionnaire_completed'] == true 
-                          ? CupertinoColors.systemGreen.withValues(alpha: 0.1)
-                          : CupertinoColors.systemOrange.withValues(alpha: 0.1),
+                          ? CupertinoColors.systemGreen.withOpacity(0.1)
+                          : CupertinoColors.systemOrange.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
