@@ -15,6 +15,9 @@ class Mission {
   final String? partnerEmail;
   final String? partnerFirstName;
   final String? partnerLastName;
+  final String? assignedTo; // ID du partenaire assigné
+  final String? assignedToFirstName;
+  final String? assignedToLastName;
   final DateTime startDate;
   final DateTime? endDate;
   final String status;
@@ -41,6 +44,9 @@ class Mission {
     this.partnerEmail,
     this.partnerFirstName,
     this.partnerLastName,
+    this.assignedTo,
+    this.assignedToFirstName,
+    this.assignedToLastName,
     required this.startDate,
     this.endDate,
     required this.status,
@@ -69,6 +75,9 @@ class Mission {
       partnerEmail: json['partner_email'] as String?,
       partnerFirstName: json['partner_first_name'] as String?,
       partnerLastName: json['partner_last_name'] as String?,
+      assignedTo: json['assigned_to']?.toString(),
+      assignedToFirstName: json['assigned_to_first_name'] as String?,
+      assignedToLastName: json['assigned_to_last_name'] as String?,
       startDate: DateTime.parse(json['start_date'] as String),
       endDate: json['end_date'] != null 
           ? DateTime.parse(json['end_date'] as String) 
@@ -102,6 +111,7 @@ class Mission {
       'title': title,
       'company_id': companyId,
       'partner_id': partnerId,
+      'assigned_to': assignedTo,
       'start_date': startDate.toIso8601String().split('T')[0],
       'end_date': endDate?.toIso8601String().split('T')[0],
       'status': status,
@@ -130,6 +140,9 @@ class Mission {
     String? partnerEmail,
     String? partnerFirstName,
     String? partnerLastName,
+    String? assignedTo,
+    String? assignedToFirstName,
+    String? assignedToLastName,
     DateTime? startDate,
     DateTime? endDate,
     String? status,
@@ -156,6 +169,9 @@ class Mission {
       partnerEmail: partnerEmail ?? this.partnerEmail,
       partnerFirstName: partnerFirstName ?? this.partnerFirstName,
       partnerLastName: partnerLastName ?? this.partnerLastName,
+      assignedTo: assignedTo ?? this.assignedTo,
+      assignedToFirstName: assignedToFirstName ?? this.assignedToFirstName,
+      assignedToLastName: assignedToLastName ?? this.assignedToLastName,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       status: status ?? this.status,
@@ -202,9 +218,23 @@ class Mission {
   /// Est-ce que la mission est active (disponible pour saisie de temps)
   bool get isActive {
     final now = DateTime.now();
-    return status == 'in_progress' && 
+    return (status == 'in_progress' || status == 'pending' || status == 'accepted') && 
            startDate.isBefore(now.add(const Duration(days: 1))) &&
            (endDate == null || endDate!.isAfter(now.subtract(const Duration(days: 1))));
+  }
+
+  /// Est-ce que la mission n'est assignée à personne
+  bool get isUnassigned {
+    return (assignedTo == null || assignedTo!.isEmpty) && 
+           (partnerId == null || partnerId!.isEmpty);
+  }
+
+  /// Nom complet du partenaire assigné
+  String? get assignedToFullName {
+    if (assignedToFirstName != null && assignedToLastName != null) {
+      return '$assignedToFirstName $assignedToLastName';
+    }
+    return null;
   }
 
   @override

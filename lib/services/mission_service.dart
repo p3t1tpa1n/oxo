@@ -65,16 +65,17 @@ class MissionService {
   ) async {
     try {
       final targetDate = date ?? DateTime.now();
+      final dateStr = targetDate.toIso8601String().split('T')[0];
       debugPrint('🔄 Fallback: récupération depuis mission_with_context');
       
-      // Essayer d'abord avec in_progress, puis avec pending si aucune trouvée
+      // Chercher les missions assignées au partenaire (partner_id OU assigned_to)
       var response = await SupabaseService.client
           .from('mission_with_context')
           .select()
-          .eq('partner_id', partnerId)
-          .inFilter('status', ['in_progress', 'pending']) // Inclure aussi pending
-          .lte('start_date', targetDate.toIso8601String().split('T')[0])
-          .or('end_date.is.null,end_date.gte.${targetDate.toIso8601String().split('T')[0]}')
+          .or('partner_id.eq.$partnerId,assigned_to.eq.$partnerId')
+          .inFilter('status', ['in_progress', 'pending', 'accepted'])
+          .lte('start_date', dateStr)
+          .or('end_date.is.null,end_date.gte.$dateStr')
           .order('start_date', ascending: false);
 
       debugPrint('✅ ${response.length} missions récupérées depuis la vue');
@@ -84,11 +85,11 @@ class MissionService {
         debugPrint('🔄 Aucune mission dans la vue, tentative directe depuis missions');
         response = await SupabaseService.client
             .from('missions')
-            .select()
-            .eq('partner_id', partnerId)
-            .inFilter('status', ['in_progress', 'pending'])
-            .lte('start_date', targetDate.toIso8601String().split('T')[0])
-            .or('end_date.is.null,end_date.gte.${targetDate.toIso8601String().split('T')[0]}')
+            .select('*, company:company_id(name, city, group_id, investor_group:group_id(name, sector))')
+            .or('partner_id.eq.$partnerId,assigned_to.eq.$partnerId')
+            .inFilter('status', ['in_progress', 'pending', 'accepted'])
+            .lte('start_date', dateStr)
+            .or('end_date.is.null,end_date.gte.$dateStr')
             .order('start_date', ascending: false);
         debugPrint('✅ ${response.length} missions récupérées directement depuis missions');
       }
@@ -98,6 +99,34 @@ class MissionService {
           .toList();
     } catch (e) {
       debugPrint('❌ Erreur fallback: $e');
+      // Dernier fallback : récupérer toutes les missions actives du partenaire
+      return await _getSimpleMissionsForPartner(partnerId, date);
+    }
+  }
+
+  /// Dernier recours : récupération simple des missions
+  static Future<List<Mission>> _getSimpleMissionsForPartner(
+    String partnerId,
+    DateTime? date,
+  ) async {
+    try {
+      // Note: date non utilisée dans ce fallback simple pour maximiser les résultats
+      debugPrint('🔄 Dernier fallback: récupération simple des missions pour $partnerId');
+      
+      final response = await SupabaseService.client
+          .from('missions')
+          .select()
+          .or('partner_id.eq.$partnerId,assigned_to.eq.$partnerId')
+          .inFilter('status', ['in_progress', 'pending', 'accepted'])
+          .order('start_date', ascending: false);
+      
+      debugPrint('✅ ${response.length} missions récupérées (fallback simple)');
+      
+      return response
+          .map<Mission>((json) => Mission.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Erreur fallback simple: $e');
       return [];
     }
   }

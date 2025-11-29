@@ -4,6 +4,7 @@ import '../../config/ios_theme.dart';
 import '../../widgets/ios_widgets.dart';
 import '../../services/supabase_service.dart';
 import '../../utils/progress_utils.dart';
+import '../../models/user_role.dart';
 
 class IOSProjectDetailPage extends StatefulWidget {
   final String projectId;
@@ -21,7 +22,9 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
   Map<String, dynamic>? _project;
   List<Map<String, dynamic>> _tasks = [];
   bool _isLoading = true;
+  bool _isAssigning = false;
   String? _error;
+  UserRole? _userRole;
 
   @override
   void initState() {
@@ -35,6 +38,9 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
         _isLoading = true;
         _error = null;
       });
+
+      // Charger le rôle de l'utilisateur
+      _userRole = SupabaseService.currentUserRole;
 
       // Charger les détails de la mission
       final missions = await SupabaseService.getCompanyMissions();
@@ -50,7 +56,9 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
       );
       
       if (_project!.isNotEmpty) {
-        debugPrint('Projet trouvé: ${_project!['name']}');
+        debugPrint('Projet trouvé: ${_project!['name'] ?? _project!['title']}');
+        debugPrint('Assigned to: ${_project!['assigned_to']}');
+        debugPrint('Partner ID: ${_project!['partner_id']}');
       }
 
       // Charger les tâches du projet
@@ -67,6 +75,106 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
         _isLoading = false;
         _error = 'Erreur lors du chargement: $e';
       });
+    }
+  }
+
+  /// Vérifie si la mission n'est assignée à personne
+  bool get _isMissionUnassigned {
+    if (_project == null) return false;
+    final assignedTo = _project!['assigned_to'];
+    final partnerId = _project!['partner_id'];
+    return (assignedTo == null || assignedTo.toString().isEmpty) &&
+           (partnerId == null || partnerId.toString().isEmpty);
+  }
+
+  /// Vérifie si l'utilisateur est un associé
+  bool get _isAssociate {
+    return _userRole == UserRole.associe;
+  }
+
+  /// S'auto-assigner la mission
+  Future<void> _assignToMyself() async {
+    if (_project == null) return;
+
+    final confirm = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('S\'assigner cette mission'),
+        content: Text(
+          'Voulez-vous vous assigner la mission "${_project!['title'] ?? _project!['name']}" ?',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Annuler'),
+            onPressed: () => Navigator.of(context).pop(false),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            child: const Text('Confirmer'),
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isAssigning = true);
+
+    try {
+      final currentUserId = SupabaseService.currentUser?.id;
+      if (currentUserId == null) throw Exception('Utilisateur non connecté');
+
+      // Mettre à jour la mission avec assigned_to = currentUserId
+      await SupabaseService.client
+          .from('missions')
+          .update({
+            'assigned_to': currentUserId,
+            'progress_status': 'en_cours',
+            'status': 'in_progress',
+          })
+          .eq('id', widget.projectId);
+
+      if (mounted) {
+        // Afficher un message de succès
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Succès'),
+            content: const Text('La mission vous a été assignée avec succès !'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+
+        // Recharger les données
+        await _loadProjectDetails();
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de l\'assignation: $e');
+      if (mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Erreur'),
+            content: Text('Impossible de s\'assigner la mission: $e'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isAssigning = false);
+      }
     }
   }
 
@@ -180,8 +288,18 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
 
   Widget _buildProjectHeader() {
     final status = _project!['status'] ?? 'actif';
+    final progressStatus = _project!['progress_status'] ?? 'à_assigner';
     final statusColor = IOSTheme.getStatusColor(status);
     final clientName = _project!['client_name'] ?? _project!['company_name'] ?? 'Aucun client';
+    final title = _project!['title'] ?? _project!['name'] ?? 'Projet sans titre';
+    
+    // Informations sur l'assignation
+    final assignedToFirstName = _project!['assigned_to_first_name'];
+    final assignedToLastName = _project!['assigned_to_last_name'];
+    final hasAssignee = assignedToFirstName != null || assignedToLastName != null;
+    final assigneeName = hasAssignee 
+        ? '${assignedToFirstName ?? ''} ${assignedToLastName ?? ''}'.trim()
+        : null;
     
     return Container(
       width: double.infinity,
@@ -208,7 +326,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  status.toUpperCase(),
+                  _getProgressStatusLabel(progressStatus).toUpperCase(),
                   style: IOSTheme.footnote.copyWith(
                     color: statusColor,
                     fontWeight: FontWeight.w600,
@@ -225,7 +343,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            _project!['name'] ?? 'Projet sans titre',
+            title,
             style: IOSTheme.largeTitle,
           ),
           const SizedBox(height: 8),
@@ -237,7 +355,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
           const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(CupertinoIcons.person, color: IOSTheme.primaryBlue, size: 16),
+              const Icon(CupertinoIcons.building_2_fill, color: IOSTheme.primaryBlue, size: 16),
               const SizedBox(width: 8),
               Text(
                 clientName,
@@ -245,9 +363,81 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          // Afficher l'assignation ou le bouton d'auto-assignation
+          if (hasAssignee) ...[
+            Row(
+              children: [
+                const Icon(CupertinoIcons.person_fill, color: IOSTheme.successColor, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  'Assigné à: $assigneeName',
+                  style: IOSTheme.footnote.copyWith(color: IOSTheme.successColor),
+                ),
+              ],
+            ),
+          ] else if (_isMissionUnassigned && _isAssociate) ...[
+            const SizedBox(height: 8),
+            _buildAssignToMyselfButton(),
+          ] else if (_isMissionUnassigned) ...[
+            Row(
+              children: [
+                const Icon(CupertinoIcons.person_badge_minus, color: IOSTheme.warningColor, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  'Non assignée',
+                  style: IOSTheme.footnote.copyWith(color: IOSTheme.warningColor),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  /// Bouton pour s'auto-assigner la mission
+  Widget _buildAssignToMyselfButton() {
+    return CupertinoButton(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      color: IOSTheme.primaryBlue,
+      borderRadius: BorderRadius.circular(12),
+      onPressed: _isAssigning ? null : _assignToMyself,
+      child: _isAssigning
+          ? const CupertinoActivityIndicator(color: CupertinoColors.white)
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(CupertinoIcons.person_add, color: CupertinoColors.white, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  'M\'assigner cette mission',
+                  style: IOSTheme.body.copyWith(
+                    color: CupertinoColors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  String _getProgressStatusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'à_assigner':
+        return 'À assigner';
+      case 'en_cours':
+      case 'in_progress':
+        return 'En cours';
+      case 'fait':
+      case 'done':
+      case 'completed':
+        return 'Terminé';
+      case 'pending':
+        return 'En attente';
+      default:
+        return status;
+    }
   }
 
   Widget _buildProjectStats() {
