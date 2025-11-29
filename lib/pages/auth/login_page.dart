@@ -1,7 +1,6 @@
 // lib/pages/login_page.dart
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
-import '../../models/user_role.dart';
 import 'dart:async';
 
 class LoginPage extends StatefulWidget {
@@ -67,9 +66,9 @@ class _LoginPageState extends State<LoginPage> {
 
         // Gestion explicite du cas client pour Vercel
         if (roleValue.toLowerCase() == 'client') {
-          debugPrint('Détection directe du rôle client par sa valeur, redirection vers /client');
+          debugPrint('Détection directe du rôle client par sa valeur, redirection vers /client/invoices');
           if (!mounted) return;
-          Navigator.pushReplacementNamed(context, '/client');
+          Navigator.pushReplacementNamed(context, '/client/invoices');
           return;
         }
 
@@ -77,18 +76,18 @@ class _LoginPageState extends State<LoginPage> {
         switch (userRole.toString().toLowerCase()) {
           case 'associe':
           case 'associé':
-            Navigator.pushReplacementNamed(context, '/associate');
+            Navigator.pushReplacementNamed(context, '/projects');
             break;
           case 'partenaire':
-            Navigator.pushReplacementNamed(context, '/partner');
+            Navigator.pushReplacementNamed(context, '/projects');
             break;
           case 'admin':
           case 'administrateur':
-            Navigator.pushReplacementNamed(context, '/associate');
+            Navigator.pushReplacementNamed(context, '/projects');
             break;
           case 'client':
-            debugPrint('Rôle client détecté dans le switch, redirection vers /client');
-            Navigator.pushReplacementNamed(context, '/client');
+            debugPrint('Rôle client détecté dans le switch, redirection vers /client/invoices');
+            Navigator.pushReplacementNamed(context, '/client/invoices');
             break;
           default:
             // Si le rôle n'est pas reconnu, rediriger vers la page de connexion

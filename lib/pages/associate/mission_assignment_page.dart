@@ -16,35 +16,92 @@ class MissionAssignmentPage extends StatefulWidget {
 class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _startDateController = TextEditingController();
-  final _endDateController = TextEditingController();
-  final _budgetController = TextEditingController();
-  final _priorityController = TextEditingController();
   
-  String _selectedPriority = 'Moyenne';
-  DateTime? _startDate;
-  DateTime? _endDate;
   bool _isLoading = false;
+  
+  // Variables pour l'autocomplétion des missions
+  List<Map<String, dynamic>> _existingMissions = [];
+  List<Map<String, dynamic>> _filteredMissions = [];
+  bool _isLoadingMissions = false;
+  Map<String, dynamic>? _selectedMission;
 
-  final List<String> _priorities = ['Faible', 'Moyenne', 'Élevée', 'Critique'];
+  @override
+  void initState() {
+    super.initState();
+    _loadExistingMissions();
+    _titleController.addListener(_onTitleChanged);
+  }
 
   @override
   void dispose() {
+    _titleController.removeListener(_onTitleChanged);
     _titleController.dispose();
-    _descriptionController.dispose();
-    _startDateController.dispose();
-    _endDateController.dispose();
-    _budgetController.dispose();
-    _priorityController.dispose();
     super.dispose();
+  }
+
+  // Charger les missions existantes
+  Future<void> _loadExistingMissions() async {
+    setState(() {
+      _isLoadingMissions = true;
+    });
+
+    try {
+      debugPrint('🔍 Chargement des missions existantes...');
+      // Récupérer les missions existantes depuis Supabase avec tous les détails
+      final missions = await SupabaseService.getExistingMissionsWithDetails();
+      debugPrint('📊 ${missions.length} missions récupérées');
+      debugPrint('📋 Première mission: ${missions.isNotEmpty ? missions.first : "Aucune"}');
+      
+      setState(() {
+        _existingMissions = missions;
+        _filteredMissions = missions;
+        _isLoadingMissions = false;
+      });
+      debugPrint('✅ Missions chargées dans l\'état');
+    } catch (e) {
+      debugPrint('❌ Erreur lors du chargement des missions: $e');
+      setState(() {
+        _isLoadingMissions = false;
+      });
+    }
+  }
+
+  // Filtrer les missions selon la saisie
+  void _onTitleChanged() {
+    final query = _titleController.text.toLowerCase();
+    debugPrint('🔍 Recherche: "$query"');
+    debugPrint('📊 Missions disponibles: ${_existingMissions.length}');
+    
+    setState(() {
+      if (query.isEmpty) {
+        _filteredMissions = _existingMissions;
+        debugPrint('📋 Affichage de toutes les missions: ${_filteredMissions.length}');
+      } else {
+        _filteredMissions = _existingMissions
+            .where((mission) => mission['title'].toLowerCase().contains(query))
+            .toList();
+        debugPrint('📋 Missions filtrées: ${_filteredMissions.length}');
+        for (var mission in _filteredMissions) {
+          debugPrint('  - ${mission['title']}');
+        }
+      }
+    });
+  }
+
+  // Sélectionner une mission
+  void _selectMission(Map<String, dynamic> mission) {
+    setState(() {
+      _selectedMission = mission;
+      _titleController.text = mission['title'];
+      _filteredMissions = [];
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Assigner mission - ${widget.partner['first_name']} ${widget.partner['last_name']}'),
+        title: Text('Proposer mission - ${widget.partner['first_name']} ${widget.partner['last_name']}'),
         backgroundColor: const Color(0xFF1E3D54),
         foregroundColor: Colors.white,
       ),
@@ -95,7 +152,7 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
               children: [
                 CircleAvatar(
                   radius: 25,
-                  backgroundColor: const Color(0xFF1E3D54).withOpacity(0.1),
+                  backgroundColor: const Color(0xFF1E3D54).withValues(alpha: 0.1),
                   child: Text(
                     '${widget.partner['first_name']?[0] ?? ''}${widget.partner['last_name']?[0] ?? ''}',
                     style: const TextStyle(
@@ -162,122 +219,47 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
             ),
             const SizedBox(height: 16),
             
-            // Titre de la mission
-            TextFormField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Titre de la mission *',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.assignment),
+            // Titre de la mission avec autocomplétion
+            _buildMissionTitleField(),
+            
+            // Indicateur de chargement ou nombre de missions
+            if (_isLoadingMissions)
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text('Chargement des missions...'),
+                  ],
+                ),
+              )
+            else if (_existingMissions.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  '${_existingMissions.length} missions disponibles',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+              )
+            else
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text(
+                  'Aucune mission disponible',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontSize: 12,
+                  ),
+                ),
               ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Le titre est obligatoire';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            
-            // Description
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description de la mission *',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.description),
-              ),
-              maxLines: 4,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'La description est obligatoire';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            
-            // Dates et budget
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _startDateController,
-                    decoration: const InputDecoration(
-                      labelText: 'Date de début *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.calendar_today),
-                    ),
-                    readOnly: true,
-                    onTap: () => _selectStartDate(),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Date de début obligatoire';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _endDateController,
-                    decoration: const InputDecoration(
-                      labelText: 'Date de fin *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.calendar_today),
-                    ),
-                    readOnly: true,
-                    onTap: () => _selectEndDate(),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Date de fin obligatoire';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _budgetController,
-                    decoration: const InputDecoration(
-                      labelText: 'Budget (€)',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.euro),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedPriority,
-                    decoration: const InputDecoration(
-                      labelText: 'Priorité',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.priority_high),
-                    ),
-                    items: _priorities.map((priority) {
-                      return DropdownMenuItem(
-                        value: priority,
-                        child: Text(priority),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedPriority = value!;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
@@ -316,62 +298,23 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
-                : const Text('Assigner la mission'),
+                : const Text('Proposer la mission'),
           ),
         ),
       ],
     );
   }
 
-  Future<void> _selectStartDate() async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (date != null) {
-      setState(() {
-        _startDate = date;
-        _startDateController.text = '${date.day}/${date.month}/${date.year}';
-      });
-    }
-  }
-
-  Future<void> _selectEndDate() async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: _startDate ?? DateTime.now().add(const Duration(days: 7)),
-      firstDate: _startDate ?? DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (date != null) {
-      setState(() {
-        _endDate = date;
-        _endDateController.text = '${date.day}/${date.month}/${date.year}';
-      });
-    }
-  }
 
   Future<void> _assignMission() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    if (_startDate == null || _endDate == null) {
+    if (_selectedMission == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Veuillez sélectionner les dates'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (_endDate!.isBefore(_startDate!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('La date de fin doit être après la date de début'),
+          content: Text('Veuillez sélectionner une mission existante'),
           backgroundColor: Colors.red,
         ),
       );
@@ -383,43 +326,39 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
     });
 
     try {
-      // Créer la mission dans la base de données
-      final missionData = {
-        'title': _titleController.text,
-        'description': _descriptionController.text,
+      // Créer une proposition de mission (assignation d'une mission existante)
+      final missionProposalData = {
+        'mission_id': _selectedMission!['id'],
         'partner_id': widget.partner['user_id'],
-        'start_date': _startDate!.toIso8601String(),
-        'end_date': _endDate!.toIso8601String(),
-        'budget': _budgetController.text.isNotEmpty ? double.tryParse(_budgetController.text) : null,
-        'priority': _selectedPriority,
-        'status': 'pending',
-        'created_at': DateTime.now().toIso8601String(),
+        'associate_id': SupabaseService.client.auth.currentUser?.id,
+        'proposed_at': DateTime.now().toIso8601String(),
+        'status': 'pending', // Le partenaire peut accepter ou refuser
       };
 
-      // Appeler le service Supabase pour créer la mission
-      final success = await SupabaseService.createMission(missionData);
-      
+      final success = await SupabaseService.createMissionProposal(missionProposalData);
+
       if (success) {
         // Envoyer une notification au partenaire
         await SupabaseService.sendNotificationToPartner(
           widget.partner['user_id'],
-          'Nouvelle mission assignée',
-          'Une nouvelle mission vous a été assignée: ${_titleController.text}',
+          'Mission proposée',
+          'Une mission vous a été proposée: ${_selectedMission!['title']}',
         );
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Mission assignée avec succès !'),
+              content: Text('Mission proposée avec succès !'),
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.pop(context, true); // Retour avec succès
+          Navigator.pop(context, true);
         }
       } else {
-        throw Exception('Erreur lors de la création de la mission');
+        throw Exception('Erreur lors de la proposition de la mission');
       }
     } catch (e) {
+      debugPrint('Erreur lors de la proposition de mission: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -434,6 +373,138 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  // Widget pour le champ de titre avec autocomplétion
+  Widget _buildMissionTitleField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _titleController,
+          decoration: InputDecoration(
+            labelText: 'Titre de la mission *',
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.assignment),
+            suffixIcon: _isLoadingMissions 
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : const Icon(Icons.search),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Le titre est obligatoire';
+            }
+            return null;
+          },
+        ),
+        if (_filteredMissions.isNotEmpty) ...[
+          _buildSuggestionsList(),
+        ],
+      ],
+    );
+  }
+
+  // Construire la liste des suggestions
+  Widget _buildSuggestionsList() {
+    debugPrint('🎯 Affichage des suggestions: ${_filteredMissions.length}');
+    
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: _filteredMissions.length > 5 ? 5 : _filteredMissions.length,
+        itemBuilder: (context, index) {
+          final mission = _filteredMissions[index];
+          return ListTile(
+            dense: true,
+            title: Text(
+              mission['title'],
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (mission['description'] != null && mission['description'].isNotEmpty)
+                  Text(
+                    mission['description'],
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                Row(
+                  children: [
+                    if (mission['budget'] != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${mission['budget']}€',
+                          style: TextStyle(fontSize: 10, color: Colors.blue[700]),
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+                    if (mission['priority'] != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _getPriorityColor(mission['priority']).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          mission['priority'],
+                          style: TextStyle(fontSize: 10, color: _getPriorityColor(mission['priority'])),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            onTap: () {
+              _selectMission(mission);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  // Obtenir la couleur selon la priorité
+  Color _getPriorityColor(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'critique':
+        return Colors.red;
+      case 'élevée':
+        return Colors.orange;
+      case 'moyenne':
+        return Colors.blue;
+      case 'faible':
+        return Colors.green;
+      default:
+        return Colors.grey;
     }
   }
 }

@@ -369,39 +369,8 @@ class SupabaseService {
     }
   }
 
-  static Future<void> insertTask(Map<String, dynamic> taskData) async {
-    try {
-      // Ajout des métadonnées
-      taskData['created_by'] = currentUser?.id;
-      taskData['updated_by'] = currentUser?.id;
-      
-      await client.from('tasks').insert(taskData);
-    } catch (e) {
-      debugPrint('Erreur lors de l\'insertion de la tâche: $e');
-      rethrow;
-    }
-  }
 
-  static Future<void> updateTask(int taskId, Map<String, dynamic> updates) async {
-    try {
-      // Ajout de la métadonnée updated_by
-      updates['updated_by'] = currentUser?.id;
-      
-      await client.from('tasks').update(updates).eq('id', taskId);
-    } catch (e) {
-      debugPrint('Erreur lors de la mise à jour de la tâche: $e');
-      rethrow;
-    }
-  }
 
-  static Future<void> deleteTask(int taskId) async {
-    try {
-      await client.from('tasks').delete().eq('id', taskId);
-    } catch (e) {
-      debugPrint('Erreur lors de la suppression de la tâche: $e');
-      rethrow;
-    }
-  }
 
   static Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
@@ -424,10 +393,10 @@ class SupabaseService {
       final List<dynamic> response = await client.rpc('get_users');
       debugPrint('getPartners: Réponse brute: $response');
       
-      // Filtrer les partenaires en utilisant 'user_role' (confirmé par le diagnostic)
+      // Filtrer les partenaires - flexible pour 'role' ou 'user_role'
       final partners = List<Map<String, dynamic>>.from(
         response.where((user) {
-          final userRole = user['user_role']; // Utiliser user_role directement
+          final userRole = user['user_role'] ?? user['role']; // Support des deux formats
           debugPrint('getPartners: Utilisateur ${user['email']} a le rôle: $userRole');
           return userRole == 'partenaire';
         })
@@ -436,17 +405,20 @@ class SupabaseService {
       debugPrint('getPartners: ${partners.length} partenaires trouvés');
 
       // Adapter les champs pour la compatibilité avec l'interface
-      final adaptedPartners = partners.map((partner) => {
-        'user_id': partner['user_id'],
-        'user_email': partner['email'], // Mapper 'email' vers 'user_email'
-        'email': partner['email'],
-        'first_name': partner['first_name'],
-        'last_name': partner['last_name'],
-        'phone': partner['phone'],
-        'role': partner['user_role'], // Utiliser user_role
-        'status': partner['status'],
-        'created_at': partner['created_at'],
-        'updated_at': partner['updated_at'],
+      final adaptedPartners = partners.map((partner) {
+        final role = partner['user_role'] ?? partner['role']; // Support des deux formats
+        return {
+          'user_id': partner['user_id'],
+          'user_email': partner['email'], // Mapper 'email' vers 'user_email'
+          'email': partner['email'],
+          'first_name': partner['first_name'],
+          'last_name': partner['last_name'],
+          'phone': partner['phone'],
+          'role': role,
+          'status': partner['status'],
+          'created_at': partner['created_at'],
+          'updated_at': partner['updated_at'],
+        };
       }).toList();
 
       debugPrint('getPartners: Partenaires adaptés: $adaptedPartners');
@@ -719,7 +691,7 @@ class SupabaseService {
       };
 
       if (projectId != null) {
-        invoiceData['project_id'] = projectId;
+        invoiceData['mission_id'] = projectId;
       }
       if (taxRate != null) {
         invoiceData['tax_rate'] = taxRate;
@@ -836,7 +808,7 @@ class SupabaseService {
     }
   }
 
-  // Méthodes pour la gestion des clients et projets
+  // Méthodes pour la gestion des clients et missions
 
   /// Méthode de compatibilité pour getClientMapping - remplacée par l'approche entreprise
   static Future<Map<String, dynamic>?> getClientMapping(String userId) async {
@@ -857,13 +829,9 @@ class SupabaseService {
 
   /// Méthode de compatibilité pour getClientProjects - remplacée par l'approche entreprise
   static Future<List<Map<String, dynamic>>> getClientProjects(String clientId) async {
-    return await getCompanyProjects();
+    return await getCompanyMissions();
   }
 
-  /// Méthode de compatibilité pour getClientTasks - remplacée par l'approche entreprise
-  static Future<List<Map<String, dynamic>>> getClientTasks(String clientId) async {
-    return await getClientActiveTasks();
-  }
 
   /// Méthode de compatibilité pour getClientById - remplacée par l'approche entreprise
   static Future<Map<String, dynamic>?> getClientById(String clientId) async {
@@ -888,14 +856,29 @@ class SupabaseService {
   /// Récupérer toutes les entreprises (pour admins/associés)
   static Future<List<Map<String, dynamic>>> getAllCompanies() async {
     try {
+      // Essayer d'abord 'company' (singulier), puis 'companies' (pluriel) en fallback
+      try {
+        final response = await client
+            .from('company')
+            .select('id, name')
+            .order('name', ascending: true);
+        
+        final companies = List<Map<String, dynamic>>.from(response);
+        debugPrint('✅ ${companies.length} companies récupérées depuis la table "company"');
+        return companies;
+      } catch (e) {
+        debugPrint('⚠️ Table "company" non trouvée, tentative avec "companies"...');
       final response = await client
           .from('companies')
-          .select()
+            .select('id, name')
           .order('name', ascending: true);
       
-      return List<Map<String, dynamic>>.from(response);
+        final companies = List<Map<String, dynamic>>.from(response);
+        debugPrint('✅ ${companies.length} companies récupérées depuis la table "companies"');
+        return companies;
+      }
     } catch (e) {
-      debugPrint('Erreur lors de la récupération des entreprises: $e');
+      debugPrint('❌ Erreur lors de la récupération des entreprises: $e');
       return [];
     }
   }
@@ -975,21 +958,24 @@ class SupabaseService {
     }
   }
 
-  // === PROJETS FILTRÉS PAR ENTREPRISE ===
+  // === MISSIONS FILTRÉES PAR ENTREPRISE ===
 
-  /// Récupérer les projets de l'entreprise de l'utilisateur connecté
-  static Future<List<Map<String, dynamic>>> getCompanyProjects() async {
+  /// Récupérer les missions de l'entreprise de l'utilisateur connecté
+  static Future<List<Map<String, dynamic>>> getCompanyMissions() async {
     try {
-      // Pour les admins/associés : voir tous les projets
+      debugPrint('getCompanyMissions() appelée');
+      // Pour les admins/associés : voir toutes les missions
       final userRole = await getCurrentUserRole();
+      debugPrint('Rôle utilisateur: $userRole');
       
       if (userRole == UserRole.admin || userRole == UserRole.associe) {
         final response = await client
-            .from('project_details') // Utiliser la vue qui inclut les noms clients
+            .from('missions') // Utiliser la table missions
             .select('*')
             .order('created_at', ascending: false);
         
-        debugPrint('Admin/Associé: ${response.length} projets récupérés');
+        debugPrint('Admin/Associé: ${response.length} missions récupérées');
+        debugPrint('Données des missions: $response');
         return List<Map<String, dynamic>>.from(response);
       } else {
         // Pour les clients/partenaires : filtrer par entreprise
@@ -1000,24 +986,24 @@ class SupabaseService {
         }
 
         final response = await client
-            .from('project_details') // Utiliser la vue qui inclut les noms clients
+            .from('missions') // Utiliser la table missions
             .select('*')
             .eq('company_id', userCompany['company_id'])
             .order('created_at', ascending: false);
         
-        debugPrint('Client/Partenaire: ${response.length} projets récupérés pour l\'entreprise ${userCompany['company_name']}');
+        debugPrint('Client/Partenaire: ${response.length} missions récupérées pour l\'entreprise ${userCompany['company_name']}');
         return List<Map<String, dynamic>>.from(response);
       }
     } catch (e) {
-      debugPrint('Erreur lors de la récupération des projets de l\'entreprise: $e');
+      debugPrint('Erreur lors de la récupération des missions de l\'entreprise: $e');
       // Fallback : essayer sans la vue
       try {
         final response = await client
-            .from('projects')
+            .from('missions')
             .select('*')
             .order('created_at', ascending: false);
         
-        debugPrint('Fallback: ${response.length} projets récupérés');
+        debugPrint('Fallback: ${response.length} missions récupérées');
         return List<Map<String, dynamic>>.from(response);
       } catch (fallbackError) {
         debugPrint('Erreur fallback: $fallbackError');
@@ -1026,7 +1012,7 @@ class SupabaseService {
     }
   }
 
-  /// Récupérer les clients de l'entreprise (pour sélection lors de création projet)
+  /// Récupérer les clients de l'entreprise (pour sélection lors de création mission)
   static Future<List<Map<String, dynamic>>> getCompanyClients() async {
     try {
       final response = await client.rpc('get_company_clients');
@@ -1037,7 +1023,7 @@ class SupabaseService {
     }
   }
 
-  /// Créer un projet avec client spécifié (pour les associés)
+  /// Créer une mission avec client spécifié (pour les associés)
   static Future<String?> createProjectWithClient({
     required String name,
     String? description,
@@ -1056,32 +1042,32 @@ class SupabaseService {
         'p_end_date': endDate?.toIso8601String().split('T')[0], // Format DATE
       });
 
-      return response.toString(); // ID du nouveau projet
+      return response.toString(); // ID de la nouvelle mission
     } catch (e) {
-      debugPrint('Erreur lors de la création du projet avec client: $e');
+      debugPrint('Erreur lors de la création de la mission avec client: $e');
       return null;
     }
   }
 
-  /// Associer un client à un projet existant
+  /// Associer un client à une mission existante
   static Future<bool> assignClientToProject({
     required String projectId,
     required String clientId,
   }) async {
     try {
-      final response = await client.rpc('assign_client_to_project', params: {
-        'p_project_id': projectId,
+      final response = await client.rpc('assign_client_to_mission', params: {
+        'p_mission_id': projectId,
         'p_client_id': clientId,
       });
 
       return response == true;
     } catch (e) {
-      debugPrint('Erreur lors de l\'assignation du client au projet: $e');
+      debugPrint('Erreur lors de l\'assignation du client à la mission: $e');
       return false;
     }
   }
 
-  /// Créer un projet pour l'entreprise de l'utilisateur (DÉPRÉCIÉ - Utiliser createProjectWithClient)
+  /// Créer une mission pour l'entreprise de l'utilisateur (DÉPRÉCIÉ - Utiliser createProjectWithClient)
   @Deprecated('Utilisez createProjectWithClient pour spécifier un client spécifique')
   static Future<Map<String, dynamic>?> createProjectForCompany({
     required String name,
@@ -1100,9 +1086,9 @@ class SupabaseService {
       }
 
       final response = await client
-          .from('projects')
+          .from('missions')
           .insert({
-            'name': name,
+            'title': name,
             'description': description,
             'status': status ?? 'active',
             'start_date': startDate?.toIso8601String(),
@@ -1115,71 +1101,14 @@ class SupabaseService {
       
       return response;
     } catch (e) {
-      debugPrint('Erreur lors de la création du projet: $e');
+      debugPrint('Erreur lors de la création de la mission: $e');
       rethrow;
     }
   }
 
   // === TÂCHES FILTRÉES PAR ENTREPRISE ===
 
-  /// Récupérer les tâches des projets de l'entreprise
-  static Future<List<Map<String, dynamic>>> getCompanyTasks() async {
-    try {
-      final response = await client
-          .from('tasks')
-          .select('''
-            *,
-            projects:project_id(name, company_id)
-          ''')
-          .order('created_at', ascending: false);
-      
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      debugPrint('Erreur lors de la récupération des tâches de l\'entreprise: $e');
-      return [];
-    }
-  }
 
-  /// Créer une tâche dans un projet de l'entreprise (avec partenaire OBLIGATOIRE)
-  static Future<Map<String, dynamic>?> createTaskForCompany({
-    required String projectId,
-    required String title,
-    required String partnerId, // OBLIGATOIRE: chaque tâche doit avoir un partenaire
-    String? description,
-    String? status,
-    String? priority,
-    DateTime? dueDate,
-    String? assignedTo,
-  }) async {
-    try {
-      if (partnerId.isEmpty) {
-        throw Exception('Un partenaire doit être assigné à chaque tâche');
-      }
-
-      final response = await client
-          .from('tasks')
-          .insert({
-            'project_id': projectId,
-            'title': title,
-            'description': description,
-            'status': status ?? 'todo',
-            'priority': priority ?? 'medium',
-            'due_date': dueDate?.toIso8601String(),
-            'assigned_to': assignedTo,
-            'partner_id': partnerId, // NOUVEAU: Partenaire obligatoire
-            'user_id': assignedTo ?? currentUser!.id, // User assigné ou créateur
-            'created_by': currentUser!.id,
-          })
-          .select()
-          .single();
-      
-      debugPrint('✅ Tâche créée avec partenaire: ${response['title']} -> Partenaire: $partnerId');
-      return response;
-    } catch (e) {
-      debugPrint('Erreur lors de la création de la tâche: $e');
-      rethrow;
-    }
-  }
 
   // === MÉTHODES SPÉCIFIQUES CLIENTS ===
 
@@ -1188,63 +1117,39 @@ class SupabaseService {
     try {
       final userCompany = await getUserCompany();
       if (userCompany == null || userCompany['company_id'] == null) {
-        return {
-          'projects_count': 0,
-          'tasks_count': 0,
-          'completed_tasks_count': 0,
-          'company_name': 'Aucune entreprise',
-        };
+      return {
+        'missions_count': 0,
+        'company_name': 'Aucune entreprise',
+      };
       }
 
-      final projects = await getCompanyProjects();
-      final tasks = await getCompanyTasks();
-      final completedTasks = tasks.where((task) => task['status'] == 'done').toList();
+      final missions = await getCompanyMissions();
 
       return {
-        'projects_count': projects.length,
-        'tasks_count': tasks.length,
-        'completed_tasks_count': completedTasks.length,
+        'missions_count': missions.length,
         'company_name': userCompany['company_name'] ?? 'Entreprise',
         'company_id': userCompany['company_id'],
       };
     } catch (e) {
       debugPrint('Erreur lors de la récupération des statistiques: $e');
       return {
-        'projects_count': 0,
-        'tasks_count': 0,
-        'completed_tasks_count': 0,
+        'missions_count': 0,
         'company_name': 'Erreur',
       };
     }
   }
 
-  /// Récupérer les projets récents de l'entreprise du client (limité à 5)
-  static Future<List<Map<String, dynamic>>> getClientRecentProjects() async {
+  /// Récupérer les missions récentes de l'entreprise du client (limité à 5)
+  static Future<List<Map<String, dynamic>>> getClientRecentMissions() async {
     try {
-      final projects = await getCompanyProjects();
-      return projects.take(5).toList();
+      final missions = await getCompanyMissions();
+      return missions.take(5).toList();
     } catch (e) {
-      debugPrint('Erreur lors de la récupération des projets récents: $e');
+      debugPrint('Erreur lors de la récupération des missions récentes: $e');
       return [];
     }
   }
 
-  /// Récupérer les tâches assignées au client ou en cours dans son entreprise
-  static Future<List<Map<String, dynamic>>> getClientActiveTasks() async {
-    try {
-      final tasks = await getCompanyTasks();
-      
-      // Filtrer les tâches actives (non terminées)
-      final activeTasks = tasks.where((task) => 
-        task['status'] != 'done' && task['status'] != 'completed'
-      ).toList();
-      
-      return activeTasks.take(10).toList();
-    } catch (e) {
-      debugPrint('Erreur lors de la récupération des tâches actives: $e');
-      return [];
-    }
-  }
 
   // ==== MÉTHODES POUR LA GESTION DES DEMANDES CLIENT ====
 
@@ -1321,7 +1226,7 @@ class SupabaseService {
         'p_response_message': responseMessage,
       });
 
-      return response.toString(); // ID du nouveau projet créé
+      return response.toString(); // ID de la nouvelle mission créé
     } catch (e) {
       debugPrint('Erreur lors de l\'approbation de la proposition: $e');
       return null;
@@ -1494,7 +1399,7 @@ class SupabaseService {
       }
 
       final extensionData = {
-        'project_id': projectId,
+        'mission_id': projectId,
         'client_id': currentUser!.id,
         'days_requested': daysRequested,
         'reason': reason,
@@ -1657,16 +1562,145 @@ class SupabaseService {
   static Future<List<Map<String, dynamic>>> getCommercialActions() async {
     try {
       debugPrint('🏢 Récupération des actions commerciales...');
+      final userId = currentUser?.id;
+      debugPrint('👤 User ID: $userId');
       
-      final response = await client.rpc('get_commercial_actions_for_company');
+      // Essayer d'abord avec la fonction RPC
+      try {
+        final response = await client.rpc('get_commercial_actions_for_company');
+        final actions = List<Map<String, dynamic>>.from(response);
+        debugPrint('🏢 ${actions.length} actions commerciales récupérées via RPC');
+        
+        if (actions.isNotEmpty) {
+          return actions;
+        }
+      } catch (rpcError) {
+        debugPrint('⚠️ Erreur RPC, fallback sur requête directe: $rpcError');
+      }
       
-      final actions = List<Map<String, dynamic>>.from(response);
-      debugPrint('🏢 ${actions.length} actions commerciales récupérées');
-      return actions;
+      // Fallback 1 : récupérer par company_id si disponible
+      debugPrint('🔄 Fallback 1: récupération par company_id...');
+      final userCompany = await getUserCompany();
+      if (userCompany != null && userCompany['company_id'] != null) {
+        final companyId = userCompany['company_id'];
+        debugPrint('🏢 Company ID: $companyId');
+        
+        try {
+          final response = await client
+              .from('commercial_actions')
+              .select('*')
+              .eq('company_id', companyId)
+              .order('created_at', ascending: false);
+          
+          final actions = List<Map<String, dynamic>>.from(response);
+          debugPrint('🏢 ${actions.length} actions commerciales récupérées par company_id');
+          
+          if (actions.isNotEmpty) {
+            return _transformActions(actions);
+          }
+        } catch (e) {
+          debugPrint('⚠️ Erreur lors de la récupération par company_id: $e');
+        }
+      }
+      
+      // Fallback 2 : récupérer les actions créées par l'utilisateur
+      if (userId != null) {
+        debugPrint('🔄 Fallback 2: récupération par created_by...');
+        try {
+          final response = await client
+              .from('commercial_actions')
+              .select('*')
+              .eq('created_by', userId)
+              .order('created_at', ascending: false);
+          
+          final actions = List<Map<String, dynamic>>.from(response);
+          debugPrint('🏢 ${actions.length} actions commerciales récupérées par created_by');
+          
+          if (actions.isNotEmpty) {
+            return _transformActions(actions);
+          }
+        } catch (e) {
+          debugPrint('⚠️ Erreur lors de la récupération par created_by: $e');
+        }
+      }
+      
+      // Fallback 3 : récupérer les actions assignées à l'utilisateur
+      if (userId != null) {
+        debugPrint('🔄 Fallback 3: récupération par assigned_to...');
+        try {
+          final response = await client
+              .from('commercial_actions')
+              .select('*')
+              .eq('assigned_to', userId)
+              .order('created_at', ascending: false);
+          
+          final actions = List<Map<String, dynamic>>.from(response);
+          debugPrint('🏢 ${actions.length} actions commerciales récupérées par assigned_to');
+          
+          if (actions.isNotEmpty) {
+            return _transformActions(actions);
+          }
+        } catch (e) {
+          debugPrint('⚠️ Erreur lors de la récupération par assigned_to: $e');
+        }
+      }
+      
+      // Fallback 4 : récupérer les actions où l'utilisateur est partenaire
+      if (userId != null) {
+        debugPrint('🔄 Fallback 4: récupération par partner_id...');
+        try {
+          final response = await client
+              .from('commercial_actions')
+              .select('*')
+              .eq('partner_id', userId)
+              .order('created_at', ascending: false);
+          
+          final actions = List<Map<String, dynamic>>.from(response);
+          debugPrint('🏢 ${actions.length} actions commerciales récupérées par partner_id');
+          
+          if (actions.isNotEmpty) {
+            return _transformActions(actions);
+          }
+        } catch (e) {
+          debugPrint('⚠️ Erreur lors de la récupération par partner_id: $e');
+        }
+      }
+      
+      debugPrint('❌ Aucune action commerciale trouvée avec aucun des fallbacks');
+      return [];
     } catch (e) {
       debugPrint('❌ Erreur lors de la récupération des actions commerciales: $e');
       return [];
     }
+  }
+  
+  /// Transformer les actions pour correspondre au format attendu
+  static List<Map<String, dynamic>> _transformActions(List<Map<String, dynamic>> actions) {
+    return actions.map((action) {
+      return {
+        'id': action['id'],
+        'title': action['title'],
+        'description': action['description'],
+        'type': action['type'],
+        'status': action['status'],
+        'priority': action['priority'],
+        'client_name': action['client_name'] ?? '',
+        'contact_person': action['contact_person'],
+        'contact_email': action['contact_email'],
+        'contact_phone': action['contact_phone'],
+        'estimated_value': action['estimated_value'],
+        'actual_value': action['actual_value'],
+        'due_date': action['due_date'],
+        'completed_date': action['completed_date'],
+        'created_at': action['created_at'],
+        'updated_at': action['updated_at'],
+        'assigned_to_email': null,
+        'assigned_to_name': null,
+        'partner_email': null,
+        'partner_name': null,
+        'notes': action['notes'],
+      };
+    }).toList();
   }
 
   /// Créer une nouvelle action commerciale
@@ -1947,7 +1981,7 @@ class SupabaseService {
       }
 
       final response = await client.from('mission_assignments').insert({
-        'project_id': projectId,
+        'mission_id': projectId,
         'task_id': taskId,
         'assigned_to': partnerId,
         'assigned_by': currentUser.id,
@@ -2100,7 +2134,7 @@ class SupabaseService {
 
       // Appeler la fonction SQL qui notifie tous les partenaires
       final response = await client.rpc('notify_all_partners_mission_available', params: {
-        'p_project_id': projectId,
+        'p_mission_id': projectId,
         'p_title': title,
         'p_message': message,
         'p_sent_by': currentUser.id,
@@ -2680,7 +2714,12 @@ class SupabaseService {
       debugPrint('🔍 Création d\'une nouvelle mission...');
       debugPrint('📊 Données mission: $missionData');
       
-      final response = await client
+      // S'assurer que le statut par défaut est défini
+      if (!missionData.containsKey('status')) {
+        missionData['status'] = 'à_faire';
+      }
+      
+      await client
           .from('missions')
           .insert(missionData);
       
@@ -2691,6 +2730,114 @@ class SupabaseService {
       return false;
     }
   }
+
+  // Méthode pour mettre à jour le statut d'une mission (acceptation/refus)
+  static Future<bool> updateMissionStatus(String missionId, String status) async {
+    try {
+      debugPrint('🔍 Mise à jour du statut de la mission $missionId vers $status');
+      
+      await client
+          .from('missions')
+          .update({'status': status})
+          .eq('id', missionId);
+      
+      debugPrint('✅ Statut de la mission mis à jour avec succès');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Erreur lors de la mise à jour du statut: $e');
+      return false;
+    }
+  }
+
+  // Méthode pour mettre à jour le statut d'avancement d'une mission
+  static Future<bool> updateMissionProgressStatus(String missionId, String progressStatus) async {
+    try {
+      debugPrint('🔍 Mise à jour du statut d\'avancement de la mission $missionId vers $progressStatus');
+      
+      await client
+          .from('missions')
+          .update({'progress_status': progressStatus})
+          .eq('id', missionId);
+      
+      debugPrint('✅ Statut d\'avancement de la mission mis à jour avec succès');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Erreur lors de la mise à jour du statut d\'avancement: $e');
+      return false;
+    }
+  }
+
+  // Méthode pour récupérer les missions avec leurs statuts
+  static Future<List<Map<String, dynamic>>> getMissionsWithStatus() async {
+    try {
+      debugPrint('🔍 Récupération des missions avec statuts...');
+      debugPrint('👤 Utilisateur actuel: ${currentUser?.id}');
+      debugPrint('🎭 Rôle actuel: $currentUserRole');
+      
+      // Vérifier d'abord si la table existe et contient des données
+      debugPrint('📊 Test de connexion à la table missions...');
+      
+      final response = await client
+          .from('missions')
+          .select('*')
+          .order('created_at', ascending: false);
+      
+      debugPrint('✅ ${response.length} missions récupérées');
+      
+      if (response.isEmpty) {
+        debugPrint('⚠️ ATTENTION: Aucune mission récupérée!');
+        debugPrint('🔍 Causes possibles:');
+        debugPrint('   1. Aucune mission dans la table');
+        debugPrint('   2. Politiques RLS bloquent l\'accès');
+        debugPrint('   3. company_id ne correspond pas');
+        
+        // Essayer de récupérer le company_id de l'utilisateur
+        try {
+          final userRoleResponse = await client
+              .from('user_roles')
+              .select('company_id, role')
+              .eq('user_id', currentUser!.id)
+              .maybeSingle();
+          
+          if (userRoleResponse != null) {
+            debugPrint('🏢 Company ID de l\'utilisateur: ${userRoleResponse['company_id']}');
+            debugPrint('🎭 Rôle de l\'utilisateur: ${userRoleResponse['role']}');
+          } else {
+            debugPrint('❌ Aucun rôle trouvé pour cet utilisateur!');
+          }
+        } catch (e) {
+          debugPrint('❌ Erreur lors de la récupération du rôle: $e');
+        }
+      }
+      
+      return response;
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erreur lors de la récupération des missions: $e');
+      debugPrint('📍 Stack trace: $stackTrace');
+      return [];
+    }
+  }
+
+  // Méthode pour récupérer les missions proposées à un partenaire
+  static Future<List<Map<String, dynamic>>> getProposedMissionsForPartner(String partnerId) async {
+    try {
+      debugPrint('🔍 Récupération des missions proposées au partenaire $partnerId...');
+      
+      final response = await client
+          .from('missions')
+          .select('*')
+          .eq('partner_id', partnerId)
+          .eq('status', 'pending')
+          .order('created_at', ascending: false);
+      
+      debugPrint('✅ ${response.length} missions proposées récupérées');
+      return response;
+    } catch (e) {
+      debugPrint('❌ Erreur lors de la récupération des missions proposées: $e');
+      return [];
+    }
+  }
+
 
   static Future<bool> sendNotificationToPartner(String partnerId, String title, String message) async {
     try {
@@ -2707,7 +2854,7 @@ class SupabaseService {
         'created_at': DateTime.now().toIso8601String(),
       };
       
-      final response = await client
+      await client
           .from('notifications')
           .insert(notificationData);
       
@@ -2833,6 +2980,63 @@ class SupabaseService {
     } catch (e) {
       debugPrint('❌ Erreur lors de la recherche de partenaires: $e');
       return [];
+    }
+  }
+
+  // Récupérer les titres des missions existantes pour l'autocomplétion
+  static Future<List<String>> getExistingMissions() async {
+    try {
+      debugPrint('🔍 Récupération des missions existantes...');
+      
+      final response = await client
+          .from('missions')
+          .select('title')
+          .order('title');
+      
+      final missions = response.map((mission) => mission['title'] as String).toList();
+      debugPrint('📊 ${missions.length} missions trouvées');
+      
+      return missions;
+    } catch (e) {
+      debugPrint('❌ Erreur lors de la récupération des missions: $e');
+      return [];
+    }
+  }
+
+  // Récupérer les missions existantes avec tous les détails pour l'autocomplétion
+  static Future<List<Map<String, dynamic>>> getExistingMissionsWithDetails() async {
+    try {
+      debugPrint('🔍 Récupération des missions existantes avec détails...');
+      
+      final response = await client
+          .from('missions')
+          .select('*')
+          .order('title');
+      
+      debugPrint('📊 ${response.length} missions trouvées avec détails');
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('❌ Erreur lors de la récupération des missions: $e');
+      return [];
+    }
+  }
+
+  // Créer une proposition de mission
+  static Future<bool> createMissionProposal(Map<String, dynamic> proposalData) async {
+    try {
+      debugPrint('🔍 Création d\'une proposition de mission...');
+      debugPrint('📊 Données proposition: $proposalData');
+
+      await client
+          .from('mission_proposals')
+          .insert(proposalData);
+
+      debugPrint('✅ Proposition de mission créée avec succès');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Erreur lors de la création de la proposition: $e');
+      return false;
     }
   }
 } 

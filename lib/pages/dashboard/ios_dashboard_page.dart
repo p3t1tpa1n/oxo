@@ -13,31 +13,62 @@ import '../partner/ios_partners_page.dart';
 import '../associate/ios_partner_profiles_page.dart';
 
 class IOSDashboardPage extends StatefulWidget {
-  const IOSDashboardPage({Key? key}) : super(key: key);
+  final int? initialTab;
+  
+  const IOSDashboardPage({
+    Key? key,
+    this.initialTab,
+  }) : super(key: key);
 
   @override
   State<IOSDashboardPage> createState() => _IOSDashboardPageState();
 }
 
 class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProviderStateMixin {
-  List<Map<String, dynamic>> _tasks = [];
-  List<Map<String, dynamic>> _projects = [];
+  List<Map<String, dynamic>> _missions = [];
   Map<String, dynamic> _stats = {};
   bool _isLoading = true;
   UserRole? _userRole;
   
   late TabController _tabController;
+  int _currentTabIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _userRole = SupabaseService.currentUserRole;
-    _tabController = TabController(length: _getTabCount(), vsync: this);
+    _currentTabIndex = widget.initialTab ?? 0;
+    _tabController = TabController(
+      length: _getTabCount(), 
+      vsync: this,
+      initialIndex: _currentTabIndex,
+    );
+    _tabController.addListener(_onTabChanged);
     _loadData();
+  }
+  
+  void _onTabChanged() {
+    if (!_tabController.indexIsChanging && mounted) {
+      setState(() {
+        _currentTabIndex = _tabController.index;
+      });
+    }
+  }
+  
+  /// Navigation vers une page externe (hors tabs)
+  /// Conserve l'état du dashboard pour un retour cohérent
+  void _navigateToExternalPage(String route) {
+    Navigator.of(context).pushNamed(route).then((_) {
+      // Au retour, on recharge les données si nécessaire
+      if (mounted) {
+        _loadData();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
   }
@@ -45,13 +76,13 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
   int _getTabCount() {
     switch (_userRole) {
       case UserRole.admin:
-        return 5; // Accueil, Projets, Tâches, Gestion, Profil
+        return 4; // Accueil, Missions, Gestion, Profil
       case UserRole.associe:
-        return 5; // Accueil, Projets, Tâches, Partenaires, Profil
+        return 4; // Accueil, Missions, Partenaires, Profil
       case UserRole.partenaire:
-        return 4; // Accueil, Mes Projets, Mes Tâches, Profil
+        return 3; // Accueil, Mes Missions, Profil
       case UserRole.client:
-        return 4; // Accueil, Mes Projets, Demandes, Profil
+        return 4; // Accueil, Mes Missions, Demandes, Profil
       default:
         return 2; // Accueil, Profil seulement
     }
@@ -61,38 +92,103 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
     switch (_userRole) {
       case UserRole.admin:
         return const [
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.home), label: 'Accueil'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.doc_text), label: 'Projets'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.checkmark_alt_circle), label: 'Tâches'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.settings), label: 'Gestion'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.person), label: 'Profil'),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.house),
+            activeIcon: Icon(CupertinoIcons.house_fill),
+            label: 'Accueil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.folder),
+            activeIcon: Icon(CupertinoIcons.folder_fill),
+            label: 'Missions',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.gear),
+            activeIcon: Icon(CupertinoIcons.gear_solid),
+            label: 'Gestion',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.person),
+            activeIcon: Icon(CupertinoIcons.person_fill),
+            label: 'Profil',
+          ),
         ];
       case UserRole.associe:
         return const [
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.home), label: 'Accueil'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.doc_text), label: 'Projets'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.checkmark_alt_circle), label: 'Tâches'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.person_2), label: 'Partenaires'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.person), label: 'Profil'),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.house),
+            activeIcon: Icon(CupertinoIcons.house_fill),
+            label: 'Accueil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.folder),
+            activeIcon: Icon(CupertinoIcons.folder_fill),
+            label: 'Missions',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.person_2),
+            activeIcon: Icon(CupertinoIcons.person_2_fill),
+            label: 'Partenaires',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.person),
+            activeIcon: Icon(CupertinoIcons.person_fill),
+            label: 'Profil',
+          ),
         ];
       case UserRole.partenaire:
         return const [
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.home), label: 'Accueil'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.briefcase), label: 'Mes Projets'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.list_bullet), label: 'Mes Tâches'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.person), label: 'Profil'),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.house),
+            activeIcon: Icon(CupertinoIcons.house_fill),
+            label: 'Accueil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.briefcase),
+            activeIcon: Icon(CupertinoIcons.briefcase_fill),
+            label: 'Mes Missions',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.person),
+            activeIcon: Icon(CupertinoIcons.person_fill),
+            label: 'Profil',
+          ),
         ];
       case UserRole.client:
         return const [
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.home), label: 'Accueil'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.folder), label: 'Mes Projets'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.paperplane), label: 'Demandes'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.person), label: 'Profil'),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.house),
+            activeIcon: Icon(CupertinoIcons.house_fill),
+            label: 'Accueil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.folder),
+            activeIcon: Icon(CupertinoIcons.folder_fill),
+            label: 'Mes Missions',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.paperplane),
+            activeIcon: Icon(CupertinoIcons.paperplane_fill),
+            label: 'Demandes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.person),
+            activeIcon: Icon(CupertinoIcons.person_fill),
+            label: 'Profil',
+          ),
         ];
       default:
         return const [
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.home), label: 'Accueil'),
-          BottomNavigationBarItem(icon: Icon(CupertinoIcons.person), label: 'Profil'),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.house),
+            activeIcon: Icon(CupertinoIcons.house_fill),
+            label: 'Accueil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.person),
+            activeIcon: Icon(CupertinoIcons.person_fill),
+            label: 'Profil',
+          ),
         ];
     }
   }
@@ -103,62 +199,61 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
     });
 
     try {
-      List<Map<String, dynamic>> tasks = [];
-      List<Map<String, dynamic>> projects = [];
+      List<Map<String, dynamic>> missions = [];
 
       // Charger les données selon le rôle
       switch (_userRole) {
         case UserRole.admin:
         case UserRole.associe:
           // Admins et associés voient toutes les données de l'entreprise
-          tasks = await SupabaseService.getCompanyTasks();
-          projects = await SupabaseService.getProjectProposals();
+          missions = await SupabaseService.getCompanyMissions();
+          missions = await SupabaseService.getProjectProposals();
           break;
           
         case UserRole.partenaire:
-          // Partenaires voient seulement leurs tâches assignées
-          final allTasks = await SupabaseService.getCompanyTasks();
-          tasks = allTasks.where((t) => 
-            t['assigned_to'] == SupabaseService.currentUser?.id ||
-            t['created_by'] == SupabaseService.currentUser?.id
+          // Partenaires voient seulement leurs missions assignées
+          final allMissions = await SupabaseService.getCompanyMissions();
+          missions = allMissions.where((m) => 
+            m['assigned_to'] == SupabaseService.currentUser?.id ||
+            m['created_by'] == SupabaseService.currentUser?.id
           ).toList();
           
-          // Projets où le partenaire est impliqué
+          // Missions où le partenaire est impliqué
           final allProjects = await SupabaseService.getProjectProposals();
-          projects = allProjects.where((p) => 
-            tasks.any((t) => t['project_id'] == p['id'])
+          missions = allProjects.where((p) => 
+            missions.any((m) => m['project_id'] == p['id'])
           ).toList();
           break;
           
         case UserRole.client:
-          // Clients voient seulement leurs projets et tâches
-          projects = await SupabaseService.getClientRecentProjects();
-          tasks = await SupabaseService.getClientActiveTasks();
+          // Clients voient seulement leurs missions
+          missions = await SupabaseService.getClientRecentMissions();
+          missions = await SupabaseService.getCompanyMissions();
           break;
           
         default:
           // Rôle non reconnu - données limitées
-          tasks = [];
-          projects = [];
+          missions = [];
+          missions = [];
       }
       
-      final completedTasks = tasks.where((t) => t['status'] == 'done').length;
-      final totalTasks = tasks.length;
-      final urgentTasks = tasks.where((t) => t['priority'] == 'urgent' && t['status'] != 'done').length;
-      final inProgressProjects = projects.where((p) => p['status'] == 'in_progress').length;
+      final completedMissions = missions.where((m) => m['status'] == 'done').length;
+      final totalMissions = missions.length;
+      final urgentMissions = missions.where((m) => m['priority'] == 'urgent' && m['status'] != 'done').length;
+      final inProgressProjects = missions.where((p) => p['status'] == 'in_progress').length;
 
-      // Calculer la progression temporelle moyenne des projets
+      // Calculer la progression temporelle moyenne des missions
       double totalTimeProgress = 0;
-      int projectsWithEndDate = 0;
+      int missionsWithEndDate = 0;
       int overdueProjects = 0;
       
-      for (final project in projects) {
+      for (final project in missions) {
         final startDate = project['start_date'] != null ? DateTime.parse(project['start_date']) : null;
         final endDate = project['end_date'] != null ? DateTime.parse(project['end_date']) : null;
         final createdAt = project['created_at'] != null ? DateTime.parse(project['created_at']) : null;
         
         if (endDate != null) {
-          projectsWithEndDate++;
+          missionsWithEndDate++;
           final timeProgressDetails = ProgressUtils.calculateTimeProgressDetails(
             startDate: startDate,
             endDate: endDate,
@@ -171,21 +266,21 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
         }
       }
       
-      final avgTimeProgress = projectsWithEndDate > 0 ? 
-        (totalTimeProgress / projectsWithEndDate * 100).round() : 0;
+      final avgTimeProgress = missionsWithEndDate > 0 ? 
+        (totalTimeProgress / missionsWithEndDate * 100).round() : 0;
 
       setState(() {
-        _tasks = tasks.take(10).toList();
-        _projects = projects.take(5).toList();
+        _missions = missions.take(10).toList();
+        _missions = missions.take(5).toList();
         _stats = {
-          'total_tasks': totalTasks,
-          'completed_tasks': completedTasks,
-          'urgent_tasks': urgentTasks,
-          'in_progress_projects': inProgressProjects,
-          'completion_rate': totalTasks > 0 ? (completedTasks / totalTasks * 100).round() : 0,
+          'total_missions': totalMissions,
+          'completed_missions': completedMissions,
+          'urgent_missions': urgentMissions,
+          'in_progress_missions': inProgressProjects,
+          'completion_rate': totalMissions > 0 ? (completedMissions / totalMissions * 100).round() : 0,
           'time_progress': avgTimeProgress,
-          'overdue_projects': overdueProjects,
-          'projects_with_end_date': projectsWithEndDate,
+          'overdue_missions': overdueProjects,
+          'missions_with_end_date': missionsWithEndDate,
         };
         _isLoading = false;
       });
@@ -198,59 +293,69 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoTabScaffold(
+    return CupertinoPageScaffold(
       backgroundColor: IOSTheme.systemGroupedBackground,
-      tabBar: CupertinoTabBar(
-        backgroundColor: IOSTheme.systemBackground,
-        activeColor: IOSTheme.primaryBlue,
-        inactiveColor: IOSTheme.systemGray,
-        items: _getTabItems(),
+      child: Column(
+        children: [
+          Expanded(
+            child: IndexedStack(
+              index: _currentTabIndex,
+              children: _buildTabViews(),
+            ),
+          ),
+          CupertinoTabBar(
+            backgroundColor: IOSTheme.systemBackground,
+            activeColor: IOSTheme.primaryBlue,
+            inactiveColor: IOSTheme.systemGray,
+            items: _getTabItems(),
+            currentIndex: _currentTabIndex,
+            onTap: (index) {
+              setState(() {
+                _currentTabIndex = index;
+                _tabController.index = index;
+              });
+            },
+          ),
+        ],
       ),
-      tabBuilder: (context, index) {
-        switch (_userRole) {
-          case UserRole.admin:
-            switch (index) {
-              case 0: return _buildHomeTab();
-              case 1: return _buildProjectsTab();
-              case 2: return _buildTasksTab();
-              case 3: return _buildAdminManagementTab();
-              case 4: return _buildProfileTab();
-              default: return _buildHomeTab();
-            }
-          case UserRole.associe:
-            switch (index) {
-              case 0: return _buildHomeTab();
-              case 1: return _buildProjectsTab();
-              case 2: return _buildTasksTab();
-              case 3: return const IOSPartnerProfilesPage();
-              case 4: return _buildProfileTab();
-              default: return _buildHomeTab();
-            }
-          case UserRole.partenaire:
-            switch (index) {
-              case 0: return _buildPartnerHomeTab();
-              case 1: return _buildPartnerProjectsTab();
-              case 2: return _buildPartnerTasksTab();
-              case 3: return _buildProfileTab();
-              default: return _buildPartnerHomeTab();
-            }
-          case UserRole.client:
-            switch (index) {
-              case 0: return _buildClientHomeTab();
-              case 1: return _buildClientProjectsTab();
-              case 2: return _buildClientRequestsTab();
-              case 3: return _buildProfileTab();
-              default: return _buildClientHomeTab();
-            }
-          default:
-            switch (index) {
-              case 0: return _buildHomeTab();
-              case 1: return _buildProfileTab();
-              default: return _buildHomeTab();
-            }
-        }
-      },
     );
+  }
+  
+  List<Widget> _buildTabViews() {
+    switch (_userRole) {
+      case UserRole.admin:
+        return [
+          _buildHomeTab(),
+          _buildProjectsTab(),
+          _buildAdminManagementTab(),
+          _buildProfileTab(),
+        ];
+      case UserRole.associe:
+        return [
+          _buildHomeTab(),
+          _buildProjectsTab(),
+          const IOSPartnerProfilesPage(),
+          _buildProfileTab(),
+        ];
+      case UserRole.partenaire:
+        return [
+          _buildPartnerHomeTab(),
+          _buildPartnerProjectsTab(),
+          _buildProfileTab(),
+        ];
+      case UserRole.client:
+        return [
+          _buildClientHomeTab(),
+          _buildClientProjectsTab(),
+          _buildClientRequestsTab(),
+          _buildProfileTab(),
+        ];
+      default:
+        return [
+          _buildHomeTab(),
+          _buildProfileTab(),
+        ];
+    }
   }
 
   // ================================
@@ -327,7 +432,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
               const SizedBox(height: 24),
               _buildQuickActions(),
               const SizedBox(height: 24),
-              _buildRecentTasks(),
+              _buildRecentMissions(),
               const SizedBox(height: 24),
               _buildRecentProjects(),
             ]),
@@ -363,7 +468,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
               const SizedBox(height: 24),
               _buildPartnerQuickActions(),
               const SizedBox(height: 24),
-              _buildMyRecentTasks(),
+              _buildMyRecentMissions(),
               const SizedBox(height: 24),
               _buildMyRecentProjects(),
             ]),
@@ -372,20 +477,20 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
 
   Widget _buildPartnerProjectsTab() {
     return IOSScaffold(
-      navigationBar: const IOSNavigationBar(title: "Mes Projets"),
+      navigationBar: const IOSNavigationBar(title: "Mes Missions"),
       body: _isLoading
           ? const Center(child: CupertinoActivityIndicator())
-          : _projects.isEmpty
+          : _missions.isEmpty
               ? _buildEmptyState(
                   icon: CupertinoIcons.briefcase,
-                  title: 'Aucun projet assigné',
-                  subtitle: 'Vous serez notifié lorsque des projets vous seront assignés.',
+                  title: 'Aucune mission assignée',
+                  subtitle: 'Vous serez notifié lorsque des missions vous seront assignées.',
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: _projects.length,
+                  itemCount: _missions.length,
                   itemBuilder: (context, index) {
-                    return _buildProjectTile(_projects[index], isLimited: true);
+                    return _buildProjectTile(_missions[index], isLimited: true);
                   },
                 ),
     );
@@ -396,7 +501,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
       navigationBar: const IOSNavigationBar(title: "Mes Tâches"),
       body: _isLoading
           ? const Center(child: CupertinoActivityIndicator())
-          : _tasks.isEmpty
+          : _missions.isEmpty
               ? _buildEmptyState(
                   icon: CupertinoIcons.list_bullet,
                   title: 'Aucune tâche assignée',
@@ -404,11 +509,114 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: _tasks.length,
+                  itemCount: _missions.length,
                   itemBuilder: (context, index) {
-                    return _buildTaskTile(_tasks[index], isLimited: true);
+                    return _buildMissionTile(_missions[index], isLimited: true);
                   },
                 ),
+    );
+  }
+
+  Widget _buildMyRecentMissions() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: CupertinoColors.systemGrey.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Missions récentes',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: IOSTheme.primaryBlue,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_missions.isEmpty)
+            const Text(
+              'Aucune mission récente',
+              style: TextStyle(
+                fontSize: 14,
+                color: CupertinoColors.systemGrey,
+              ),
+            )
+          else
+            ..._missions.take(3).map((mission) => _buildMissionTile(mission, isLimited: true)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMyActiveMissions() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: CupertinoColors.systemGrey.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Missions actives',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: IOSTheme.primaryBlue,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_missions.isEmpty)
+            const Text(
+              'Aucune mission active',
+              style: TextStyle(
+                fontSize: 14,
+                color: CupertinoColors.systemGrey,
+              ),
+            )
+          else
+            ..._missions.where((mission) => mission['status'] == 'actif').take(3).map((mission) => _buildMissionTile(mission, isLimited: true)),
+        ],
+      ),
+    );
+  }
+
+
+  void _showMissionDetail(Map<String, dynamic> mission) {
+    // TODO: Implémenter la navigation vers les détails de la mission
+  }
+
+  void _showCreateMissionDialog() {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Nouvelle Mission'),
+        content: const Text('Fonctionnalité en cours de développement'),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Annuler'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -443,27 +651,27 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
               const SizedBox(height: 24),
               _buildMyRecentProjects(),
               const SizedBox(height: 24),
-              _buildMyActiveTasks(),
+              _buildMyActiveMissions(),
             ]),
     );
   }
 
   Widget _buildClientProjectsTab() {
     return IOSScaffold(
-      navigationBar: const IOSNavigationBar(title: "Mes Projets"),
+      navigationBar: const IOSNavigationBar(title: "Mes Missions"),
       body: _isLoading
           ? const Center(child: CupertinoActivityIndicator())
-          : _projects.isEmpty
+          : _missions.isEmpty
               ? _buildEmptyState(
                   icon: CupertinoIcons.folder,
-                  title: 'Aucun projet en cours',
-                  subtitle: 'Créez une demande de projet pour commencer.',
+                  title: 'Aucune mission en cours',
+                  subtitle: 'Créez une demande de mission pour commencer.',
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: _projects.length,
+                  itemCount: _missions.length,
                   itemBuilder: (context, index) {
-                    return _buildProjectTile(_projects[index], isClientView: true);
+                    return _buildProjectTile(_missions[index], isClientView: true);
                   },
                 ),
     );
@@ -510,7 +718,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Créez une demande de projet ou d\'extension.\nVotre équipe vous répondra rapidement.',
+                      'Créez une demande de mission ou d\'extension.\nVotre équipe vous répondra rapidement.',
                       style: IOSTheme.body.copyWith(color: IOSTheme.labelSecondary),
                       textAlign: TextAlign.center,
                     ),
@@ -577,7 +785,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                 IOSListTile(
                   leading: const Icon(CupertinoIcons.doc_text_search, color: IOSTheme.systemGreen),
                   title: const Text('Demandes clients', style: IOSTheme.body),
-                  subtitle: const Text('Examiner les propositions de projets', style: IOSTheme.footnote),
+                  subtitle: const Text('Examiner les propositions de missions', style: IOSTheme.footnote),
                   trailing: const Icon(CupertinoIcons.chevron_right, color: IOSTheme.systemGray),
                   onTap: () {
                     // TODO: Navigation vers demandes clients
@@ -656,8 +864,8 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
             children: [
               Expanded(
                 child: _buildStatCard(
-                  title: "Tâches",
-                  value: "${_stats['completed_tasks']}/${_stats['total_tasks']}",
+                  title: "Missions",
+                  value: "${_stats['completed_missions']}/${_stats['total_missions']}",
                   subtitle: "Terminées",
                   color: IOSTheme.successColor,
                   icon: CupertinoIcons.checkmark_circle_fill,
@@ -667,7 +875,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
               Expanded(
                 child: _buildStatCard(
                   title: "Urgentes",
-                  value: "${_stats['urgent_tasks']}",
+                  value: "${_stats['urgent_missions']}",
                   subtitle: "À traiter",
                   color: IOSTheme.errorColor,
                   icon: CupertinoIcons.exclamationmark_triangle_fill,
@@ -680,8 +888,8 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
             children: [
               Expanded(
                 child: _buildStatCard(
-                  title: "Projets",
-                  value: "${_stats['in_progress_projects']}",
+                  title: "Missions",
+                  value: "${_stats['in_progress_missions']}",
                   subtitle: "En cours",
                   color: IOSTheme.warningColor,
                   icon: CupertinoIcons.doc_text_fill,
@@ -690,7 +898,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
-                  title: "Tâches",
+                  title: "Missions",
                   value: "${_stats['completion_rate']}%",
                   subtitle: "Complétées",
                   color: IOSTheme.primaryBlue,
@@ -715,10 +923,10 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
               Expanded(
                 child: _buildStatCard(
                   title: "En retard",
-                  value: "${_stats['overdue_projects']}",
-                  subtitle: "Projet${(_stats['overdue_projects'] ?? 0) > 1 ? 's' : ''}",
-                  color: (_stats['overdue_projects'] ?? 0) > 0 ? IOSTheme.errorColor : IOSTheme.successColor,
-                  icon: (_stats['overdue_projects'] ?? 0) > 0 ? CupertinoIcons.exclamationmark_triangle_fill : CupertinoIcons.checkmark_circle_fill,
+                  value: "${_stats['overdue_missions']}",
+                  subtitle: "Mission${(_stats['overdue_missions'] ?? 0) > 1 ? 's' : ''}",
+                  color: (_stats['overdue_missions'] ?? 0) > 0 ? IOSTheme.errorColor : IOSTheme.successColor,
+                  icon: (_stats['overdue_missions'] ?? 0) > 0 ? CupertinoIcons.exclamationmark_triangle_fill : CupertinoIcons.checkmark_circle_fill,
                 ),
               ),
             ],
@@ -773,64 +981,64 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
         _buildQuickActionTile(
           icon: CupertinoIcons.add_circled,
           iconColor: IOSTheme.primaryBlue,
-          title: "Nouvelle tâche",
-          onTap: _showCreateTaskDialog,
-        ),
-        _buildQuickActionTile(
-          icon: CupertinoIcons.doc_text_search,
-          iconColor: IOSTheme.systemPurple,
-          title: "Nouveau projet",
-          onTap: _showCreateProjectDialog,
+          title: "Nouvelle mission",
+          onTap: _showCreateMissionDialog,
         ),
         if (_userRole == UserRole.admin || _userRole == UserRole.associe) ...[
           _buildQuickActionTile(
             icon: CupertinoIcons.person_add,
             iconColor: IOSTheme.systemGreen,
             title: "Inviter un utilisateur",
-            onTap: () => Navigator.of(context).pushNamed('/add_user'),
+            onTap: () => _navigateToExternalPage('/add_user'),
           ),
           _buildQuickActionTile(
             icon: CupertinoIcons.calendar,
             iconColor: IOSTheme.systemOrange,
             title: "Timesheet",
-            onTap: () => Navigator.of(context).pushNamed('/timesheet'),
+            onTap: () => _navigateToExternalPage('/timesheet'),
           ),
           _buildQuickActionTile(
             icon: CupertinoIcons.calendar_today,
             iconColor: IOSTheme.primaryBlue,
             title: "Disponibilités",
-            onTap: () => Navigator.of(context).pushNamed('/availability'),
+            onTap: () => _navigateToExternalPage('/availability'),
           ),
           _buildQuickActionTile(
             icon: CupertinoIcons.person_2,
             iconColor: IOSTheme.primaryBlue,
-            title: "Clients",
-            onTap: () => Navigator.of(context).pushNamed('/clients'),
+            title: "Partenaires",
+            onTap: () {
+              // Navigation vers tab Partenaires (index 2 pour Associé)
+              setState(() {
+                _currentTabIndex = 2;
+                _tabController.index = 2;
+              });
+            },
           ),
           _buildQuickActionTile(
             icon: CupertinoIcons.doc_text,
             iconColor: IOSTheme.systemGreen,
             title: "Demandes clients",
-            onTap: () => Navigator.of(context).pushNamed('/admin/client-requests'),
+            onTap: () => _navigateToExternalPage('/admin/client-requests'),
           ),
           _buildQuickActionTile(
             icon: CupertinoIcons.briefcase,
             iconColor: IOSTheme.warningColor,
             title: "Actions commerciales",
-            onTap: () => Navigator.of(context).pushNamed('/actions'),
+            onTap: () => _navigateToExternalPage('/actions'),
           ),
           _buildQuickActionTile(
             icon: CupertinoIcons.paperplane,
             iconColor: IOSTheme.systemPurple,
             title: "Gestion missions",
-            onTap: () => Navigator.of(context).pushNamed('/mission-management'),
+            onTap: () => _navigateToExternalPage('/mission-management'),
           ),
         ],
         _buildQuickActionTile(
           icon: CupertinoIcons.calendar_badge_plus,
           iconColor: IOSTheme.systemOrange,
           title: "Planifier une réunion",
-          onTap: () => Navigator.of(context).pushNamed('/calendar'),
+          onTap: () => _navigateToExternalPage('/calendar'),
         ),
       ],
     );
@@ -858,38 +1066,38 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
     );
   }
 
-  Widget _buildRecentTasks() {
-    if (_tasks.isEmpty) {
+  Widget _buildRecentMissions() {
+    if (_missions.isEmpty) {
       return IOSListSection(
-        title: "Tâches récentes",
+        title: "Missions récentes",
         children: [
           _buildEmptyState(
             icon: CupertinoIcons.checkmark_alt_circle,
-            title: "Aucune tâche",
-            subtitle: "Créez votre première tâche",
-            actionTitle: "Créer une tâche",
-            onAction: _showCreateTaskDialog,
+            title: "Aucune mission",
+            subtitle: "Créez votre première mission",
+            actionTitle: "Créer une mission",
+            onAction: _showCreateMissionDialog,
           ),
         ],
       );
     }
 
     return IOSListSection(
-      title: "Tâches récentes",
-      children: _tasks.take(3).map((task) => _buildTaskTile(task)).toList(),
+      title: "Missions récentes",
+      children: _missions.take(3).map((mission) => _buildMissionTile(mission)).toList(),
     );
   }
 
   Widget _buildRecentProjects() {
-    if (_projects.isEmpty) {
+    if (_missions.isEmpty) {
       return IOSListSection(
-        title: "Projets récents",
+        title: "Missions récentes",
         children: [
           _buildEmptyState(
             icon: CupertinoIcons.doc_text,
-            title: "Aucun projet",
-            subtitle: "Créez votre premier projet",
-            actionTitle: "Créer un projet",
+            title: "Aucune mission",
+            subtitle: "Créez votre première mission",
+            actionTitle: "Créer une mission",
             onAction: _showCreateProjectDialog,
           ),
         ],
@@ -897,14 +1105,14 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
     }
 
     return IOSListSection(
-      title: "Projets récents",
-      children: _projects.take(3).map((project) => _buildProjectTile(project)).toList(),
+      title: "Missions récentes",
+      children: _missions.take(3).map((project) => _buildProjectTile(project)).toList(),
     );
   }
 
-  Widget _buildTaskTile(Map<String, dynamic> task, {bool isLimited = false, bool isClientView = false}) {
-    final priority = task['priority'] ?? 'medium';
-    final isCompleted = task['status'] == 'done';
+  Widget _buildMissionTile(Map<String, dynamic> mission, {bool isLimited = false, bool isClientView = false}) {
+    final priority = mission['priority'] ?? 'medium';
+    final isCompleted = mission['status'] == 'done';
 
     return IOSListTile(
       leading: Icon(
@@ -913,14 +1121,14 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
         size: 24,
       ),
       title: Text(
-        task['title'] ?? 'Tâche sans titre',
+        mission['title'] ?? 'Mission sans titre',
         style: IOSTheme.body.copyWith(
           decoration: isCompleted ? TextDecoration.lineThrough : null,
           color: isCompleted ? IOSTheme.labelSecondary : IOSTheme.labelPrimary,
         ),
       ),
       subtitle: Text(
-        task['project_name'] ?? 'Aucun projet',
+        mission['project_name'] ?? 'Aucune mission',
         style: IOSTheme.footnote,
       ),
       trailing: isLimited || isClientView 
@@ -952,7 +1160,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                 ),
               ),
             ),
-      onTap: isClientView ? null : () => _showTaskDetail(task),
+      onTap: isClientView ? null : () => _showMissionDetail(mission),
     );
   }
 
@@ -975,7 +1183,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
         ),
       ),
       title: Text(
-        project['name'] ?? project['title'] ?? 'Projet sans titre',
+        project['name'] ?? project['title'] ?? 'Mission sans titre',
         style: IOSTheme.body,
       ),
       subtitle: Text(
@@ -987,7 +1195,13 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
           : const Icon(CupertinoIcons.chevron_right, color: IOSTheme.systemGray, size: 16),
       onTap: isLimited 
           ? null 
-          : () => Navigator.of(context).pushNamed('/project_detail', arguments: project['id']),
+          : () {
+              Navigator.of(context).pushNamed('/mission_detail', arguments: project['id']).then((_) {
+                if (mounted) {
+                  _loadData();
+                }
+              });
+            },
     );
   }
 
@@ -1032,24 +1246,24 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
           ),
         ],
       ),
-      body: _projects.isEmpty
+      body: _missions.isEmpty
           ? Center(
               child: _buildEmptyState(
                 icon: CupertinoIcons.doc_text,
-                title: "Aucun projet",
+                title: "Aucune mission",
                 subtitle: "Créez votre premier projet pour commencer",
-                actionTitle: "Créer un projet",
+                actionTitle: "Créer une mission",
                 onAction: _showCreateProjectDialog,
               ),
             )
           : ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 20),
-              itemCount: _projects.length,
+              itemCount: _missions.length,
               itemBuilder: (context, index) => Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                 child: Container(
                   decoration: IOSTheme.cardDecoration,
-                  child: _buildProjectTile(_projects[index]),
+                  child: _buildProjectTile(_missions[index]),
                 ),
               ),
             ),
@@ -1068,7 +1282,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
           ),
         ],
       ),
-      body: _tasks.isEmpty
+      body: _missions.isEmpty
           ? Center(
               child: _buildEmptyState(
                 icon: CupertinoIcons.checkmark_alt_circle,
@@ -1080,12 +1294,12 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
             )
           : ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 20),
-              itemCount: _tasks.length,
+              itemCount: _missions.length,
               itemBuilder: (context, index) => Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                 child: Container(
                   decoration: IOSTheme.cardDecoration,
-                  child: _buildTaskTile(_tasks[index]),
+                  child: _buildMissionTile(_missions[index]),
                 ),
               ),
             ),
@@ -1233,18 +1447,18 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
     final TextEditingController titleController = TextEditingController();
     final TextEditingController descriptionController = TextEditingController();
     String selectedPriority = 'medium';
-    String? selectedProjectId;
+    String? selectedMissionId;
     String? selectedPartnerId;
-    List<Map<String, dynamic>> projects = [];
+    List<Map<String, dynamic>> missions = [];
     List<Map<String, dynamic>> partners = [];
     bool isLoading = true;
 
     // Charger les données
     Future.wait([
-      SupabaseService.getCompanyProjects(),
+      SupabaseService.getCompanyMissions(),
       SupabaseService.getPartners(),
     ]).then((results) {
-      projects = results[0];
+      missions = results[0];
       partners = results[1];
       isLoading = false;
       if (mounted) setState(() {});
@@ -1293,9 +1507,9 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                           ),
                           child: CupertinoButton(
                             padding: EdgeInsets.zero,
-                            onPressed: () => _showProjectPicker(projects, (projectId) {
+                            onPressed: () => _showProjectPicker(missions, (projectId) {
                               setDialogState(() {
-                                selectedProjectId = projectId;
+                                selectedMissionId = projectId;
                               });
                             }),
                             child: Row(
@@ -1303,8 +1517,8 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                               children: [
                                 Expanded(
                                   child: Text(
-                                    selectedProjectId != null 
-                                        ? projects.firstWhere((p) => p['id'].toString() == selectedProjectId)['name'] ?? 'Projet'
+                                    selectedMissionId != null 
+                                        ? missions.firstWhere((p) => p['id'].toString() == selectedMissionId)['name'] ?? 'Projet'
                                         : 'Sélectionner un projet',
                                     style: IOSTheme.body,
                                     overflow: TextOverflow.ellipsis,
@@ -1388,14 +1602,14 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
               child: const Text('Créer'),
               onPressed: () {
                 if (titleController.text.trim().isNotEmpty && 
-                    selectedProjectId != null && 
+                    selectedMissionId != null && 
                     selectedPartnerId != null) {
                   Navigator.of(context).pop();
                   _createTask({
                     'title': titleController.text.trim(),
                     'description': descriptionController.text.trim(),
                     'priority': selectedPriority,
-                    'projectId': selectedProjectId,
+                    'projectId': selectedMissionId,
                     'partnerId': selectedPartnerId,
                   });
                 } else {
@@ -1422,7 +1636,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
     );
   }
 
-  void _showProjectPicker(List<Map<String, dynamic>> projects, Function(String) onSelected) {
+  void _showProjectPicker(List<Map<String, dynamic>> missions, Function(String) onSelected) {
     showCupertinoModalPopup(
       context: context,
       builder: (context) => Container(
@@ -1432,8 +1646,8 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
           top: false,
           child: CupertinoPicker(
             itemExtent: 32,
-            onSelectedItemChanged: (index) => onSelected(projects[index]['id'].toString()),
-            children: projects.map((project) => Text(project['name'] ?? 'Projet sans nom')).toList(),
+            onSelectedItemChanged: (index) => onSelected(missions[index]['id'].toString()),
+            children: missions.map((project) => Text(project['name'] ?? 'Projet sans nom')).toList(),
           ),
         ),
       ),
@@ -1490,13 +1704,12 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
       final projectId = data['projectId'] as String;
       final partnerId = data['partnerId'] as String;
 
-      await SupabaseService.createTaskForCompany(
-        projectId: projectId,
-        title: data['title'],
-        description: data['description'],
-        priority: data['priority'] ?? 'medium',
-        partnerId: partnerId,
-      );
+      await SupabaseService.createMission({
+        'title': data['title'],
+        'description': data['description'],
+        'priority': data['priority'] ?? 'medium',
+        'partner_id': partnerId,
+      });
         
       if (mounted) {
         showCupertinoDialog(
@@ -1610,9 +1823,9 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
   }
 
   Widget _buildPartnerStatsOverview() {
-    final myTasks = _stats['total_tasks'] ?? 0;
-    final completedTasks = _stats['completed_tasks'] ?? 0;
-    final myProjects = _projects.length;
+    final myTasks = _stats['total_missions'] ?? 0;
+    final completedTasks = _stats['completed_missions'] ?? 0;
+    final myProjects = _missions.length;
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1665,7 +1878,13 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                   subtitle: "Voir mes missions",
                   icon: CupertinoIcons.paperplane_fill,
                   color: IOSTheme.systemPurple,
-                  onTap: () => Navigator.of(context).pushNamed('/missions'),
+                  onTap: () {
+                    // Navigation vers tab Missions (index 1)
+                    setState(() {
+                      _currentTabIndex = 1;
+                      _tabController.index = 1;
+                    });
+                  },
                 ),
               ),
               const SizedBox(width: 12),
@@ -1710,16 +1929,16 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
             ],
           ),
           const SizedBox(height: 16),
-          if (_tasks.isEmpty)
+          if (_missions.isEmpty)
             _buildEmptyState(
               icon: CupertinoIcons.list_bullet,
               title: 'Aucune tâche assignée',
               subtitle: 'Vos tâches apparaîtront ici.',
             )
           else
-            ...(_tasks.take(3).map((task) => Padding(
+            ...(_missions.take(3).map((task) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: _buildTaskTile(task, isLimited: true),
+              child: _buildMissionTile(task, isLimited: true),
             ))),
         ],
       ),
@@ -1747,14 +1966,14 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
             ],
           ),
           const SizedBox(height: 16),
-          if (_projects.isEmpty)
+          if (_missions.isEmpty)
             _buildEmptyState(
               icon: CupertinoIcons.briefcase,
               title: 'Aucun projet assigné',
               subtitle: 'Vos projets apparaîtront ici.',
             )
           else
-            ...(_projects.take(2).map((project) => Padding(
+            ...(_missions.take(2).map((project) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: _buildProjectTile(project, isLimited: true),
             ))),
@@ -1828,8 +2047,8 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
   }
 
   Widget _buildClientStatsOverview() {
-    final totalProjects = _projects.length;
-    final activeTasks = _tasks.where((t) => t['status'] != 'done').length;
+    final totalProjects = _missions.length;
+    final activeTasks = _missions.where((t) => t['status'] != 'done').length;
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1842,7 +2061,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
             children: [
               Expanded(
                 child: _buildStatCard(
-                  title: "Projets",
+                  title: "Missions",
                   value: "$totalProjects",
                   subtitle: "En cours",
                   color: IOSTheme.primaryBlue,
@@ -1917,16 +2136,16 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
         children: [
           Text("Mes tâches actives", style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 16),
-          if (_tasks.isEmpty)
+          if (_missions.isEmpty)
             _buildEmptyState(
               icon: CupertinoIcons.list_bullet,
               title: 'Aucune tâche active',
               subtitle: 'Vos tâches apparaîtront ici.',
             )
           else
-            ...(_tasks.take(5).map((task) => Padding(
+            ...(_missions.take(5).map((task) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: _buildTaskTile(task, isClientView: true),
+              child: _buildMissionTile(task, isClientView: true),
             ))),
         ],
       ),

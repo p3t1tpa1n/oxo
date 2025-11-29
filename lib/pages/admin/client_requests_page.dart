@@ -450,7 +450,7 @@ class _ClientRequestsPageState extends State<ClientRequestsPage> with TickerProv
               children: [
                 Expanded(
                   child: Text(
-                    'Demande d\'extension - Projet ${extension['project_id']}',
+                    'Demande d\'extension - Mission ${extension['mission_id']}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

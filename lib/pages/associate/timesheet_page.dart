@@ -109,25 +109,25 @@ class _TimesheetPageState extends State<TimesheetPage> {
           if (entry['task_id'] != null) {
             final taskResponse = await SupabaseService.client
                 .from('tasks')
-                .select('title, project_id')
+                .select('title, mission_id')
                 .eq('id', entry['task_id'])
                 .single();
             
             entry['task'] = {'title': taskResponse['title']};
             
-            // Charger le projet si possible
-            if (taskResponse['project_id'] != null) {
-              final projectResponse = await SupabaseService.client
-                  .from('projects')
-                  .select('name')
-                  .eq('id', taskResponse['project_id'])
+            // Charger la mission si possible
+            if (taskResponse['mission_id'] != null) {
+              final missionResponse = await SupabaseService.client
+                  .from('missions')
+                  .select('title')
+                  .eq('id', taskResponse['mission_id'])
                   .single();
-              entry['task']['project'] = {'name': projectResponse['name']};
+              entry['task']['mission'] = {'title': missionResponse['title']};
             }
           }
         } catch (taskError) {
           debugPrint('Erreur lors du chargement de la tâche: $taskError');
-          entry['task'] = {'title': 'Tâche inconnue', 'project': {'name': 'Projet inconnu'}};
+          entry['task'] = {'title': 'Tâche inconnue', 'mission': {'title': 'Mission inconnue'}};
         }
       }
 

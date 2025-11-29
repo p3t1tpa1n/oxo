@@ -1,16 +1,16 @@
 -- ================================================================
--- SCRIPT : LIEN CLIENT-PROJET MANQUANT - CORRECTION COMPLÈTE
+-- SCRIPT : LIEN CLIENT-MISSION MANQUANT - CORRECTION COMPLÈTE
 -- ================================================================
 -- 
 -- PROBLÈME IDENTIFIÉ :
 -- 1. La table 'projects' n'a PAS de colonne 'client_id'
 -- 2. La fonction approve_project_proposal ne sauvegarde pas le client
--- 3. Les associés créent des projets sans spécifier le client
+-- 3. Les associés créent des missions sans spécifier le client
 --
 -- SOLUTION :
 -- ✅ Ajouter client_id à la table projects
 -- ✅ Modifier approve_project_proposal pour inclure client_id
--- ✅ Créer une fonction pour associer des projets existants à des clients
+-- ✅ Créer une fonction pour associer des missions existantes à des clients
 -- ✅ Mettre à jour les vues et politiques RLS
 -- ================================================================
 
@@ -52,7 +52,7 @@ BEGIN
         RAISE EXCEPTION 'Proposition non trouvée ou déjà traitée';
     END IF;
 
-    -- Créer le nouveau projet AVEC le client_id ✅
+    -- Créer la nouvelle mission AVEC le client_id ✅
     INSERT INTO public.projects (
         name,
         description,
@@ -102,7 +102,7 @@ BEGIN
 END;
 $$;
 
--- 4. FONCTION POUR CRÉER UN PROJET AVEC CLIENT (pour les associés)
+-- 4. FONCTION POUR CRÉER UNE MISSION AVEC CLIENT (pour les associés)
 CREATE OR REPLACE FUNCTION create_project_with_client(
     p_name VARCHAR(255),
     p_client_id UUID,
@@ -125,7 +125,7 @@ BEGIN
         WHERE user_id = auth.uid()
         AND role IN ('admin', 'associe')
     ) THEN
-        RAISE EXCEPTION 'Seuls les admins et associés peuvent créer des projets';
+        RAISE EXCEPTION 'Seuls les admins et associés peuvent créer des missions';
     END IF;
 
     -- Récupérer la company_id de l'utilisateur
@@ -147,7 +147,7 @@ BEGIN
         RAISE EXCEPTION 'Le client spécifié n''appartient pas à votre entreprise';
     END IF;
 
-    -- Créer le projet
+    -- Créer la mission
     INSERT INTO public.projects (
         name,
         description,
@@ -238,7 +238,7 @@ CREATE POLICY "projects_company_access"
 ON public.projects
 FOR ALL TO authenticated
 USING (
-    -- Admins et associés voient tous les projets de leur entreprise
+    -- Admins et associés voient toutes les missions de leur entreprise
     EXISTS (
         SELECT 1 FROM public.profiles 
         WHERE user_id = auth.uid() 
@@ -249,10 +249,10 @@ USING (
         )
     )
     OR
-    -- Les clients voient uniquement leurs propres projets
+    -- Les clients voient uniquement leurs propres missions
     (client_id = auth.uid())
     OR
-    -- Partenaires voient les projets de leur entreprise
+    -- Partenaires voient les missions de leur entreprise
     EXISTS (
         SELECT 1 FROM public.profiles p
         WHERE p.user_id = auth.uid()
@@ -268,11 +268,11 @@ WITH CHECK (
         AND role IN ('admin', 'associe')
     )
     OR
-    -- Les clients peuvent seulement modifier leurs projets (via propositions)
+    -- Les clients peuvent seulement modifier leurs missions (via propositions)
     (client_id = auth.uid() AND auth.uid() IS NOT NULL)
 );
 
--- 7. CRÉER UNE VUE ENRICHIE POUR LES PROJETS AVEC CLIENT
+-- 7. CRÉER UNE VUE ENRICHIE POUR LES MISSIONS AVEC CLIENT
 CREATE OR REPLACE VIEW project_details AS
 SELECT 
     p.id,
@@ -316,7 +316,7 @@ GROUP BY p.id, p.name, p.description, p.estimated_days, p.worked_days, p.daily_r
          p.created_at, p.updated_at, c.name, c.id, client.email, client.first_name, 
          client.last_name, client.user_id;
 
--- 8. FONCTION POUR ASSOCIER UN CLIENT À UN PROJET EXISTANT
+-- 8. FONCTION POUR ASSOCIER UN CLIENT À UNE MISSION EXISTANTE
 CREATE OR REPLACE FUNCTION assign_client_to_project(
     p_project_id UUID,
     p_client_id UUID
@@ -353,15 +353,15 @@ BEGIN
         RAISE EXCEPTION 'Le client doit appartenir à la même entreprise';
     END IF;
 
-    -- Vérifier que le projet appartient à l'entreprise
+    -- Vérifier que la mission appartient à l'entreprise
     IF NOT EXISTS (
         SELECT 1 FROM public.projects
         WHERE id = p_project_id AND company_id = user_company_id
     ) THEN
-        RAISE EXCEPTION 'Projet non trouvé ou accès non autorisé';
+        RAISE EXCEPTION 'Mission non trouvée ou accès non autorisé';
     END IF;
 
-    -- Associer le client au projet
+    -- Associer le client à la mission
     UPDATE public.projects
     SET 
         client_id = p_client_id,
@@ -386,5 +386,5 @@ UNION ALL SELECT '✅ Vue project_details enrichie créée';
 
 SELECT '📋 PROCHAINES ÉTAPES :' as result
 UNION ALL SELECT '1. Mettre à jour les interfaces Flutter'
-UNION ALL SELECT '2. Ajouter sélection client dans création projet'
+UNION ALL SELECT '2. Ajouter sélection client dans création mission'
 UNION ALL SELECT '3. Tester sur toutes les plateformes'; 

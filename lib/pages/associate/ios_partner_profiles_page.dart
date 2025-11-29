@@ -327,7 +327,8 @@ class _IOSPartnerProfilesPageState extends State<IOSPartnerProfilesPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  IOSSecondaryButton(
+                  Flexible(
+                    child: IOSSecondaryButton(
                     text: 'Voir profil',
                     onPressed: () {
                       Navigator.push(
@@ -337,14 +338,17 @@ class _IOSPartnerProfilesPageState extends State<IOSPartnerProfilesPage> {
                         ),
                       );
                     },
+                    ),
                   ),
                   const SizedBox(width: 8),
-                  IOSPrimaryButton(
+                  Flexible(
+                    child: IOSPrimaryButton(
                     text: 'Assigner mission',
                     onPressed: () {
                       // TODO: Implémenter l'assignation de mission
                       _showMissionAssignmentDialog(partner);
                     },
+                    ),
                   ),
                 ],
               ),

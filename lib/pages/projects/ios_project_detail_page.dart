@@ -36,13 +36,13 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
         _error = null;
       });
 
-      // Charger les détails du projet
-      final projects = await SupabaseService.getCompanyProjects();
-      debugPrint('Recherche projet ID: ${widget.projectId}');
-      debugPrint('Projets disponibles: ${projects.map((p) => 'ID: ${p['id']}, Name: ${p['name']}').toList()}');
+      // Charger les détails de la mission
+      final missions = await SupabaseService.getCompanyMissions();
+      debugPrint('Recherche mission ID: ${widget.projectId}');
+      debugPrint('Missions disponibles: ${missions.map((m) => 'ID: ${m['id']}, Title: ${m['title']}').toList()}');
       
-      _project = projects.firstWhere(
-        (p) => p['id'].toString() == widget.projectId,
+      _project = missions.firstWhere(
+        (m) => m['id'].toString() == widget.projectId,
         orElse: () {
           debugPrint('Projet non trouvé avec ID: ${widget.projectId}');
           return <String, dynamic>{};
@@ -54,9 +54,9 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
       }
 
       // Charger les tâches du projet
-      final allTasks = await SupabaseService.getCompanyTasks();
+      final allTasks = await SupabaseService.getCompanyMissions();
       _tasks = allTasks.where((task) => 
-        task['project_id']?.toString() == widget.projectId
+        task['mission_id']?.toString() == widget.projectId
       ).toList();
 
       setState(() {

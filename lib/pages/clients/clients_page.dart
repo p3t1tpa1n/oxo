@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
 
 class ClientsPage extends StatefulWidget {
-  const ClientsPage({super.key});
+  final bool embedded;
+  
+  const ClientsPage({super.key, this.embedded = false});
 
   @override
   State<ClientsPage> createState() => _ClientsPageState();
@@ -13,7 +15,7 @@ class ClientsPage extends StatefulWidget {
 class _ClientsPageState extends State<ClientsPage> {
   List<Map<String, dynamic>> _clients = [];
   List<Map<String, dynamic>> _filteredClients = [];
-  List<Map<String, dynamic>> _projects = [];
+  List<Map<String, dynamic>> _missions = [];
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
   String _filterStatus = 'tous';
@@ -39,12 +41,12 @@ class _ClientsPageState extends State<ClientsPage> {
       // Charger les clients et projets en parallèle
       final futures = await Future.wait([
         SupabaseService.fetchClients(),
-        SupabaseService.getCompanyProjects(),
+        SupabaseService.getCompanyMissions(),
       ]);
       
       setState(() {
         _clients = futures[0];
-        _projects = futures[1];
+        _missions = futures[1];
         _applyFilters();
         _isLoading = false;
       });
@@ -355,11 +357,11 @@ class _ClientsPageState extends State<ClientsPage> {
                     items: [
                       const DropdownMenuItem<String?>(
                         value: null,
-                        child: Text('Aucun projet'),
+                        child: Text('Aucune mission'),
                       ),
-                      ..._projects.map((project) => DropdownMenuItem<String?>(
-                        value: project['id'].toString(),
-                        child: Text(project['name'] ?? 'Projet sans nom'),
+                      ..._missions.map((mission) => DropdownMenuItem<String?>(
+                        value: mission['id'].toString(),
+                        child: Text(mission['title'] ?? 'Mission sans nom'),
                       )),
                     ],
                     onChanged: (value) {
@@ -573,6 +575,43 @@ class _ClientsPageState extends State<ClientsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final content = Column(
+      children: [
+        _buildFilters(),
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _filteredClients.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Aucun client trouvé',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    )
+                  : _buildClientsList(),
+        ),
+      ],
+    );
+
+    if (widget.embedded) {
+      return Stack(
+        children: [
+          content,
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              heroTag: 'clients_embedded_fab',
+              onPressed: () => _showClientForm(),
+              backgroundColor: const Color(0xFF1E3D54),
+              tooltip: 'Ajouter un client',
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Clients'),
@@ -587,24 +626,9 @@ class _ClientsPageState extends State<ClientsPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildFilters(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredClients.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Aucun client trouvé',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      )
-                    : _buildClientsList(),
-          ),
-        ],
-      ),
+      body: content,
       floatingActionButton: FloatingActionButton(
+        heroTag: 'clients_standalone_fab',
         onPressed: () => _showClientForm(),
         backgroundColor: const Color(0xFF1E3D54),
         tooltip: 'Ajouter un client',

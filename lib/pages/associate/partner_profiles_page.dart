@@ -3,7 +3,9 @@ import '../../services/supabase_service.dart';
 import 'partner_detail_page.dart';
 
 class PartnerProfilesPage extends StatefulWidget {
-  const PartnerProfilesPage({super.key});
+  final bool embedded;
+  
+  const PartnerProfilesPage({super.key, this.embedded = false});
 
   @override
   State<PartnerProfilesPage> createState() => _PartnerProfilesPageState();
@@ -85,6 +87,26 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final content = Column(
+      children: [
+        // Barre de recherche et filtres
+        _buildSearchAndFilters(),
+        
+        // Liste des partenaires
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _filteredPartners.isEmpty
+                  ? _buildEmptyState()
+                  : _buildPartnersList(),
+        ),
+      ],
+    );
+
+    if (widget.embedded) {
+      return content;
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profils Partenaires'),
@@ -97,20 +119,14 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Barre de recherche et filtres
-          _buildSearchAndFilters(),
-          
-          // Liste des partenaires
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredPartners.isEmpty
-                    ? _buildEmptyState()
-                    : _buildPartnersList(),
-          ),
-        ],
+      body: content,
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'partner_profiles_fab',
+        onPressed: () {
+          // Action pour ajouter un nouveau partenaire
+        },
+        backgroundColor: const Color(0xFF1E3D54),
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -346,7 +362,7 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
                   ElevatedButton.icon(
                     onPressed: () => _assignMission(partner),
                     icon: const Icon(Icons.assignment, size: 16),
-                    label: const Text('Assigner mission'),
+                    label: const Text('Proposer mission'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1E3D54),
                       foregroundColor: Colors.white,
@@ -402,29 +418,156 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
     );
   }
 
-  void _assignMission(Map<String, dynamic> partner) {
+  Future<void> _assignMission(Map<String, dynamic> partner) async {
+    // Charger les missions non assignées
+    List<Map<String, dynamic>> unassignedMissions = [];
+    String? selectedMissionId;
+    
+    try {
+      final response = await SupabaseService.client
+          .from('missions')
+          .select('*')
+          .eq('progress_status', 'à_assigner')
+          .order('created_at', ascending: false);
+      
+      unassignedMissions = List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Erreur chargement missions: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+      return;
+    }
+
+    if (unassignedMissions.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Aucune mission à proposer disponible'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Assigner une mission'),
-        content: Text('Assigner une mission à ${partner['first_name']} ${partner['last_name']} ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showSuccessMessage('Mission assignée avec succès');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E3D54),
-              foregroundColor: Colors.white,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Proposer une mission à ${partner['first_name']} ${partner['last_name']}'),
+          content: SizedBox(
+            width: 500,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Sélectionnez une mission à proposer:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedMissionId,
+                  decoration: const InputDecoration(
+                    labelText: 'Mission',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.assignment),
+                  ),
+                  items: unassignedMissions.map((mission) {
+                    return DropdownMenuItem(
+                      value: mission['id']?.toString(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            mission['title']?.toString() ?? 'Sans titre',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (mission['description'] != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              mission['description'].toString(),
+                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      selectedMissionId = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '${unassignedMissions.length} mission(s) disponible(s)',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
             ),
-            child: const Text('Assigner'),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: selectedMissionId == null
+                  ? null
+                  : () async {
+                      try {
+                        final currentUserId = SupabaseService.client.auth.currentUser?.id;
+                        if (currentUserId == null) {
+                          throw Exception('Utilisateur non connecté');
+                        }
+
+                        // Créer une proposition de mission
+                        final proposalData = {
+                          'mission_id': selectedMissionId,
+                          'partner_id': partner['user_id'],
+                          'associate_id': currentUserId,
+                          'status': 'pending',
+                        };
+
+                        final success = await SupabaseService.createMissionProposal(proposalData);
+
+                        if (success && context.mounted) {
+                          Navigator.pop(context);
+                          _showSuccessMessage('Mission proposée avec succès');
+                        } else if (context.mounted) {
+                          throw Exception('Erreur lors de la création de la proposition');
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Erreur: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E3D54),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Proposer'),
+            ),
+          ],
+        ),
       ),
     );
   }

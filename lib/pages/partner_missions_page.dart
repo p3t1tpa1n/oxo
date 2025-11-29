@@ -25,8 +25,8 @@ class _PartnerMissionsPageState extends State<PartnerMissionsPage> {
           .from('tasks')
           .select('''
             *,
-            projects (
-              name,
+            missions (
+              title,
               description,
               priority,
               status
@@ -151,7 +151,7 @@ class _PartnerMissionsPageState extends State<PartnerMissionsPage> {
   }
 
   Widget _buildMissionCard(Map<String, dynamic> mission) {
-    final project = mission['projects'];
+    final missionData = mission['missions'];
     final priority = mission['priority'] ?? 'normal';
     final status = mission['status'];
     final dueDate = DateTime.parse(mission['due_date']);
@@ -202,7 +202,7 @@ class _PartnerMissionsPageState extends State<PartnerMissionsPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        project['name'],
+                        mission['name'],
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

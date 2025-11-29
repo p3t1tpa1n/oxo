@@ -10,7 +10,7 @@ class SideMenu extends StatelessWidget {
   const SideMenu({
     Key? key,
     required this.userRole,
-    this.selectedRoute = '/dashboard',
+    this.selectedRoute = '/projects',
   }) : super(key: key);
 
   @override
@@ -117,14 +117,6 @@ class SideMenu extends StatelessWidget {
       children: [
         _buildMenuButton(
           context,
-          Icons.dashboard,
-          'Tableau de bord',
-          '/client',
-          isSelected: selectedRoute == '/client',
-        ),
-        const SizedBox(height: 12),
-        _buildMenuButton(
-          context,
           Icons.receipt_long,
           'Factures',
           '/client/invoices',
@@ -153,7 +145,8 @@ class SideMenu extends StatelessWidget {
   Widget _buildStandardMenu(BuildContext context, bool isAssociate, bool isAdmin, bool isClient, bool isPartner) {
     return Column(
       children: [
-        if (!isAssociate) ...[
+        // Fiche Associé - Masqué pour associés et partenaires
+        if (!isAssociate && !isPartner) ...[
           _buildMenuButton(
             context,
             Icons.person,
@@ -163,32 +156,17 @@ class SideMenu extends StatelessWidget {
           ),
           const SizedBox(height: 12),
         ],
-        _buildMenuButton(
-          context,
-          Icons.dashboard_outlined,
-          'Dashboard',
-          isAssociate
-              ? '/dashboard'
-              : isAdmin
-                  ? '/dashboard'
-                  : isClient
-                      ? '/client'
-                      : '/dashboard',
-          isSelected: (isAssociate && selectedRoute == '/dashboard') ||
-                      (isAdmin && selectedRoute == '/dashboard') ||
-                      (isClient && selectedRoute == '/client') ||
-                      (!isAssociate && !isAdmin && !isClient && selectedRoute == '/dashboard'),
-        ),
-        const SizedBox(height: 12),
+        // Missions - Accessible à tous sauf clients
         _buildMenuButton(
           context,
           Icons.folder_outlined,
-          'Projets',
-          '/projects',
-          isSelected: selectedRoute == '/projects',
+          'Missions',
+          '/missions',
+          isSelected: selectedRoute == '/missions',
         ),
         const SizedBox(height: 12),
-        if (!isAssociate) ...[
+        // Planning - Masqué pour associés et partenaires
+        if (!isAssociate && !isPartner) ...[
           _buildMenuButton(
             context,
             Icons.calendar_month,
@@ -198,69 +176,63 @@ class SideMenu extends StatelessWidget {
           ),
           const SizedBox(height: 12),
         ],
+        
+        // Module OXO TIME SHEETS
         _buildMenuButton(
           context,
-          Icons.access_time_outlined,
-          'Timesheet',
-          '/timesheet',
-          isSelected: selectedRoute == '/timesheet',
+          Icons.schedule,
+          'Saisie du temps',
+          '/timesheet/entry',
+          isSelected: selectedRoute == '/timesheet/entry',
         ),
-        // Menu spécifique aux partenaires : Disponibilités
-        if (isPartner) ...[
-          const SizedBox(height: 12),
-          _buildMenuButton(
-            context,
-            Icons.event_available,
-            'Mes Disponibilités',
-            '/availability',
-            isSelected: selectedRoute == '/availability',
-          ),
-        ],
-        if (!isAssociate) ...[
-          const SizedBox(height: 12),
-          _buildMenuButton(
-            context,
-            Icons.group,
-            'Partenaires',
-            '/partners',
-            isSelected: selectedRoute == '/partners',
-          ),
-        ],
-        // Menu spécifique aux associés : Profils Partenaires
         if (isAssociate) ...[
           const SizedBox(height: 12),
           _buildMenuButton(
             context,
-            Icons.people_alt,
-            'Profils Partenaires',
-            '/partner-profiles',
-            isSelected: selectedRoute == '/partner-profiles',
+            Icons.settings,
+            'Paramètres Timesheet',
+            '/timesheet/settings',
+            isSelected: selectedRoute == '/timesheet/settings',
+          ),
+          const SizedBox(height: 12),
+          _buildMenuButton(
+            context,
+            Icons.assessment,
+            'Reporting Timesheet',
+            '/timesheet/reporting',
+            isSelected: selectedRoute == '/timesheet/reporting',
           ),
         ],
         const SizedBox(height: 12),
         _buildMenuButton(
           context,
-          Icons.business_center,
-          'Actions Commerciales',
-          '/actions',
-          isSelected: selectedRoute == '/actions',
+          Icons.event_available,
+          'Disponibilités',
+          '/availability',
+          isSelected: selectedRoute == '/availability',
         ),
-        const SizedBox(height: 12),
-        _buildMenuButton(
-          context,
-          Icons.people_outlined,
-          'Clients',
-          '/clients',
-          isSelected: selectedRoute == '/clients',
-        ),
-        const SizedBox(height: 12),
-        _buildMenuButton(
-          context,
-          Icons.insert_chart,
-          'Chiffres Entreprise',
-          '/figures',
-          isSelected: selectedRoute == '/figures',
-        ),
+        // Actions Commerciales - Masqué pour partenaires
+        if (!isPartner) ...[
+          const SizedBox(height: 12),
+          _buildMenuButton(
+            context,
+            Icons.business_center,
+            'Actions Commerciales',
+            '/actions',
+            isSelected: selectedRoute == '/actions',
+          ),
+        ],
+        // Partenaires et Clients - Masqué pour partenaires
+        if (!isPartner) ...[
+          const SizedBox(height: 12),
+          _buildMenuButton(
+            context,
+            Icons.people,
+            'Partenaires et Clients',
+            '/partners-clients',
+            isSelected: selectedRoute == '/partners-clients',
+          ),
+        ],
         if (isAssociate || isAdmin) ...[
           const SizedBox(height: 12),
           _buildMenuButton(

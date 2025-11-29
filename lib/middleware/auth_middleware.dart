@@ -30,16 +30,16 @@ class AuthMiddleware extends NavigatorObserver {
     
     switch (role) {
       case UserRole.admin:
-        Navigator.of(context).pushReplacementNamed('/admin/dashboard');
+        Navigator.of(context).pushReplacementNamed('/missions');
         break;
       case UserRole.partenaire:
-        Navigator.of(context).pushReplacementNamed('/partner/dashboard');
+        Navigator.of(context).pushReplacementNamed('/missions');
         break;
       case UserRole.associe:
-        Navigator.of(context).pushReplacementNamed('/associate/dashboard');
+        Navigator.of(context).pushReplacementNamed('/missions');
         break;
       case UserRole.client:
-        Navigator.of(context).pushReplacementNamed('/client');
+        Navigator.of(context).pushReplacementNamed('/client_dashboard');
         break;
       default:
         Navigator.of(context).pushReplacementNamed('/login');
@@ -65,16 +65,16 @@ class AuthMiddleware extends NavigatorObserver {
 
     switch (role) {
       case UserRole.admin:
-        Navigator.of(context).pushReplacementNamed('/admin/dashboard');
+        Navigator.of(context).pushReplacementNamed('/projects');
         break;
       case UserRole.partenaire:
-        Navigator.of(context).pushReplacementNamed('/partner/dashboard');
+        Navigator.of(context).pushReplacementNamed('/projects');
         break;
       case UserRole.associe:
-        Navigator.of(context).pushReplacementNamed('/associate/dashboard');
+        Navigator.of(context).pushReplacementNamed('/projects');
         break;
       case UserRole.client:
-        Navigator.of(context).pushReplacementNamed('/client');
+        Navigator.of(context).pushReplacementNamed('/client_dashboard');
         break;
       default:
         // Aucune action si le rôle est null ou non reconnu

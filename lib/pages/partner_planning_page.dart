@@ -32,8 +32,8 @@ class _PartnerPlanningPageState extends State<PartnerPlanningPage> {
           .from('tasks')
           .select('''
             *,
-            projects (
-              name,
+            missions (
+              title,
               color
             )
           ''')
@@ -190,7 +190,7 @@ class _PartnerPlanningPageState extends State<PartnerPlanningPage> {
                           itemCount: _getEventsForDay(_selectedDay!).length,
                           itemBuilder: (context, index) {
                             final task = _getEventsForDay(_selectedDay!)[index];
-                            final project = task['projects'] as Map<String, dynamic>;
+                            final mission = task['missions'] as Map<String, dynamic>;
                             final dueDate = DateTime.parse(task['due_date']).toLocal();
                             final isOverdue = dueDate.isBefore(DateTime.now()) &&
                                 task['status'] != 'done';
@@ -202,7 +202,7 @@ class _PartnerPlanningPageState extends State<PartnerPlanningPage> {
                                   width: 12,
                                   height: 12,
                                   decoration: BoxDecoration(
-                                    color: Color(int.parse(project['color'])),
+                                    color: Color(int.parse(mission['color'])),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -210,7 +210,7 @@ class _PartnerPlanningPageState extends State<PartnerPlanningPage> {
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(project['name']),
+                                    Text(mission['name']),
                                     if (isOverdue)
                                       Text(
                                         'En retard',

@@ -159,17 +159,17 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
 
       // Enrichir les données avec les informations de projet si nécessaire
       for (var task in response) {
-        if (task['project_id'] != null) {
+        if (task['mission_id'] != null) {
           try {
-            final projectResponse = await SupabaseService.client
-                .from('projects')
-                .select('id, name, description, status')
-                .eq('id', task['project_id'])
+            final missionResponse = await SupabaseService.client
+                .from('missions')
+                .select('id, title, description, status')
+                .eq('id', task['mission_id'])
                 .single();
-            task['projects'] = projectResponse;
+            task['missions'] = missionResponse;
           } catch (e) {
-            debugPrint('Erreur lors du chargement du projet ${task['project_id']}: $e');
-            task['projects'] = null;
+            debugPrint('Erreur lors du chargement de la mission ${task['mission_id']}: $e');
+            task['missions'] = null;
           }
         }
       }
@@ -426,6 +426,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
           const MessagingFloatingButton(),
           const SizedBox(height: 16),
           FloatingActionButton(
+            heroTag: 'partner_dashboard_fab',
             onPressed: _showCreateTaskDialog,
             backgroundColor: const Color(0xFF1E3D54),
             child: const Icon(Icons.add),
@@ -612,7 +613,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
   Widget _buildTaskCardFromData(Map<String, dynamic> task) {
     final bool isUrgent = task['priority'] == 'urgent';
     final String status = task['status'] ?? 'todo';
-    final project = task['projects'];
+    final mission = task['missions'];
     final String taskId = task['id'].toString();
     final bool isInProgress = status == 'in_progress';
     final bool isDone = status == 'done';
@@ -650,10 +651,10 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (project != null) ...[
+                    if (mission != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        project['name'] ?? '',
+                        mission['name'] ?? '',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -921,7 +922,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
     }
   }
 
-  Future<void> _createTask(String title, String description, String projectId, DateTime? dueDate) async {
+  Future<void> _createTask(String title, String description, String missionId, DateTime? dueDate) async {
     if (!mounted) return;
     
     try {
@@ -930,17 +931,16 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
         throw Exception('Utilisateur non connecté');
       }
 
-      // Ne pas convertir projectId - l'utiliser directement comme String (UUID)
+      // Ne pas convertir missionId - l'utiliser directement comme String (UUID)
       // La base de données déterminera le bon type
 
-      await SupabaseService.createTaskForCompany(
-        projectId: projectId,
-        title: title,
-        description: description,
-        partnerId: currentUser.id, // Le partenaire connecté
-        assignedTo: currentUser.id,
-        dueDate: dueDate,
-      );
+      await SupabaseService.createMission({
+        'title': title,
+        'description': description,
+        'partner_id': currentUser.id, // Le partenaire connecté
+        'assigned_to': currentUser.id,
+        'due_date': dueDate,
+      });
       
       await _loadTasks();
       
@@ -969,17 +969,17 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
     final TextEditingController titleController = TextEditingController();
     final TextEditingController descriptionController = TextEditingController();
     DateTime? selectedDate;
-    String? selectedProjectId;
-    List<Map<String, dynamic>> projects = [];
+    String? selectedMissionId;
+    List<Map<String, dynamic>> missions = [];
 
     try {
       final response = await SupabaseService.client
-          .from('projects')
+          .from('missions')
           .select()
-          .order('name');
-      projects = List<Map<String, dynamic>>.from(response);
+          .order('title');
+      missions = List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      debugPrint('Erreur lors du chargement des projets: $e');
+      debugPrint('Erreur lors du chargement des missions: $e');
     }
 
     if (!mounted) return;
@@ -1010,18 +1010,18 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedProjectId,
+                value: selectedMissionId,
                 decoration: const InputDecoration(
-                  labelText: 'Projet',
+                  labelText: 'Mission',
                 ),
-                items: projects.map((project) {
+                items: missions.map((mission) {
                   return DropdownMenuItem(
-                    value: project['id'].toString(),
-                    child: Text(project['name']),
+                    value: mission['id'].toString(),
+                    child: Text(mission['title']),
                   );
                 }).toList(),
                 onChanged: (value) {
-                  selectedProjectId = value;
+                  selectedMissionId = value;
                 },
               ),
               const SizedBox(height: 16),
@@ -1056,7 +1056,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (titleController.text.isEmpty || selectedProjectId == null) {
+              if (titleController.text.isEmpty || selectedMissionId == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Veuillez remplir tous les champs obligatoires')),
                 );
@@ -1065,7 +1065,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
               _createTask(
                 titleController.text,
                 descriptionController.text,
-                selectedProjectId!,
+                selectedMissionId!,
                 selectedDate,
               );
               Navigator.of(context).pop();

@@ -15,7 +15,6 @@ class IOSMobileMissionManagementPage extends StatefulWidget {
 class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagementPage> with TickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> _missions = [];
-  List<Map<String, dynamic>> _projects = [];
   bool _isLoading = true;
   int _unreadCount = 0;
 
@@ -38,7 +37,6 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
     try {
       await Future.wait([
         _loadMissions(),
-        _loadProjects(),
         _loadUnreadCount(),
       ]);
     } catch (e) {
@@ -50,23 +48,12 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
 
   Future<void> _loadMissions() async {
     try {
-      final missions = await SupabaseService.getAllMissionAssignments();
+      final missions = await SupabaseService.getCompanyMissions();
       if (mounted) {
         setState(() => _missions = missions);
       }
     } catch (e) {
       debugPrint('Erreur chargement missions: $e');
-    }
-  }
-
-  Future<void> _loadProjects() async {
-    try {
-      final projects = await SupabaseService.getCompanyProjects();
-      if (mounted) {
-        setState(() => _projects = projects);
-      }
-    } catch (e) {
-      debugPrint('Erreur chargement projets: $e');
     }
   }
 
@@ -134,7 +121,9 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
   }
 
   Widget _buildTabBar() {
-    return Container(
+    return Material(
+      color: Colors.transparent,
+      child: Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: IOSTheme.systemGray6,
@@ -154,6 +143,7 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
           Tab(text: 'Missions'),
           Tab(text: 'Notifications'),
         ],
+        ),
       ),
     );
   }
@@ -246,7 +236,7 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -310,7 +300,7 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _getStatusColor(status).withOpacity(0.1),
+              color: _getStatusColor(status).withValues(alpha: 0.1),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
@@ -323,7 +313,7 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        mission['project_name'] ?? 'Projet sans nom',
+                        mission['mission_name'] ?? 'Mission sans nom',
                         style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 4),
@@ -544,8 +534,8 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
                   Expanded(
                     child: Text(
                       selectedProjectId.isNotEmpty 
-                          ? _projects.firstWhere((p) => p['id'].toString() == selectedProjectId)['name'] ?? 'Projet'
-                          : 'Sélectionner un projet',
+                          ? _missions.firstWhere((m) => m['id'].toString() == selectedProjectId)['title'] ?? 'Mission'
+                          : 'Sélectionner une mission',
                       style: IOSTheme.body,
                     ),
                   ),
@@ -625,7 +615,7 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -645,7 +635,7 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -678,8 +668,8 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
           top: false,
           child: CupertinoPicker(
             itemExtent: 32,
-            onSelectedItemChanged: (index) => onSelected(_projects[index]['id'].toString()),
-            children: _projects.map((project) => Text(project['name'] ?? 'Projet sans nom')).toList(),
+            onSelectedItemChanged: (index) => onSelected(_missions[index]['id'].toString()),
+            children: _missions.map((mission) => Text(mission['title'] ?? 'Mission sans nom')).toList(),
           ),
         ),
       ),

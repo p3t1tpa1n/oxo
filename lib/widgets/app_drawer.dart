@@ -35,7 +35,7 @@ class AppDrawer extends StatelessWidget {
             title: const Text("Dashboard", style: TextStyle(color: Color(0xFF122b35))),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/dashboard');
+              Navigator.pushNamed(context, '/missions');
             },
           ),
         ],

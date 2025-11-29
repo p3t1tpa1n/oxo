@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../../widgets/ios_widgets.dart';
-import '../../config/ios_theme.dart';
+import '../../config/app_theme.dart';
+import '../../services/supabase_service.dart';
 
-class IOSPartnerDetailPage extends StatelessWidget {
+class IOSPartnerDetailPage extends StatefulWidget {
   final Map<String, dynamic> partner;
 
   const IOSPartnerDetailPage({
@@ -12,69 +12,120 @@ class IOSPartnerDetailPage extends StatelessWidget {
   });
 
   @override
+  State<IOSPartnerDetailPage> createState() => _IOSPartnerDetailPageState();
+}
+
+class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
+  Map<String, dynamic> _fullProfile = {};
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFullProfile();
+  }
+
+  Future<void> _loadFullProfile() async {
+    try {
+      final userId = widget.partner['user_id']?.toString();
+      debugPrint('🔍 Chargement du profil complet pour user_id: $userId');
+      
+      if (userId != null && userId.isNotEmpty) {
+        // Essayer de charger depuis partner_profiles
+        final response = await SupabaseService.client
+            .from('partner_profiles')
+            .select('*')
+            .eq('user_id', userId)
+            .maybeSingle();
+        
+        if (response != null) {
+          debugPrint('✅ Profil complet chargé: ${response.keys}');
+          setState(() {
+            _fullProfile = {...widget.partner, ...response};
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+      
+      // Fallback: utiliser les données de base
+      setState(() {
+        _fullProfile = widget.partner;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('❌ Erreur chargement profil: $e');
+      setState(() {
+        _fullProfile = widget.partner;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
+      backgroundColor: AppTheme.colors.background,
       navigationBar: CupertinoNavigationBar(
         middle: Text(
           'Profil Partenaire',
-          style: IOSTheme.title2,
+          style: TextStyle(
+            color: AppTheme.colors.textPrimary,
+            fontWeight: FontWeight.w600,
+            decoration: TextDecoration.none,
+          ),
         ),
-        backgroundColor: CupertinoColors.systemBackground,
+        backgroundColor: AppTheme.colors.surface,
         border: null,
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
-          child: const Icon(CupertinoIcons.share),
+          child: Icon(
+            CupertinoIcons.share,
+            color: AppTheme.colors.primary,
+          ),
           onPressed: () => _sharePartnerProfile(context),
         ),
       ),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // En-tête avec photo et informations principales
-              _buildHeader(),
-              
-              // Informations personnelles
-              _buildPersonalInfo(),
-              
-              // Informations société
-              _buildCompanyInfo(),
-              
-              // Domaines d'activité
-              _buildActivityDomains(),
-              
-              // Langues
-              _buildLanguages(),
-              
-              // Diplômes
-              _buildDiplomas(),
-              
-              // Parcours
-              _buildCareerPaths(),
-              
-              // Fonctions principales
-              _buildMainFunctions(),
-              
-              // Expériences professionnelles
-              _buildProfessionalExperiences(),
-              
-              // Actions
-              _buildActions(context),
-              
-              const SizedBox(height: 32),
-            ],
-          ),
+      child: DefaultTextStyle(
+        style: TextStyle(
+          decoration: TextDecoration.none,
+          color: AppTheme.colors.textPrimary,
         ),
+        child: _isLoading
+            ? Center(
+                child: CupertinoActivityIndicator(
+                  color: AppTheme.colors.primary,
+                ),
+              )
+            : SafeArea(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildHeader(),
+                      _buildPersonalInfo(),
+                      _buildCompanyInfo(),
+                      _buildActivityDomains(),
+                      _buildLanguages(),
+                      _buildDiplomas(),
+                      _buildCareerPaths(),
+                      _buildMainFunctions(),
+                      _buildProfessionalExperiences(),
+                      _buildActions(context),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              ),
       ),
     );
   }
 
   Widget _buildHeader() {
-    final firstName = partner['first_name'] ?? '';
-    final lastName = partner['last_name'] ?? '';
-    final companyName = partner['company_name'] ?? '';
-    final email = partner['email'] ?? '';
-    final phone = partner['phone'] ?? '';
+    final firstName = _fullProfile['first_name'] ?? '';
+    final lastName = _fullProfile['last_name'] ?? '';
+    final companyName = _fullProfile['company_name'] ?? '';
+    final email = _fullProfile['email'] ?? '';
+    final phone = _fullProfile['phone'] ?? '';
     
     return Container(
       padding: const EdgeInsets.all(20),
@@ -85,19 +136,21 @@ class IOSPartnerDetailPage extends StatelessWidget {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: IOSTheme.primaryBlue.withOpacity(0.1),
+              color: AppTheme.colors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(50),
               border: Border.all(
-                color: IOSTheme.primaryBlue.withOpacity(0.3),
+                color: AppTheme.colors.primary.withOpacity(0.3),
                 width: 2,
               ),
             ),
             child: Center(
               child: Text(
-                '${firstName.isNotEmpty ? firstName[0] : ''}${lastName.isNotEmpty ? lastName[0] : ''}',
-                style: IOSTheme.largeTitle.copyWith(
-                  color: IOSTheme.primaryBlue,
+                '${firstName.isNotEmpty ? firstName[0].toUpperCase() : ''}${lastName.isNotEmpty ? lastName[0].toUpperCase() : ''}',
+                style: TextStyle(
+                  fontSize: 32,
                   fontWeight: FontWeight.w700,
+                  color: AppTheme.colors.primary,
+                  decoration: TextDecoration.none,
                 ),
               ),
             ),
@@ -108,8 +161,11 @@ class IOSPartnerDetailPage extends StatelessWidget {
           // Nom complet
           Text(
             '$firstName $lastName',
-            style: IOSTheme.largeTitle.copyWith(
+            style: TextStyle(
+              fontSize: 24,
               fontWeight: FontWeight.w700,
+              color: AppTheme.colors.textPrimary,
+              decoration: TextDecoration.none,
             ),
             textAlign: TextAlign.center,
           ),
@@ -118,9 +174,11 @@ class IOSPartnerDetailPage extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               companyName,
-              style: IOSTheme.title3.copyWith(
-                color: CupertinoColors.systemGrey,
+              style: TextStyle(
+                fontSize: 16,
                 fontWeight: FontWeight.w500,
+                color: AppTheme.colors.textSecondary,
+                decoration: TextDecoration.none,
               ),
               textAlign: TextAlign.center,
             ),
@@ -130,7 +188,7 @@ class IOSPartnerDetailPage extends StatelessWidget {
           
           // Contact
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (email.isNotEmpty) ...[
                 _buildContactItem(
@@ -138,6 +196,7 @@ class IOSPartnerDetailPage extends StatelessWidget {
                   email,
                   'Email',
                 ),
+                if (phone.isNotEmpty) const SizedBox(width: 24),
               ],
               if (phone.isNotEmpty) ...[
                 _buildContactItem(
@@ -158,234 +217,328 @@ class IOSPartnerDetailPage extends StatelessWidget {
       children: [
         Icon(
           icon,
-          color: IOSTheme.primaryBlue,
+          color: AppTheme.colors.primary,
           size: 20,
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: IOSTheme.caption1.copyWith(
+          style: TextStyle(
+            fontSize: 12,
             fontWeight: FontWeight.w500,
+            color: AppTheme.colors.textPrimary,
+            decoration: TextDecoration.none,
           ),
         ),
         Text(
           label,
-          style: IOSTheme.caption1.copyWith(
-            color: CupertinoColors.systemGrey,
+          style: TextStyle(
+            fontSize: 11,
+            color: AppTheme.colors.textSecondary,
+            decoration: TextDecoration.none,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSection(String title, Widget content) {
+    return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing.md,
+        vertical: AppTheme.spacing.sm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.colors.textSecondary,
+              letterSpacing: 0.5,
+              decoration: TextDecoration.none,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.colors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.colors.border,
+                width: 1,
+              ),
+            ),
+            child: content,
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildPersonalInfo() {
-    return IOSListSection(
-      title: '🧍 Informations personnelles',
-      children: [
-        IOSCard(
-          child: Column(
-            children: [
-              _buildInfoRow('Civilité', partner['civility'] ?? 'Non renseigné'),
-              _buildInfoRow('Prénom', partner['first_name'] ?? 'Non renseigné'),
-              _buildInfoRow('Nom', partner['last_name'] ?? 'Non renseigné'),
-              _buildInfoRow('Email', partner['email'] ?? 'Non renseigné'),
-              _buildInfoRow('Téléphone', partner['phone'] ?? 'Non renseigné'),
-              _buildInfoRow('Date de naissance', partner['birth_date'] ?? 'Non renseigné'),
-              _buildInfoRow('Adresse', partner['address'] ?? 'Non renseigné'),
-              _buildInfoRow('Code postal', partner['postal_code'] ?? 'Non renseigné'),
-              _buildInfoRow('Ville', partner['city'] ?? 'Non renseigné'),
-            ],
-          ),
-        ),
-      ],
+    return _buildSection(
+      '🧍 INFORMATIONS PERSONNELLES',
+      Column(
+        children: [
+          _buildInfoRow('Civilité', _fullProfile['civility']),
+          _buildInfoRow('Prénom', _fullProfile['first_name']),
+          _buildInfoRow('Nom', _fullProfile['last_name']),
+          _buildInfoRow('Email', _fullProfile['email']),
+          _buildInfoRow('Téléphone', _fullProfile['phone']),
+          _buildInfoRow('Date de naissance', _fullProfile['birth_date']),
+          _buildInfoRow('Adresse', _fullProfile['address']),
+          _buildInfoRow('Code postal', _fullProfile['postal_code']),
+          _buildInfoRow('Ville', _fullProfile['city']),
+        ],
+      ),
     );
   }
 
   Widget _buildCompanyInfo() {
-    return IOSListSection(
-      title: '🏢 Informations société',
-      children: [
-        IOSCard(
-          child: Column(
-            children: [
-              _buildInfoRow('Nom de la société', partner['company_name'] ?? 'Non renseigné'),
-              _buildInfoRow('Forme juridique', partner['legal_form'] ?? 'Non renseigné'),
-              _buildInfoRow('Capital', partner['capital'] ?? 'Non renseigné'),
-              _buildInfoRow('Adresse du siège', partner['company_address'] ?? 'Non renseigné'),
-              _buildInfoRow('Code postal', partner['company_postal_code'] ?? 'Non renseigné'),
-              _buildInfoRow('Ville', partner['company_city'] ?? 'Non renseigné'),
-              _buildInfoRow('RCS', partner['rcs'] ?? 'Non renseigné'),
-              _buildInfoRow('SIREN', partner['siren'] ?? 'Non renseigné'),
-              _buildInfoRow('Représentant', partner['representative_name'] ?? 'Non renseigné'),
-              _buildInfoRow('Qualité du représentant', partner['representative_title'] ?? 'Non renseigné'),
-            ],
-          ),
-        ),
-      ],
+    return _buildSection(
+      '🏢 INFORMATIONS SOCIÉTÉ',
+      Column(
+        children: [
+          _buildInfoRow('Nom de la société', _fullProfile['company_name']),
+          _buildInfoRow('Forme juridique', _fullProfile['legal_form']),
+          _buildInfoRow('Capital', _fullProfile['capital']),
+          _buildInfoRow('Adresse du siège', _fullProfile['company_address']),
+          _buildInfoRow('Code postal', _fullProfile['company_postal_code']),
+          _buildInfoRow('Ville', _fullProfile['company_city']),
+          _buildInfoRow('RCS', _fullProfile['rcs']),
+          _buildInfoRow('SIREN', _fullProfile['siren']),
+          _buildInfoRow('Représentant', _fullProfile['representative_name']),
+          _buildInfoRow('Qualité du représentant', _fullProfile['representative_title']),
+        ],
+      ),
     );
   }
 
   Widget _buildActivityDomains() {
-    final domains = partner['activity_domains'] as List<dynamic>? ?? [];
+    final domains = _fullProfile['activity_domains'] as List<dynamic>? ?? [];
     
-    return IOSListSection(
-      title: '💼 Domaines d\'activité',
-      children: [
-        IOSCard(
-          child: domains.isEmpty
-              ? const Text('Aucun domaine renseigné')
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: domains.map((domain) => _buildTag(domain.toString())).toList(),
-                ),
-        ),
-      ],
+    return _buildSection(
+      '💼 DOMAINES D\'ACTIVITÉ',
+      domains.isEmpty
+          ? Text(
+              'Aucun domaine renseigné',
+              style: TextStyle(
+                color: AppTheme.colors.textSecondary,
+                decoration: TextDecoration.none,
+              ),
+            )
+          : Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: domains.map((domain) => _buildTag(domain.toString())).toList(),
+            ),
     );
   }
 
   Widget _buildLanguages() {
-    final languages = partner['languages'] as List<dynamic>? ?? [];
+    final languages = _fullProfile['languages'] as List<dynamic>? ?? [];
     
-    return IOSListSection(
-      title: '🌍 Langues & Niveau',
-      children: [
-        IOSCard(
-          child: languages.isEmpty
-              ? const Text('Aucune langue renseignée')
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: languages.map((language) => _buildTag(language.toString())).toList(),
-                ),
-        ),
-      ],
+    return _buildSection(
+      '🌍 LANGUES & NIVEAU',
+      languages.isEmpty
+          ? Text(
+              'Aucune langue renseignée',
+              style: TextStyle(
+                color: AppTheme.colors.textSecondary,
+                decoration: TextDecoration.none,
+              ),
+            )
+          : Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: languages.map((language) => _buildTag(language.toString())).toList(),
+            ),
     );
   }
 
   Widget _buildDiplomas() {
-    final diplomas = partner['diplomas'] as List<dynamic>? ?? [];
+    final diplomas = _fullProfile['diplomas'] as List<dynamic>? ?? [];
     
-    return IOSListSection(
-      title: '🎓 Diplômes significatifs',
-      children: [
-        IOSCard(
-          child: diplomas.isEmpty
-              ? const Text('Aucun diplôme renseigné')
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: diplomas.map((diploma) => _buildListItem(diploma.toString())).toList(),
-                ),
-        ),
-      ],
+    return _buildSection(
+      '🎓 DIPLÔMES SIGNIFICATIFS',
+      diplomas.isEmpty
+          ? Text(
+              'Aucun diplôme renseigné',
+              style: TextStyle(
+                color: AppTheme.colors.textSecondary,
+                decoration: TextDecoration.none,
+              ),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: diplomas.map((diploma) => _buildListItem(diploma.toString())).toList(),
+            ),
     );
   }
 
   Widget _buildCareerPaths() {
-    final careerPaths = partner['career_paths'] as List<dynamic>? ?? [];
+    final careerPaths = _fullProfile['career_paths'] as List<dynamic>? ?? [];
     
-    return IOSListSection(
-      title: '🧭 Parcours',
-      children: [
-        IOSCard(
-          child: careerPaths.isEmpty
-              ? const Text('Aucun parcours renseigné')
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: careerPaths.map((path) => _buildTag(path.toString())).toList(),
-                ),
-        ),
-      ],
+    return _buildSection(
+      '🧭 PARCOURS',
+      careerPaths.isEmpty
+          ? Text(
+              'Aucun parcours renseigné',
+              style: TextStyle(
+                color: AppTheme.colors.textSecondary,
+                decoration: TextDecoration.none,
+              ),
+            )
+          : Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: careerPaths.map((path) => _buildTag(path.toString())).toList(),
+            ),
     );
   }
 
   Widget _buildMainFunctions() {
-    final functions = partner['main_functions'] as List<dynamic>? ?? [];
+    final functions = _fullProfile['main_functions'] as List<dynamic>? ?? [];
     
-    return IOSListSection(
-      title: '👔 Principale fonction',
-      children: [
-        IOSCard(
-          child: functions.isEmpty
-              ? const Text('Aucune fonction renseignée')
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: functions.map((function) => _buildTag(function.toString())).toList(),
-                ),
-        ),
-      ],
+    return _buildSection(
+      '👔 PRINCIPALE FONCTION',
+      functions.isEmpty
+          ? Text(
+              'Aucune fonction renseignée',
+              style: TextStyle(
+                color: AppTheme.colors.textSecondary,
+                decoration: TextDecoration.none,
+              ),
+            )
+          : Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: functions.map((function) => _buildTag(function.toString())).toList(),
+            ),
     );
   }
 
   Widget _buildProfessionalExperiences() {
-    final experiences = partner['professional_experiences'] as List<dynamic>? ?? [];
+    final experiences = _fullProfile['professional_experiences'] as List<dynamic>? ?? [];
     
-    return IOSListSection(
-      title: '🧠 Expériences professionnelles',
-      children: [
-        IOSCard(
-          child: experiences.isEmpty
-              ? const Text('Aucune expérience renseignée')
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: experiences.map((experience) => _buildTag(experience.toString())).toList(),
-                ),
-        ),
-      ],
+    return _buildSection(
+      '🧠 EXPÉRIENCES PROFESSIONNELLES',
+      experiences.isEmpty
+          ? Text(
+              'Aucune expérience renseignée',
+              style: TextStyle(
+                color: AppTheme.colors.textSecondary,
+                decoration: TextDecoration.none,
+              ),
+            )
+          : Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: experiences.map((experience) => _buildTag(experience.toString())).toList(),
+            ),
     );
   }
 
   Widget _buildActions(BuildContext context) {
-    return IOSListSection(
-      title: 'Actions',
-      children: [
-        IOSCard(
-          child: Column(
-            children: [
-              IOSPrimaryButton(
-                text: 'Assigner une mission',
-                onPressed: () => _assignMission(context),
+    return _buildSection(
+      'ACTIONS',
+      Column(
+        children: [
+          // Bouton principal
+          SizedBox(
+            width: double.infinity,
+            child: CupertinoButton(
+              color: AppTheme.colors.primary,
+              borderRadius: BorderRadius.circular(10),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              onPressed: () => _assignMission(context),
+              child: Text(
+                'Assigner une mission',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.none,
+                ),
               ),
-              const SizedBox(height: 12),
-              IOSSecondaryButton(
-                text: 'Envoyer un message',
-                onPressed: () => _sendMessage(context),
-              ),
-              const SizedBox(height: 12),
-              IOSSecondaryButton(
-                text: 'Voir les disponibilités',
-                onPressed: () => _viewAvailability(context),
-              ),
-            ],
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          // Bouton secondaire
+          SizedBox(
+            width: double.infinity,
+            child: CupertinoButton(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              onPressed: () => _sendMessage(context),
+              child: Text(
+                'Envoyer un message',
+                style: TextStyle(
+                  color: AppTheme.colors.primary,
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Bouton secondaire
+          SizedBox(
+            width: double.infinity,
+            child: CupertinoButton(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              onPressed: () => _viewAvailability(context),
+              child: Text(
+                'Voir les disponibilités',
+                style: TextStyle(
+                  color: AppTheme.colors.primary,
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, dynamic value) {
+    final displayValue = value?.toString().isNotEmpty == true ? value.toString() : 'Non renseigné';
+    final isNotSet = displayValue == 'Non renseigné';
+    
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 130,
             child: Text(
               label,
-              style: IOSTheme.body.copyWith(
+              style: TextStyle(
+                fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: CupertinoColors.systemGrey,
+                color: AppTheme.colors.textSecondary,
+                decoration: TextDecoration.none,
               ),
             ),
           ),
           Expanded(
             child: Text(
-              value,
-              style: IOSTheme.body,
+              displayValue,
+              style: TextStyle(
+                fontSize: 14,
+                color: isNotSet ? AppTheme.colors.textSecondary : AppTheme.colors.textPrimary,
+                decoration: TextDecoration.none,
+              ),
             ),
           ),
         ],
@@ -397,17 +550,19 @@ class IOSPartnerDetailPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: IOSTheme.primaryBlue.withOpacity(0.1),
+        color: AppTheme.colors.primary.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: IOSTheme.primaryBlue.withOpacity(0.3),
+          color: AppTheme.colors.primary.withOpacity(0.3),
         ),
       ),
       child: Text(
         text,
-        style: IOSTheme.caption1.copyWith(
-          color: IOSTheme.primaryBlue,
+        style: TextStyle(
+          fontSize: 13,
+          color: AppTheme.colors.primary,
           fontWeight: FontWeight.w500,
+          decoration: TextDecoration.none,
         ),
       ),
     );
@@ -422,7 +577,7 @@ class IOSPartnerDetailPage extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: BoxDecoration(
-              color: IOSTheme.primaryBlue,
+              color: AppTheme.colors.primary,
               borderRadius: BorderRadius.circular(3),
             ),
           ),
@@ -430,7 +585,11 @@ class IOSPartnerDetailPage extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: IOSTheme.body,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.colors.textPrimary,
+                decoration: TextDecoration.none,
+              ),
             ),
           ),
         ],
@@ -443,7 +602,7 @@ class IOSPartnerDetailPage extends StatelessWidget {
       context: context,
       builder: (context) => CupertinoAlertDialog(
         title: const Text('Partager le profil'),
-        content: const Text('Fonctionnalité de partage à implémenter'),
+        content: const Text('Fonctionnalité de partage à venir'),
         actions: [
           CupertinoDialogAction(
             child: const Text('OK'),
@@ -459,7 +618,7 @@ class IOSPartnerDetailPage extends StatelessWidget {
       context: context,
       builder: (context) => CupertinoAlertDialog(
         title: const Text('Assigner une mission'),
-        content: Text('Assigner une mission à ${partner['first_name']} ${partner['last_name']} ?'),
+        content: Text('Assigner une mission à ${_fullProfile['first_name']} ${_fullProfile['last_name']} ?'),
         actions: [
           CupertinoDialogAction(
             child: const Text('Annuler'),
@@ -479,18 +638,14 @@ class IOSPartnerDetailPage extends StatelessWidget {
   }
 
   void _sendMessage(BuildContext context) {
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Envoyer un message'),
-        content: const Text('Redirection vers la messagerie...'),
-        actions: [
-          CupertinoDialogAction(
-            child: const Text('OK'),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
-      ),
+    Navigator.pop(context);
+    Navigator.of(context, rootNavigator: true).pushNamed(
+      '/messaging',
+      arguments: {
+        'partner_id': _fullProfile['user_id'],
+        'partner_name': '${_fullProfile['first_name']} ${_fullProfile['last_name']}',
+        'partner_email': _fullProfile['email'],
+      },
     );
   }
 
@@ -511,8 +666,6 @@ class IOSPartnerDetailPage extends StatelessWidget {
   }
 
   void _showSuccessMessage(String message) {
-    // Cette méthode devrait être dans le contexte parent
-    // Pour l'instant, on affiche juste un debug print
     debugPrint(message);
   }
 }

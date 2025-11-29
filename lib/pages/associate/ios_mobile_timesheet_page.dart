@@ -499,6 +499,7 @@ class _IOSMobileTimesheetPageState extends State<IOSMobileTimesheetPage> {
     }
 
     return Center(
+      child: SingleChildScrollView(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -516,7 +517,7 @@ class _IOSMobileTimesheetPageState extends State<IOSMobileTimesheetPage> {
               color: IOSTheme.systemGray3,
             ),
           ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 20),
           
           // 📊 RÈGLE 7: Titre principal mis en avant
           Text(
@@ -540,6 +541,7 @@ class _IOSMobileTimesheetPageState extends State<IOSMobileTimesheetPage> {
             textAlign: TextAlign.center,
           ),
         ],
+        ),
       ),
     );
   }

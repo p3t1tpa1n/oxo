@@ -56,8 +56,8 @@ class _PlanningPageState extends State<PlanningPage> {
           .from('tasks')
           .select('''
             *,
-            projects:project_id (
-              name,
+            missions:mission_id (
+              title,
               status
             )
           ''')
@@ -286,7 +286,7 @@ class _PlanningPageState extends State<PlanningPage> {
                             children: [
                               const SizedBox(height: 2),
                               Text(
-                                'Projet: ${event['projects'] != null ? event['projects']['name'] ?? 'Projet inconnu' : 'Projet inconnu'}',
+                                'Mission: ${event['missions'] != null ? event['missions']['title'] ?? 'Mission inconnue' : 'Mission inconnue'}',
                                 style: TextStyle(
                                   color: Colors.grey[700],
                                   fontSize: 11,
@@ -352,6 +352,7 @@ class _PlanningPageState extends State<PlanningPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'planning_fab',
         onPressed: () {
           // TODO: Implémenter l'ajout d'un événement
           ScaffoldMessenger.of(context).showSnackBar(

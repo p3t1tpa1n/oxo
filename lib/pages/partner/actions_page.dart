@@ -1,7 +1,6 @@
 // lib/pages/partner/actions_page.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../models/user_role.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/base_page_widget.dart';
 import '../../widgets/standard_dialogs.dart' as dialogs;
@@ -98,9 +97,13 @@ class _ActionsPageState extends State<ActionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Le SideMenu et TopBar sont maintenant gérés par DesktopShell
+    // On désactive showSideMenu et showTopBar pour éviter la duplication
     return BasePageWidget(
       title: 'Actions Commerciales',
       route: '/actions',
+      showSideMenu: false, // Désactivé car géré par DesktopShell
+      showTopBar: false, // Désactivé car géré par DesktopShell
       isLoading: _isLoading,
       errorMessage: _error,
       hasData: _filteredActions.isNotEmpty,

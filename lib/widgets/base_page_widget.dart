@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/user_role.dart';
 import '../services/supabase_service.dart';
 import 'top_bar.dart';
 import 'side_menu.dart';
@@ -14,6 +13,7 @@ class BasePageWidget extends StatefulWidget {
   final List<Widget>? floatingActionButtons;
   final Widget? bottomNavigationBar;
   final bool showSideMenu;
+  final bool showTopBar;
   final bool showMessaging;
   final bool isLoading;
   final String? errorMessage;
@@ -29,6 +29,7 @@ class BasePageWidget extends StatefulWidget {
     this.floatingActionButtons,
     this.bottomNavigationBar,
     this.showSideMenu = true,
+    this.showTopBar = true,
     this.showMessaging = true,
     this.isLoading = false,
     this.errorMessage,
@@ -56,6 +57,7 @@ class _BasePageWidgetState extends State<BasePageWidget> {
           Expanded(
             child: Column(
               children: [
+                if (widget.showTopBar)
                 TopBar(title: widget.title),
                 Expanded(
                   child: _buildContent(),

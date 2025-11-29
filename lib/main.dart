@@ -8,8 +8,8 @@ import 'package:window_manager/window_manager.dart';
 import 'services/supabase_service.dart';
 import 'services/messaging_service.dart';
 import 'services/auth_middleware.dart';
-import 'models/user_role.dart';
 import 'utils/device_detector.dart';
+import 'models/user_role.dart';
 
 // Pages génériques
 import 'pages/auth/login_page.dart';
@@ -17,6 +17,7 @@ import 'pages/dashboard/dashboard_page.dart';
 import 'pages/shared/profile_page.dart';
 import 'pages/shared/planning_page.dart';
 import 'pages/shared/projects_page.dart';
+import 'pages/shared/partners_clients_page.dart';
 import 'pages/partner/partners_page.dart';
 import 'pages/partner/ios_partners_page.dart';
 import 'pages/partner/availability_page.dart';
@@ -36,7 +37,10 @@ import 'pages/projects/ios_project_detail_page.dart';
 
 // Pages iOS spécifiques
 import 'pages/auth/ios_login_page.dart';
-import 'pages/dashboard/ios_dashboard_page.dart';
+
+// Nouvelle architecture iOS professionnelle
+import 'app/shells/mobile_shell_professional.dart';
+import 'app/shells/desktop_shell.dart';
 
 // Nouvelles pages iOS UX-Optimisées
 import 'pages/associate/ios_mobile_timesheet_page.dart';
@@ -48,6 +52,12 @@ import 'pages/partner/ios_mobile_availability_page.dart';
 // Pages système de missions
 import 'pages/partner/ios_mobile_missions_page.dart';
 import 'pages/associate/ios_mobile_mission_management_page.dart';
+import 'pages/partner/proposed_missions_page.dart';
+
+// Pages module OXO TIME SHEETS
+import 'pages/timesheet/time_entry_page.dart';
+import 'pages/timesheet/timesheet_settings_page.dart';
+import 'pages/timesheet/timesheet_reporting_page.dart';
 
 // Pages création de clients
 import 'pages/admin/ios_mobile_create_client_page.dart';
@@ -58,12 +68,10 @@ import 'pages/partner/ios_partner_questionnaire_page.dart';
 
 // Pages profils partenaires pour associés
 import 'pages/associate/ios_partner_profiles_page.dart';
-import 'pages/associate/ios_partner_detail_page.dart';
 import 'pages/associate/partner_profiles_page.dart';
-import 'pages/associate/partner_detail_page.dart';
 
-// Configuration iOS
-import 'config/ios_theme.dart';
+// Configuration
+import 'config/app_theme.dart';
 
 // lib/main.dart
 void main() async {
@@ -191,7 +199,7 @@ class _MainAppState extends State<MainApp> {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-          backgroundColor: _isIOS() ? IOSTheme.systemGroupedBackground : IOSTheme.darkBlue,
+          backgroundColor: _isIOS() ? AppTheme.colors.background : AppTheme.colors.primary,
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -200,28 +208,16 @@ class _MainAppState extends State<MainApp> {
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: _isIOS() ? IOSTheme.primaryBlue : Colors.white,
-                    borderRadius: BorderRadius.circular(_isIOS() ? 22 : 16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _isIOS() 
-                            ? IOSTheme.primaryBlue.withOpacity(0.3)
-                            : Colors.black.withAlpha(26),
-                        blurRadius: _isIOS() ? 20 : 10,
-                        spreadRadius: _isIOS() ? 0 : 2,
-                        offset: _isIOS() ? const Offset(0, 8) : Offset.zero,
-                      ),
-                    ],
+                    color: _isIOS() ? AppTheme.colors.primary : Colors.white,
+                    borderRadius: BorderRadius.circular(AppTheme.radius.medium),
+                    boxShadow: AppTheme.shadows.medium,
                   ),
                   child: Center(
                     child: Text(
                       "OXO",
-                      style: TextStyle(
-                        color: _isIOS() ? Colors.white : IOSTheme.darkBlue,
-                        fontWeight: FontWeight.w700,
-                        fontSize: _isIOS() ? 28 : 24,
-                        fontFamily: _isIOS() ? '.SF Pro Display' : null,
-                        decoration: TextDecoration.none,
+                      style: AppTheme.typography.h1.copyWith(
+                        color: _isIOS() ? AppTheme.colors.textOnPrimary : AppTheme.colors.primary,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -229,17 +225,14 @@ class _MainAppState extends State<MainApp> {
                 const SizedBox(height: 24),
                 CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    _isIOS() ? IOSTheme.primaryBlue : Colors.white,
+                    _isIOS() ? AppTheme.colors.primary : Colors.white,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   "Chargement...",
-                  style: TextStyle(
-                    color: _isIOS() ? IOSTheme.labelPrimary : Colors.white,
-                    fontSize: 16,
-                    fontFamily: _isIOS() ? '.SF Pro Text' : null,
-                    decoration: TextDecoration.none,
+                  style: AppTheme.typography.bodyLarge.copyWith(
+                    color: _isIOS() ? AppTheme.colors.textPrimary : Colors.white,
                   ),
                 ),
               ],
@@ -250,50 +243,58 @@ class _MainAppState extends State<MainApp> {
     }
 
     return MaterialApp(
-      title: 'Oxo',
+      title: 'OXO Time Sheets',
       debugShowCheckedModeBanner: false,
-      theme: IOSTheme.materialTheme,
+      theme: _isIOS() ? AppTheme.materialTheme : AppTheme.materialTheme,
       home: _getHomePage(),
       routes: _getRoutes(),
       navigatorObservers: [AuthMiddleware()],
     );
   }
 
-  Widget _getHomePage() {
+  Widget _getHomePage() { 
     if (!SupabaseService.isAuthenticated) {
       return _isIOS() ? const IOSLoginPage() : const LoginPage();
     }
 
-    final userRole = SupabaseService.currentUserRole;
-    debugPrint('Rôle de l\'utilisateur pour la page d\'accueil: $userRole');
-
-    // Sur iOS, utiliser le dashboard iOS unifié avec onglets
+    // Sur iOS, utiliser le nouveau MobileShellProfessional
     if (_isIOS()) {
-      return const IOSDashboardPage();
+      return const MobileShellProfessional();
     }
 
-    // Sur desktop, utiliser la navigation basée sur les rôles
-    if (userRole == UserRole.associe) {
-      return const DashboardPage();
-    } else if (userRole == UserRole.partenaire) {
-      return const PartnerDashboardPage();
-    } else if (userRole == UserRole.admin) {
-      return const DashboardPage();
-    } else if (userRole == UserRole.client) {
+    // Sur desktop, rediriger selon le rôle de l'utilisateur
+    final userRole = SupabaseService.currentUserRole;
+    
+    if (userRole == UserRole.client) {
       return const ClientDashboardPage();
     }
 
-    // Fallback
-    return _isIOS() ? const IOSLoginPage() : const LoginPage();
+    // Pour les autres rôles, rediriger vers la page Missions par défaut
+    return DesktopShell(
+      currentRoute: '/missions',
+      child: const ProjectsPage(),
+    );
   }
 
   Map<String, WidgetBuilder> _getRoutes() {
     final routes = <String, WidgetBuilder>{
       // Routes principales avec support iOS
       '/login': (context) => _isIOS() ? const IOSLoginPage() : const LoginPage(),
-      '/dashboard': (context) => _isIOS() ? const IOSDashboardPage() : const DashboardPage(),
-      '/partner_dashboard': (context) => _isIOS() ? const IOSDashboardPage() : const PartnerDashboardPage(),
-      '/client_dashboard': (context) => _isIOS() ? const IOSDashboardPage() : const ClientDashboardPage(),
+      '/dashboard': (context) => _isIOS() 
+        ? const MobileShellProfessional() 
+        : DesktopShell(
+            currentRoute: '/dashboard',
+            child: const DashboardPage(),
+          ),
+      '/partner_dashboard': (context) => _isIOS() 
+        ? const MobileShellProfessional() 
+        : DesktopShell(
+            currentRoute: '/partner_dashboard',
+            child: const PartnerDashboardPage(),
+          ),
+      '/client_dashboard': (context) => _isIOS() 
+        ? const MobileShellProfessional() 
+        : const ClientDashboardPage(),
       
       // Routes fonctionnelles avec adaptation iOS
       '/profile': (context) => const ProfilePage(),
@@ -301,10 +302,16 @@ class _MainAppState extends State<MainApp> {
       '/admin/roles': (context) => const UserRolesPage(),
       '/admin/client-requests': (context) => _isIOS() ? const IOSMobileClientRequestsPage() : const ClientRequestsPage(),
       '/messaging': (context) => _isIOS() ? const IOSMessagingPage() : const messaging.MessagingPage(),
+      '/partner/proposed-missions': (context) => const ProposedMissionsPage(),
       '/settings': (context) => const ProfilePage(),
       '/projects': (context) {
         // final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?; // Variable non utilisée
-        return const ProjectsPage();
+        return _isIOS() 
+          ? const ProjectsPage()
+          : DesktopShell(
+              currentRoute: '/missions',
+              child: const ProjectsPage(),
+            );
       },
       '/project_detail': (context) {
         final arguments = ModalRoute.of(context)?.settings.arguments;
@@ -312,6 +319,18 @@ class _MainAppState extends State<MainApp> {
           return IOSProjectDetailPage(projectId: arguments.toString());
         }
         return const ProjectsPage();
+      },
+      '/mission_detail': (context) {
+        final arguments = ModalRoute.of(context)?.settings.arguments;
+        if (arguments != null) {
+          return IOSProjectDetailPage(projectId: arguments.toString());
+        }
+        return _isIOS() 
+          ? const MobileShellProfessional() 
+          : DesktopShell(
+              currentRoute: '/missions',
+              child: const ProjectsPage(),
+            );
       },
       '/client/projects': (context) => const ClientDashboardPage(),
       '/client/tasks': (context) => const ClientDashboardPage(),
@@ -322,7 +341,7 @@ class _MainAppState extends State<MainApp> {
     if (_isIOS()) {
       routes.addAll({
         '/ios/login': (context) => const IOSLoginPage(),
-        '/ios/dashboard': (context) => const IOSDashboardPage(),
+        '/ios/dashboard': (context) => const MobileShellProfessional(),
       });
     }
 
@@ -334,14 +353,30 @@ class _MainAppState extends State<MainApp> {
       '/planning': (context) => const PlanningPage(),
       '/figures': (context) => const FiguresPage(),
       '/timesheet': (context) => _isIOS() ? const IOSMobileTimesheetPage() : const TimesheetPage(),
+      
+      // Routes module OXO TIME SHEETS
+      '/timesheet/entry': (context) => const TimeEntryPage(),
+      '/timesheet/settings': (context) => const TimesheetSettingsPage(),
+      '/timesheet/reporting': (context) => const TimesheetReportingPage(),
+      
       '/partners': (context) => _isIOS() ? const IOSPartnersPage() : const PartnersPage(),
       '/availability': (context) => _isIOS() ? const IOSMobileAvailabilityPage() : const AvailabilityPage(),
-      '/actions': (context) => _isIOS() ? const IOSMobileActionsPage() : const ActionsPage(),
-      '/missions': (context) => _isIOS() ? const IOSMobileMissionsPage() : const ActionsPage(),
-      '/mission-management': (context) => _isIOS() ? const IOSMobileMissionManagementPage() : const ActionsPage(),
+      '/actions': (context) => _isIOS() ? const IOSMobileActionsPage() : DesktopShell(
+        currentRoute: '/actions',
+        child: const ActionsPage(),
+      ),
+      '/missions': (context) => _isIOS() ? const IOSMobileMissionsPage() : DesktopShell(
+        currentRoute: '/missions',
+        child: const ProjectsPage(),
+      ),
+      '/mission-management': (context) => _isIOS() ? const IOSMobileMissionManagementPage() : DesktopShell(
+        currentRoute: '/mission-management',
+        child: const ProjectsPage(),
+      ),
       '/create-client': (context) => _isIOS() ? const IOSMobileCreateClientPage() : const CreateClientPage(),
       '/partner-questionnaire': (context) => const IOSPartnerQuestionnairePage(),
       '/partner-profiles': (context) => _isIOS() ? const IOSPartnerProfilesPage() : const PartnerProfilesPage(),
+      '/partners-clients': (context) => const PartnersClientsPage(),
       '/add_user': (context) => const UserRolesPage(),
       '/calendar': (context) => const CalendarPage(),
     });

@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS public.time_extension_requests (
         FOREIGN KEY (approved_by) REFERENCES auth.users(id) ON DELETE SET NULL
 );
 
--- 3. Créer une table pour les propositions de nouveaux projets
+-- 3. Créer une table pour les propositions de nouvelles missions
 CREATE TABLE IF NOT EXISTS public.project_proposals (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -86,7 +86,7 @@ USING (
         AND role IN ('admin', 'associe')
     )
     OR
-    -- Les partenaires peuvent voir les demandes des projets de leur entreprise
+    -- Les partenaires peuvent voir les demandes des missions de leur entreprise
     EXISTS (
         SELECT 1 FROM public.projects p
         JOIN public.profiles pr ON pr.company_id = p.company_id
@@ -182,13 +182,13 @@ BEGIN
     FROM public.profiles
     WHERE user_id = auth.uid();
     
-    -- Vérifier que le projet appartient à l'entreprise du client
+    -- Vérifier que la mission appartient à l'entreprise du client
     IF NOT EXISTS (
         SELECT 1 FROM public.projects 
         WHERE id = p_project_id 
         AND company_id = user_company_id
     ) THEN
-        RAISE EXCEPTION 'Vous ne pouvez demander une extension que pour les projets de votre entreprise';
+        RAISE EXCEPTION 'Vous ne pouvez demander une extension que pour les missions de votre entreprise';
     END IF;
     
     -- Insérer la demande
@@ -210,7 +210,7 @@ BEGIN
 END;
 $$;
 
--- Fonction pour soumettre une proposition de projet
+-- Fonction pour soumettre une proposition de mission
 CREATE OR REPLACE FUNCTION submit_project_proposal(
     p_title VARCHAR(255),
     p_description TEXT,
@@ -231,7 +231,7 @@ BEGIN
         WHERE user_id = auth.uid() 
         AND role = 'client'
     ) THEN
-        RAISE EXCEPTION 'Seuls les clients peuvent soumettre des propositions de projet';
+        RAISE EXCEPTION 'Seuls les clients peuvent soumettre des propositions de mission';
     END IF;
     
     -- Récupérer l'entreprise de l'utilisateur
@@ -240,7 +240,7 @@ BEGIN
     WHERE user_id = auth.uid();
     
     IF user_company_id IS NULL THEN
-        RAISE EXCEPTION 'Vous devez être assigné à une entreprise pour proposer un projet';
+        RAISE EXCEPTION 'Vous devez être assigné à une entreprise pour proposer une mission';
     END IF;
     
     -- Insérer la proposition
@@ -271,7 +271,7 @@ ALTER TABLE public.projects
 ADD COLUMN IF NOT EXISTS priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
 ADD COLUMN IF NOT EXISTS completion_percentage DECIMAL(5,2) DEFAULT 0 CHECK (completion_percentage >= 0 AND completion_percentage <= 100);
 
--- 10. Mettre à jour les projets existants avec des valeurs par défaut pour le temps
+-- 10. Mettre à jour les missions existantes avec des valeurs par défaut pour le temps
 UPDATE public.projects 
 SET 
     estimated_hours = 100,

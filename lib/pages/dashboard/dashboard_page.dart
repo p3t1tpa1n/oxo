@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
-import '../../widgets/top_bar.dart';
-import '../../widgets/side_menu.dart';
 import '../../widgets/messaging_button.dart';
 import '../shared/calendar_page.dart';
+import '../../config/app_theme.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -14,17 +13,17 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  List<Map<String, dynamic>> _tasks = [];
+  List<Map<String, dynamic>> _missions = [];
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadTasks();
+    _loadMissions();
     _loadEvents();
   }
 
-  Future<void> _loadTasks() async {
+  Future<void> _loadMissions() async {
     if (!mounted) return;
     
     setState(() {
@@ -32,16 +31,68 @@ class _DashboardPageState extends State<DashboardPage> {
     });
     
     try {
-      final response = await SupabaseService.fetchTasks();
+      // Vérifier l'utilisateur connecté
+      final currentUser = SupabaseService.currentUser;
+      final currentRole = SupabaseService.currentUserRole;
+      debugPrint('👤 Utilisateur connecté: ${currentUser?.id}');
+      debugPrint('🎭 Rôle: $currentRole');
+      
+      final response = await SupabaseService.getMissionsWithStatus();
+      debugPrint('📊 Missions récupérées depuis Supabase: ${response.length}');
+      
+      if (response.isNotEmpty) {
+        debugPrint('📋 Première mission: ${response.first}');
+        
+        // Vérifier si progress_status existe
+        if (response.first.containsKey('progress_status')) {
+          debugPrint('✅ Colonne progress_status existe');
+          debugPrint('🔍 Valeur: ${response.first['progress_status']}');
+        } else {
+          debugPrint('❌ Colonne progress_status MANQUANTE!');
+          debugPrint('📝 Colonnes disponibles: ${response.first.keys.toList()}');
+        }
+        
+        // Compter par statut
+        final parStatut = <String, int>{};
+        for (var mission in response) {
+          final status = mission['progress_status']?.toString() ?? 'null';
+          parStatut[status] = (parStatut[status] ?? 0) + 1;
+        }
+        debugPrint('📈 Distribution des statuts: $parStatut');
+        
+        // Afficher quelques exemples de missions
+        debugPrint('📝 Exemples de missions:');
+        for (var i = 0; i < response.length && i < 3; i++) {
+          final m = response[i];
+          debugPrint('  - ${m['title']} (progress_status: ${m['progress_status']})');
+        }
+      } else {
+        debugPrint('⚠️ AUCUNE MISSION récupérée depuis Supabase!');
+        debugPrint('🔍 Cela peut être dû à:');
+        debugPrint('   1. Aucune mission dans la base');
+        debugPrint('   2. Problème de permissions RLS');
+        debugPrint('   3. Problème de company_id');
+      }
       
       if (mounted) {
         setState(() {
-          _tasks = response.map((task) => task).toList();
+          _missions = response.map((mission) => mission).toList();
           _isLoading = false;
         });
+        debugPrint('✅ ${_missions.length} missions chargées dans le state');
+        
+        // Compter combien de missions par colonne
+        final aAssigner = _missions.where((m) => m['progress_status'] == 'à_assigner').length;
+        final enCours = _missions.where((m) => m['progress_status'] == 'en_cours').length;
+        final fait = _missions.where((m) => m['progress_status'] == 'fait').length;
+        debugPrint('📊 Répartition dans l\'UI:');
+        debugPrint('   - À assigner: $aAssigner');
+        debugPrint('   - En cours: $enCours');
+        debugPrint('   - Fait: $fait');
       }
-    } catch (e) {
-      debugPrint('Erreur lors du chargement des tâches: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ ERREUR lors du chargement des missions: $e');
+      debugPrint('📍 Stack trace: $stackTrace');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -57,34 +108,49 @@ class _DashboardPageState extends State<DashboardPage> {
     // Implémentation à venir
   }
 
-  Future<void> _updateTaskStatus(Map<String, dynamic> taskData, String newStatus) async {
+  Future<void> _updateMissionStatus(Map<String, dynamic> missionData, String newProgressStatus) async {
     if (!mounted) return;
     
     try {
-      await SupabaseService.client
-          .from('tasks')
-          .update({
-            'status': newStatus,
-          })
-          .eq('id', taskData['id']);
-      
-      await _loadTasks();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Statut mis à jour avec succès')),
-        );
+      final success = await SupabaseService.updateMissionProgressStatus(missionData['id'], newProgressStatus);
+      if (success) {
+        await _loadMissions();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Statut mis à jour vers: ${_getStatusDisplayName(newProgressStatus)}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Erreur lors de la mise à jour du statut: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la mise à jour: ${e.toString()}')),
+          SnackBar(
+            content: Text('Erreur lors de la mise à jour: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
   }
 
-  Future<void> _showAddTaskDialog() async {
+  String _getStatusDisplayName(String status) {
+    switch (status) {
+      case 'à_assigner':
+        return 'À assigner';
+      case 'en_cours':
+        return 'En cours';
+      case 'fait':
+        return 'Fait';
+      default:
+        return status;
+    }
+  }
+
+  Future<void> _showAddMissionDialog() async {
     if (!mounted) return;
     final dialogContext = context;
     final titleController = TextEditingController();
@@ -102,7 +168,7 @@ class _DashboardPageState extends State<DashboardPage> {
         context: dialogContext,
         builder: (BuildContext context) => StatefulBuilder(
           builder: (context, setState) => AlertDialog(
-            title: const Text('Nouvelle tâche'),
+            title: const Text('Nouvelle mission'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -128,7 +194,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
                             return DropdownButtonFormField<String>(
                               decoration: const InputDecoration(
-                                labelText: 'Projet',
+                                labelText: 'Mission',
                                 border: OutlineInputBorder(),
                               ),
                               value: selectedProject,
@@ -168,7 +234,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     TextField(
                       controller: projectNameController,
                       decoration: const InputDecoration(
-                        labelText: 'Nom du projet',
+                        labelText: 'Nom de la mission',
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -177,7 +243,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       controller: projectDescriptionController,
                       maxLines: 2,
                       decoration: const InputDecoration(
-                        labelText: 'Description du projet',
+                        labelText: 'Description de la mission',
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -186,7 +252,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   TextField(
                     controller: titleController,
                     decoration: const InputDecoration(
-                      labelText: 'Titre de la tâche',
+                      labelText: 'Titre de la mission',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -195,7 +261,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     controller: descriptionController,
                     maxLines: 3,
                     decoration: const InputDecoration(
-                      labelText: 'Description de la tâche',
+                      labelText: 'Description de la mission',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -287,9 +353,8 @@ class _DashboardPageState extends State<DashboardPage> {
                   }
 
                   try {
-                    dynamic projectId;
                     if (isCreatingNewProject) {
-                      final projectResponse = await SupabaseService.client
+                      await SupabaseService.client
                           .from('projects')
                           .insert({
                             'name': projectNameController.text,
@@ -299,12 +364,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             'end_date': selectedDate!.toIso8601String(),
                             'created_at': DateTime.now().toIso8601String(),
                             'updated_at': DateTime.now().toIso8601String(),
-                          })
-                          .select()
-                          .single();
-                      projectId = projectResponse['id'];
-                    } else {
-                      projectId = selectedProject!;
+                          });
                     }
 
                     if (selectedPartnerId == null) {
@@ -316,25 +376,26 @@ class _DashboardPageState extends State<DashboardPage> {
                       return;
                     }
 
-                    await SupabaseService.createTaskForCompany(
-                      projectId: projectId.toString(),
-                      title: titleController.text,
-                      description: descriptionController.text,
-                      partnerId: selectedPartnerId!,
-                      assignedTo: selectedPartnerId,
-                      dueDate: selectedDate,
-                    );
+                    await SupabaseService.createMission({
+                      'title': titleController.text,
+                      'description': descriptionController.text,
+                      'assigned_to': selectedPartnerId,
+                      'due_date': selectedDate?.toIso8601String(),
+                      'status': 'pending',
+                      'progress_status': 'à_assigner',
+                      'priority': 'medium',
+                    });
                     
                     if (!mounted) return;
                     Navigator.pop(context);
-                    await _loadTasks();
+                    await _loadMissions();
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
                             isCreatingNewProject 
-                              ? 'Projet et tâche créés avec succès' 
-                              : 'Tâche créée avec succès'
+                              ? 'Mission créée avec succès' 
+                              : 'Mission créée avec succès'
                           ),
                         ),
                       );
@@ -370,33 +431,13 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Le SideMenu et TopBar sont maintenant gérés par DesktopShell
+    // On retourne uniquement le contenu principal
     return Scaffold(
-      body: Row(
-        children: [
-          // Menu latéral
-          SideMenu(
-            selectedRoute: '/dashboard',
-            userRole: SupabaseService.currentUserRole,
-          ),
-          
-          // Contenu principal
-          Expanded(
-            child: Column(
-              children: [
-                // Barre supérieure
-                const TopBar(title: 'Dashboard'),
-                
-                // Contenu du tableau de bord
-                Expanded(
-                  child: _isLoading
+      backgroundColor: AppTheme.colors.background,
+      body: _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : _buildDashboardContent(),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
       floatingActionButton: ConstrainedBox(
         constraints: const BoxConstraints(maxHeight: 150), // Limiter la hauteur
         child: Column(
@@ -407,7 +448,8 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
             const SizedBox(height: 16),
             FloatingActionButton(
-              onPressed: _showAddTaskDialog,
+              heroTag: 'dashboard_fab',
+              onPressed: _showAddMissionDialog,
               backgroundColor: const Color(0xFF1784af),
               child: const Icon(Icons.add),
             ),
@@ -473,7 +515,7 @@ class _DashboardPageState extends State<DashboardPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Tâches',
+                  'Missions',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -482,7 +524,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.add, color: Color(0xFF1784af)),
-                  onPressed: _showAddTaskDialog,
+                  onPressed: _showAddMissionDialog,
                 ),
               ],
             ),
@@ -490,7 +532,7 @@ class _DashboardPageState extends State<DashboardPage> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Colonne "À faire"
+                // Colonne "À assigner"
                 Expanded(
                   child: Container(
                     height: MediaQuery.of(context).size.height * 0.7,
@@ -521,7 +563,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   ),
                                   SizedBox(width: 8),
                                   Text(
-                                    'À faire',
+                                    'À assigner',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF1784af),
@@ -536,7 +578,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  _tasks.where((task) => task['status'] == 'todo').length.toString(),
+                                  _missions.where((mission) => mission['progress_status'] == 'à_assigner').length.toString(),
                                   style: const TextStyle(
                                     color: Color(0xFF1784af),
                                     fontWeight: FontWeight.bold,
@@ -551,20 +593,15 @@ class _DashboardPageState extends State<DashboardPage> {
                           child: DragTarget<Map<String, dynamic>>(
                             onWillAcceptWithDetails: (details) => true,
                             onAcceptWithDetails: (details) {
-                              _updateTaskStatus(details.data, 'todo');
+                              _updateMissionStatus(details.data, 'todo');
                             },
                             builder: (context, candidateData, rejectedData) {
                               return ListView(
-                                children: _tasks
-                                  .where((task) => task['status'] == 'todo')
-                                  .map((task) => Column(
+                                children: _missions
+                                  .where((mission) => mission['progress_status'] == 'à_assigner')
+                                  .map((mission) => Column(
                                     children: [
-                                      _buildTaskCard(
-                                        task['title'],
-                                        task['description'],
-                                        DateTime.parse(task['due_date']),
-                                        isDone: task['isDone'] ?? false,
-                                      ),
+                                      _buildMissionCard(mission),
                                       const SizedBox(height: 8),
                                     ],
                                   ))
@@ -625,20 +662,15 @@ class _DashboardPageState extends State<DashboardPage> {
                           child: DragTarget<Map<String, dynamic>>(
                             onWillAcceptWithDetails: (details) => true,
                             onAcceptWithDetails: (details) {
-                              _updateTaskStatus(details.data, 'in_progress');
+                              _updateMissionStatus(details.data, 'en_cours');
                             },
                             builder: (context, candidateData, rejectedData) {
                               return ListView(
-                                children: _tasks
-                                  .where((task) => task['status'] == 'in_progress')
-                                  .map((task) => Column(
+                                children: _missions
+                                  .where((mission) => mission['progress_status'] == 'en_cours')
+                                  .map((mission) => Column(
                                     children: [
-                                      _buildTaskCard(
-                                        task['title'],
-                                        task['description'],
-                                        DateTime.parse(task['due_date']),
-                                        isDone: task['isDone'] ?? false,
-                                      ),
+                                      _buildMissionCard(mission),
                                       const SizedBox(height: 8),
                                     ],
                                   ))
@@ -699,20 +731,15 @@ class _DashboardPageState extends State<DashboardPage> {
                           child: DragTarget<Map<String, dynamic>>(
                             onWillAcceptWithDetails: (details) => true,
                             onAcceptWithDetails: (details) {
-                              _updateTaskStatus(details.data, 'done');
+                              _updateMissionStatus(details.data, 'fait');
                             },
                             builder: (context, candidateData, rejectedData) {
                               return ListView(
-                                children: _tasks
-                                  .where((task) => task['status'] == 'done')
-                                  .map((task) => Column(
+                                children: _missions
+                                  .where((mission) => mission['progress_status'] == 'fait')
+                                  .map((mission) => Column(
                                     children: [
-                                      _buildTaskCard(
-                                        task['title'],
-                                        task['description'],
-                                        DateTime.parse(task['due_date']),
-                                        isDone: task['isDone'] ?? false,
-                                      ),
+                                      _buildMissionCard(mission),
                                       const SizedBox(height: 8),
                                     ],
                                   ))
@@ -753,15 +780,16 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildTaskCard(String title, String description, DateTime dueDate, {bool isDone = false}) {
-    final task = _tasks.firstWhere(
-      (task) => task['title'] == title && 
-                task['description'] == description && 
-                DateTime.parse(task['due_date']).isAtSameMomentAs(dueDate),
-    );
+  Widget _buildMissionCard(Map<String, dynamic> mission) {
+    final title = mission['title'] ?? 'Sans titre';
+    final description = mission['description'] ?? 'Pas de description';
+    final dueDate = mission['due_date'] != null 
+        ? DateTime.parse(mission['due_date']) 
+        : DateTime.now();
+    final isDone = mission['progress_status'] == 'fait';
 
     return Draggable<Map<String, dynamic>>(
-      data: task,
+      data: mission,
       feedback: Material(
         elevation: 4,
         borderRadius: BorderRadius.circular(8),
@@ -796,13 +824,13 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
       childWhenDragging: Opacity(
         opacity: 0.5,
-        child: _buildTaskCardContent(title, description, dueDate, isDone: isDone),
+        child: _buildMissionCardContent(title, description, dueDate, isDone: isDone),
       ),
-      child: _buildTaskCardContent(title, description, dueDate, isDone: isDone),
+      child: _buildMissionCardContent(title, description, dueDate, isDone: isDone),
     );
   }
 
-  Widget _buildTaskCardContent(String title, String description, DateTime dueDate, {bool isDone = false}) {
+  Widget _buildMissionCardContent(String title, String description, DateTime dueDate, {bool isDone = false}) {
     return Card(
       elevation: 3,
       shadowColor: Colors.black.withOpacity(0.1),
@@ -1062,7 +1090,7 @@ class _TimesheetDialogState extends State<TimesheetDialog> {
               children: [
                 DropdownButtonFormField<String>(
                   decoration: const InputDecoration(
-                    labelText: 'Projet',
+                    labelText: 'Mission',
                     border: OutlineInputBorder(),
                   ),
                   value: selectedProject,
@@ -1082,22 +1110,22 @@ class _TimesheetDialogState extends State<TimesheetDialog> {
                 if (selectedProject?.isNotEmpty == true)
                   FutureBuilder<List<dynamic>>(
                     future: SupabaseService.client
-                        .from('tasks')
+                        .from('missions')
                         .select()
                         .eq('project_id', selectedProject!)
                         .order('title'),
                     builder: (context, AsyncSnapshot<List<dynamic>> taskSnapshot) {
-                      final tasks = List<Map<String, dynamic>>.from(taskSnapshot.data ?? []);
+                      final missions = List<Map<String, dynamic>>.from(taskSnapshot.data ?? []);
                       
                       return DropdownButtonFormField<String>(
                         decoration: const InputDecoration(
-                          labelText: 'Tâche',
+                          labelText: 'Mission',
                           border: OutlineInputBorder(),
                         ),
                         value: selectedTask,
-                        items: tasks.map((task) => DropdownMenuItem<String>(
-                          value: task['id'].toString(),
-                          child: Text(task['title'] as String),
+                        items: missions.map((mission) => DropdownMenuItem<String>(
+                          value: mission['id'].toString(),
+                          child: Text(mission['title'] as String),
                         )).toList(),
                         onChanged: (String? value) {
                           setState(() => selectedTask = value);
@@ -1210,10 +1238,10 @@ class _TimesheetDialogState extends State<TimesheetDialog> {
                   }
 
                   try {
-                    // Gérer l'ID de tâche de manière flexible
-                    dynamic taskIdValue = selectedTask!;
+                    // Gérer l'ID de mission de manière flexible
+                    dynamic missionIdValue = selectedTask!;
                     try {
-                      taskIdValue = int.parse(selectedTask!);
+                      missionIdValue = int.parse(selectedTask!);
                     } catch (e) {
                       // Si la conversion échoue, c'est probablement un UUID
                       debugPrint('Task ID est probablement un UUID: $selectedTask');
@@ -1223,7 +1251,7 @@ class _TimesheetDialogState extends State<TimesheetDialog> {
                         .from('timesheet_entries')
                         .insert({
                       'user_id': SupabaseService.currentUser!.id,
-                      'task_id': taskIdValue, // Utiliser la valeur appropriée
+                      'mission_id': missionIdValue, // Utiliser la valeur appropriée
                       'date': widget.selectedDate.toIso8601String(),
                       'hours': hours,
                       'description': descriptionController.text,

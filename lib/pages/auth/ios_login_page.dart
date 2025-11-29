@@ -41,9 +41,9 @@ class _IOSLoginPageState extends State<IOSLoginPage> {
       );
 
       if (result.user != null) {
-        // iOS: rediriger vers le tableau de bord iOS unifié
+        // iOS: rediriger vers les missions
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/dashboard');
+          Navigator.of(context).pushReplacementNamed('/projects');
         }
       } else {
         if (mounted) {

@@ -47,13 +47,13 @@ class AuthMiddleware extends RouteObserver<PageRoute> {
     // Déterminer la route cible en fonction du rôle de l'utilisateur
     switch (userRole) {
       case UserRole.admin:
-        targetRoute = '/associate';
+        targetRoute = '/missions';
         break;
       case UserRole.associe:
-        targetRoute = '/associate';
+        targetRoute = '/missions';
         break;
       case UserRole.partenaire:
-        targetRoute = '/partner';
+        targetRoute = '/missions';
         break;
       case UserRole.client:
         targetRoute = '/client';

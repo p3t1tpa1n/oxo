@@ -265,7 +265,7 @@ class _IOSMobileMissionsPageState extends State<IOSMobileMissionsPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        mission['project_name'] ?? 'Projet sans nom',
+                        mission['mission_name'] ?? 'Mission sans nom',
                         style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 4),

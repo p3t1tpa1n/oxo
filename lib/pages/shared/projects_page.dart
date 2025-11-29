@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../widgets/top_bar.dart';
-import '../../widgets/side_menu.dart';
-import '../../models/user_role.dart';
 import '../../services/supabase_service.dart';
+import '../../models/company.dart';
+import '../../models/user_role.dart';
+import '../../config/app_theme.dart';
 
 class ProjectsPage extends StatefulWidget {
   const ProjectsPage({super.key});
@@ -13,10 +13,10 @@ class ProjectsPage extends StatefulWidget {
 }
 
 class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderStateMixin {
-  List<Map<String, dynamic>> _projects = [];
-  List<Map<String, dynamic>> _filteredProjects = [];
+  List<Map<String, dynamic>> _missions = [];
+  List<Map<String, dynamic>> _filteredMissions = [];
   List<Map<String, dynamic>> _partners = [];
-  Map<String, List<Map<String, dynamic>>> _tasksByProject = {};
+  List<Company> _companies = [];
   bool _isLoading = true;
   String _searchQuery = '';
   String _sortBy = 'name';
@@ -24,9 +24,8 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
   bool _sortAscending = true;
   
   // Variables pour la vue détaillée
-  Map<String, dynamic>? _selectedProject;
+  Map<String, dynamic>? _selectedMission;
   String _currentView = 'grid'; // 'grid' ou 'detail'
-  String _taskFilter = 'all'; // 'all', 'todo', 'in_progress', 'done'
 
   @override
   void initState() {
@@ -40,11 +39,11 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     });
 
     try {
-      // Charger projets, partenaires et tâches en parallèle
-      final results = await Future.wait([
-        _loadProjects(),
+      // Charger missions, partenaires et sociétés en parallèle
+      await Future.wait([
+        _loadMissions(),
         _loadPartners(),
-        _loadAllTasks(),
+        _loadCompanies(),
       ]);
 
       setState(() {
@@ -69,14 +68,93 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     }
   }
 
-  Future<List<Map<String, dynamic>>> _loadProjects() async {
-    final response = await SupabaseService.client
-        .from('projects')
-        .select('*')
-        .order('created_at', ascending: false);
+  Future<List<Map<String, dynamic>>> _loadMissions() async {
+    final userRole = SupabaseService.currentUserRole;
+    final currentUserId = SupabaseService.client.auth.currentUser?.id;
 
-    _projects = List<Map<String, dynamic>>.from(response);
-    return _projects;
+    // Si c'est un partenaire, charger les propositions ET les missions directement assignées
+    if (userRole == UserRole.partenaire && currentUserId != null) {
+      _missions = [];
+      
+      // 1. Récupérer les propositions de mission pour ce partenaire
+      try {
+        final proposalsResponse = await SupabaseService.client
+            .from('mission_proposals')
+            .select('''
+              *,
+              missions:mission_id(*)
+            ''')
+            .eq('partner_id', currentUserId)
+            .inFilter('status', ['pending', 'accepted']);
+
+        final proposals = List<Map<String, dynamic>>.from(proposalsResponse);
+        
+        for (var proposal in proposals) {
+          dynamic missionData = proposal['missions'];
+          if (missionData == null && proposal['mission_id'] != null) {
+            try {
+              final missionResponse = await SupabaseService.client
+                  .from('missions')
+                  .select('*')
+                  .eq('id', proposal['mission_id'])
+                  .single();
+              missionData = missionResponse;
+            } catch (e) {
+              debugPrint('Erreur récupération mission: $e');
+              continue;
+            }
+          }
+          
+          if (missionData != null) {
+            final mission = Map<String, dynamic>.from(missionData);
+            mission['proposal_id'] = proposal['id'];
+            mission['proposal_status'] = proposal['status'];
+            mission['proposed_at'] = proposal['proposed_at'];
+            mission['response_notes'] = proposal['response_notes'];
+            mission['is_proposal'] = true; // Marquer comme proposition
+            _missions.add(mission);
+          }
+        }
+      } catch (e) {
+        debugPrint('Erreur chargement propositions: $e');
+      }
+
+      // 2. Récupérer les missions directement assignées au partenaire (via partner_id)
+      try {
+        final assignedMissionsResponse = await SupabaseService.client
+            .from('missions')
+            .select('*')
+            .eq('partner_id', currentUserId)
+            .inFilter('progress_status', ['en_cours', 'fait']);
+
+        final assignedMissions = List<Map<String, dynamic>>.from(assignedMissionsResponse);
+        
+        // Ajouter les missions assignées qui ne sont pas déjà dans la liste (via proposition acceptée)
+        final existingMissionIds = _missions.map((m) => m['id']?.toString()).toSet();
+        
+        for (var mission in assignedMissions) {
+          final missionId = mission['id']?.toString();
+          if (missionId != null && !existingMissionIds.contains(missionId)) {
+            mission['is_proposal'] = false; // Mission directement assignée
+            mission['is_assigned'] = true;
+            _missions.add(mission);
+          }
+        }
+      } catch (e) {
+        debugPrint('Erreur chargement missions assignées: $e');
+      }
+
+      return _missions;
+    } else {
+      // Pour les autres rôles, charger toutes les missions
+      final response = await SupabaseService.client
+          .from('missions')
+          .select('*')
+          .order('created_at', ascending: false);
+
+      _missions = List<Map<String, dynamic>>.from(response);
+      return _missions;
+    }
   }
 
   Future<List<Map<String, dynamic>>> _loadPartners() async {
@@ -84,178 +162,179 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     return _partners;
   }
 
-  Future<void> _loadAllTasks() async {
-    final tasks = await SupabaseService.getCompanyTasks();
-    
-    // Organiser les tâches par projet
-    final tasksByProject = <String, List<Map<String, dynamic>>>{};
-    for (final task in tasks) {
-      final projectId = task['project_id']?.toString() ?? 'no_project';
-      tasksByProject.putIfAbsent(projectId, () => []).add(task);
+  Future<void> _loadCompanies() async {
+    try {
+      final response = await SupabaseService.client
+          .from('company_with_group')
+          .select()
+          .eq('company_active', true)
+          .order('company_name');
+
+      _companies = (response as List)
+          .map((json) => Company.fromJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint('Erreur lors du chargement des sociétés: $e');
+      _companies = [];
     }
-    
-    _tasksByProject = tasksByProject;
   }
 
   void _applyFiltersAndSort() {
-    List<Map<String, dynamic>> filtered = _projects;
-
-    // Appliquer le filtre de recherche
-    if (_searchQuery.isNotEmpty) {
-      filtered = filtered.where((project) {
-        final name = (project['name'] ?? '').toString().toLowerCase();
-        final description = (project['description'] ?? '').toString().toLowerCase();
-        final query = _searchQuery.toLowerCase();
-        return name.contains(query) || description.contains(query);
-      }).toList();
-    }
-
-    // Appliquer le filtre de statut
-    if (_filterStatus != 'all') {
-      filtered = filtered.where((project) => project['status'] == _filterStatus).toList();
-    }
-
-    // Appliquer le tri
-    filtered.sort((a, b) {
-      dynamic valueA, valueB;
-      
-      switch (_sortBy) {
-        case 'name':
-          valueA = (a['name'] ?? '').toString().toLowerCase();
-          valueB = (b['name'] ?? '').toString().toLowerCase();
-          break;
-        case 'created_at':
-          valueA = DateTime.tryParse(a['created_at'] ?? '') ?? DateTime.now();
-          valueB = DateTime.tryParse(b['created_at'] ?? '') ?? DateTime.now();
-          break;
-        case 'status':
-          valueA = (a['status'] ?? '').toString();
-          valueB = (b['status'] ?? '').toString();
-          break;
-        case 'tasks':
-          valueA = _tasksByProject[a['id'].toString()]?.length ?? 0;
-          valueB = _tasksByProject[b['id'].toString()]?.length ?? 0;
-          break;
-        default:
-          valueA = a[_sortBy] ?? '';
-          valueB = b[_sortBy] ?? '';
-      }
-
-      if (_sortAscending) {
-        return valueA.compareTo(valueB);
-      } else {
-        return valueB.compareTo(valueA);
-      }
-    });
-
     setState(() {
-      _filteredProjects = filtered;
+      _filteredMissions = _missions.where((mission) {
+        // Filtre de recherche
+        final matchesSearch = _searchQuery.isEmpty ||
+            (mission['title']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
+            (mission['name']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
+            (mission['description']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+
+        // Filtre de statut
+        final matchesStatus = _filterStatus == 'all' || mission['progress_status'] == _filterStatus;
+
+        return matchesSearch && matchesStatus;
+      }).toList();
+
+      // Tri
+      _filteredMissions.sort((a, b) {
+        int comparison = 0;
+        switch (_sortBy) {
+          case 'name':
+            final aName = a['title'] ?? a['name'] ?? '';
+            final bName = b['title'] ?? b['name'] ?? '';
+            comparison = aName.toString().compareTo(bName.toString());
+            break;
+          case 'date':
+            final aDate = a['created_at'] ?? '';
+            final bDate = b['created_at'] ?? '';
+            comparison = aDate.toString().compareTo(bDate.toString());
+            break;
+          case 'status':
+            final aStatus = a['progress_status'] ?? '';
+            final bStatus = b['progress_status'] ?? '';
+            comparison = aStatus.toString().compareTo(bStatus.toString());
+            break;
+        }
+        return _sortAscending ? comparison : -comparison;
+      });
     });
   }
 
-  void _showProjectDetails(Map<String, dynamic> project) {
+  void _showMissionDetails(Map<String, dynamic> mission) async {
+    // Charger les informations du partenaire si partner_id existe
+    final partnerId = mission['partner_id']?.toString();
+    if (partnerId != null && partnerId.isNotEmpty) {
+      try {
+        // Essayer de charger depuis partner_profiles
+        final partnerProfile = await SupabaseService.client
+            .from('partner_profiles')
+            .select('first_name, last_name, email')
+            .eq('user_id', partnerId)
+            .maybeSingle();
+        
+        if (partnerProfile != null) {
+          mission['partner_first_name'] = partnerProfile['first_name'];
+          mission['partner_last_name'] = partnerProfile['last_name'];
+          mission['partner_email'] = partnerProfile['email'];
+        } else {
+          // Essayer depuis profiles
+          final profile = await SupabaseService.client
+              .from('profiles')
+              .select('first_name, last_name, email')
+              .eq('id', partnerId)
+              .maybeSingle();
+          
+          if (profile != null) {
+            mission['partner_first_name'] = profile['first_name'];
+            mission['partner_last_name'] = profile['last_name'];
+            mission['partner_email'] = profile['email'];
+          }
+        }
+      } catch (e) {
+        debugPrint('Erreur chargement partenaire: $e');
+      }
+    }
+    
     setState(() {
-      _selectedProject = project;
+      _selectedMission = mission;
       _currentView = 'detail';
     });
   }
 
   void _backToGrid() {
     setState(() {
-      _selectedProject = null;
       _currentView = 'grid';
+      _selectedMission = null;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Le SideMenu et TopBar sont maintenant gérés par DesktopShell
+    // On retourne uniquement le contenu principal
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: Row(
-        children: [
-          SideMenu(
-            userRole: SupabaseService.currentUserRole,
-            selectedRoute: '/projects',
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                TopBar(
-                  title: _currentView == 'detail' 
-                      ? 'Projet: ${_selectedProject?['name'] ?? ''}'
-                      : 'Gestion des Projets',
-                ),
-                Expanded(
-                  child: _isLoading
+      backgroundColor: AppTheme.colors.background,
+      body: _isLoading
                       ? const Center(child: CircularProgressIndicator())
-                      : _currentView == 'detail'
-                          ? _buildProjectDetailView()
-                          : _buildProjectsGridView(),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: _buildFloatingActionButton(),
+                      : _currentView == 'grid'
+                          ? _buildMissionsGridView()
+                          : _buildMissionDetailView(),
+      floatingActionButton: _currentView == 'grid' && SupabaseService.currentUserRole != UserRole.partenaire
+          ? FloatingActionButton.extended(
+              onPressed: _showCreateMissionDialog,
+              icon: const Icon(Icons.add),
+              label: const Text('Nouvelle Mission'),
+              backgroundColor: const Color(0xFF2A4B63),
+            )
+          : null,
     );
   }
 
-  Widget? _buildFloatingActionButton() {
-    if (_currentView == 'detail' && _selectedProject != null) {
-      return FloatingActionButton.extended(
-        onPressed: () => _showCreateTaskDialog(_selectedProject!),
-        backgroundColor: const Color(0xFF1784af),
-        icon: const Icon(Icons.add_task, color: Colors.white),
-        label: const Text('Nouvelle Tâche', style: TextStyle(color: Colors.white)),
-      );
-    } else if (_currentView == 'grid') {
-      return FloatingActionButton.extended(
-        onPressed: _showCreateProjectDialog,
-        backgroundColor: const Color(0xFF1784af),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Nouveau Projet', style: TextStyle(color: Colors.white)),
-      );
-    }
-    return null;
-  }
+  // ============= VUE GRILLE DES MISSIONS =============
 
-  // ============= VUE GRILLE DES PROJETS =============
-
-  Widget _buildProjectsGridView() {
+  Widget _buildMissionsGridView() {
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
-          _buildProjectFilters(),
+          _buildMissionFilters(),
           const SizedBox(height: 24),
           Expanded(
-            child: _filteredProjects.isEmpty
-                ? _buildEmptyProjectsState()
-                : _buildProjectsGrid(),
+            child: _filteredMissions.isEmpty
+                ? _buildEmptyMissionsState()
+                : _buildMissionsGrid(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProjectFilters() {
+  Widget _buildMissionFilters() {
     return Card(
       elevation: 2,
+      color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             Row(
               children: [
                 Expanded(
-                  flex: 2,
                   child: TextField(
-                    decoration: const InputDecoration(
-                      labelText: 'Rechercher un projet',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: InputDecoration(
+                      hintText: 'Rechercher une mission...',
+                      prefixIcon: const Icon(Icons.search, color: Color(0xFF2A4B63)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF2A4B63)),
+                      ),
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -265,75 +344,46 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                     },
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _filterStatus,
-                    decoration: const InputDecoration(
-                      labelText: 'Statut',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'all', child: Text('Tous')),
-                      DropdownMenuItem(value: 'active', child: Text('Actif')),
-                      DropdownMenuItem(value: 'paused', child: Text('En pause')),
-                      DropdownMenuItem(value: 'completed', child: Text('Terminé')),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _filterStatus = value!;
-                      });
-                      _applyFiltersAndSort();
-                    },
-                  ),
+                const SizedBox(width: 16),
+                DropdownButton<String>(
+                  value: _filterStatus,
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('Tous les statuts')),
+                    DropdownMenuItem(value: 'à_assigner', child: Text('À assigner')),
+                    DropdownMenuItem(value: 'en_cours', child: Text('En cours')),
+                    DropdownMenuItem(value: 'fait', child: Text('Terminé')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _filterStatus = value!;
+                    });
+                    _applyFiltersAndSort();
+                  },
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _sortBy,
-                    decoration: const InputDecoration(
-                      labelText: 'Trier par',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'name', child: Text('Nom')),
-                      DropdownMenuItem(value: 'created_at', child: Text('Date')),
-                      DropdownMenuItem(value: 'status', child: Text('Statut')),
-                      DropdownMenuItem(value: 'tasks', child: Text('Nb. tâches')),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _sortBy = value!;
-                      });
-                      _applyFiltersAndSort();
-                    },
-                  ),
+                const SizedBox(width: 16),
+                DropdownButton<String>(
+                  value: _sortBy,
+                  items: const [
+                    DropdownMenuItem(value: 'name', child: Text('Trier par nom')),
+                    DropdownMenuItem(value: 'date', child: Text('Trier par date')),
+                    DropdownMenuItem(value: 'status', child: Text('Trier par statut')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _sortBy = value!;
+                    });
+                    _applyFiltersAndSort();
+                  },
                 ),
                 IconButton(
+                  icon: Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward),
                   onPressed: () {
                     setState(() {
                       _sortAscending = !_sortAscending;
                     });
                     _applyFiltersAndSort();
                   },
-                  icon: Icon(
-                    _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                    color: const Color(0xFF1784af),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Text(
-                  '${_filteredProjects.length} projet(s) trouvé(s)',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
+                  tooltip: _sortAscending ? 'Tri croissant' : 'Tri décroissant',
                 ),
               ],
             ),
@@ -343,42 +393,31 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildEmptyProjectsState() {
+  Widget _buildEmptyMissionsState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.folder_open,
+            Icons.assignment_outlined,
             size: 80,
             color: Colors.grey[400],
           ),
           const SizedBox(height: 20),
           Text(
-            'Aucun projet trouvé',
+            'Aucune mission',
             style: TextStyle(
               fontSize: 24,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: Colors.grey[600],
             ),
           ),
           const SizedBox(height: 10),
           Text(
-            'Créez votre premier projet pour commencer.',
+            'Créez votre première mission pour commencer.',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[500],
-            ),
-          ),
-          const SizedBox(height: 30),
-          ElevatedButton.icon(
-            onPressed: _showCreateProjectDialog,
-            icon: const Icon(Icons.add),
-            label: const Text('Créer un projet'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1784af),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
         ],
@@ -386,146 +425,185 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildProjectsGrid() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        int crossAxisCount = 2;
-        if (constraints.maxWidth < 600) {
-          crossAxisCount = 1;
-        } else if (constraints.maxWidth < 1200) {
-          crossAxisCount = 2;
-        } else {
-          crossAxisCount = 3;
-        }
-        
-        return GridView.builder(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: crossAxisCount == 1 ? 2.5 : 1.5,
-          ),
-          itemCount: _filteredProjects.length,
-          itemBuilder: (context, index) {
-            final project = _filteredProjects[index];
-            return _buildProjectCard(project);
-          },
-        );
-      },
+  Widget _buildMissionsGrid() {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 1.2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: _filteredMissions.length,
+      itemBuilder: (context, index) => _buildMissionCard(_filteredMissions[index]),
     );
   }
 
-  Widget _buildProjectCard(Map<String, dynamic> project) {
-    final status = project['status'] ?? 'active';
-    final statusColor = _getStatusColor(status);
-    final statusLabel = _getStatusLabel(status);
-    final taskCount = _tasksByProject[project['id'].toString()]?.length ?? 0;
+  Widget _buildMissionCard(Map<String, dynamic> mission) {
+    final isPartner = SupabaseService.currentUserRole == UserRole.partenaire;
+    final isProposal = mission['is_proposal'] == true;
+    final proposalStatus = mission['proposal_status'] as String?;
+    final isAssigned = mission['is_assigned'] == true;
     
+    // Pour les partenaires, déterminer le statut et le label
+    String progressStatusLabel;
+    Color progressStatusColor;
+    String? badgeText;
+    
+    if (isPartner) {
+      if (isProposal && proposalStatus == 'pending') {
+        // Proposition en attente
+        progressStatusLabel = 'Proposition en attente';
+        progressStatusColor = const Color(0xFFFF9800);
+        badgeText = 'NOUVELLE PROPOSITION';
+      } else if (isProposal && proposalStatus == 'accepted') {
+        // Proposition acceptée
+        progressStatusLabel = 'Acceptée';
+        progressStatusColor = const Color(0xFF4CAF50);
+        badgeText = 'PROPOSITION ACCEPTÉE';
+      } else if (isAssigned || (isProposal && proposalStatus == 'accepted')) {
+        // Mission assignée
+        final status = mission['progress_status']?.toString() ?? 'en_cours';
+        progressStatusLabel = _getProgressStatusLabel(status);
+        progressStatusColor = _getProgressStatusColor(status);
+        badgeText = null;
+      } else {
+        progressStatusLabel = 'En attente';
+        progressStatusColor = Colors.grey;
+        badgeText = null;
+      }
+    } else {
+      // Pour les autres rôles, utiliser le statut normal
+      final status = mission['progress_status']?.toString() ?? 'à_assigner';
+      progressStatusLabel = _getProgressStatusLabel(status);
+      progressStatusColor = _getProgressStatusColor(status);
+      badgeText = null;
+    }
+
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _showProjectDetails(project),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: statusColor.withOpacity(0.3)),
-          ),
+        onTap: () => _showMissionDetails(mission),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      project['name'] ?? 'Projet sans nom',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E3D54),
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              // Badge "NOUVELLE PROPOSITION" si c'est une proposition en attente
+              if (badgeText != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF9800).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.3)),
                   ),
-                  PopupMenuButton<String>(
-                    onSelected: (value) => _handleProjectAction(project, value),
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(value: 'edit', child: Text('Modifier')),
-                      const PopupMenuItem(value: 'tasks', child: Text('Voir les tâches')),
-                      const PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+                  child: Row(
+                    children: [
+                      Icon(Icons.notifications_active, size: 14, color: const Color(0xFFFF9800)),
+                      const SizedBox(width: 6),
+                      Text(
+                        badgeText,
+                        style: const TextStyle(
+                          color: Color(0xFFFF9800),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                      ),
                     ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  statusLabel,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: statusColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: Text(
-                  project['description'] ?? 'Aucune description',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    height: 1.4,
-                  ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 8),
+              ],
               Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 14, color: Colors.grey[500]),
-                  const SizedBox(width: 4),
-                  Text(
-                    project['created_at'] != null
-                        ? DateFormat('dd/MM/yyyy').format(DateTime.parse(project['created_at']))
-                        : 'Date inconnue',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: taskCount > 0 ? Colors.blue.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.task_alt, size: 12, color: taskCount > 0 ? Colors.blue : Colors.grey[600]),
-                        const SizedBox(width: 4),
                         Text(
-                          '$taskCount tâche(s)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: taskCount > 0 ? Colors.blue : Colors.grey[600],
-                            fontWeight: FontWeight.w500,
+                          mission['title'] ?? mission['name'] ?? 'Mission sans nom',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2A4B63),
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                        if (isPartner && isProposal && proposalStatus == 'pending') ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '📩 Proposition reçue - Cliquez pour voir les détails',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: progressStatusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: progressStatusColor.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      progressStatusLabel,
+                      style: TextStyle(
+                        color: progressStatusColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (mission['description'] != null)
+                Expanded(
+                  child: Text(
+                    mission['description'],
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              const Spacer(),
+              const Divider(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (mission['start_date'] != null)
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          DateFormat('dd/MM/yyyy').format(DateTime.parse(mission['start_date'])),
+                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  if (mission['priority'] != null)
+                    Text(
+                      mission['priority'].toString().toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[700],
+                      ),
+                    ),
                 ],
               ),
             ],
@@ -535,582 +613,184 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     );
   }
 
-  // ============= VUE DÉTAIL DU PROJET =============
+  String _getProgressStatusLabel(String status) {
+    switch (status) {
+      case 'à_assigner':
+        return 'À assigner';
+      case 'en_cours':
+        return 'En cours';
+      case 'fait':
+        return 'Terminé';
+      default:
+        return status;
+    }
+  }
 
-  Widget _buildProjectDetailView() {
-    if (_selectedProject == null) return const SizedBox();
+  Color _getProgressStatusColor(String status) {
+    switch (status) {
+      case 'à_assigner':
+        return const Color(0xFFFF9800);
+      case 'en_cours':
+        return const Color(0xFF2196F3);
+      case 'fait':
+        return const Color(0xFF4CAF50);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getProposalStatusLabel(String status) {
+    switch (status) {
+      case 'pending':
+        return 'En attente';
+      case 'accepted':
+        return 'Acceptée';
+      case 'rejected':
+        return 'Refusée';
+      default:
+        return status;
+    }
+  }
+
+  Color _getProposalStatusColor(String status) {
+    switch (status) {
+      case 'pending':
+        return const Color(0xFFFF9800);
+      case 'accepted':
+        return const Color(0xFF4CAF50);
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  // ============= VUE DÉTAIL DE LA MISSION =============
+
+  Widget _buildMissionDetailView() {
+    if (_selectedMission == null) return const SizedBox();
     
-    final projectId = _selectedProject!['id'].toString();
-    final tasks = _tasksByProject[projectId] ?? [];
+    final isPartner = SupabaseService.currentUserRole == UserRole.partenaire;
+    final proposalStatus = _selectedMission!['proposal_status'] as String?;
+    final isPendingProposal = isPartner && proposalStatus == 'pending';
     
     return Padding(
       padding: const EdgeInsets.all(24.0),
-      child: Column(
-        children: [
-          _buildProjectDetailHeader(),
-          const SizedBox(height: 24),
-          _buildTaskFilters(),
-          const SizedBox(height: 24),
-          Expanded(
-            child: tasks.isEmpty
-                ? _buildEmptyTasksState()
-                : _buildTasksBoard(tasks),
-          ),
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildMissionDetailHeader(),
+            const SizedBox(height: 32),
+            _buildMissionDetailsGrid(),
+            // Boutons d'acceptation/refus pour les partenaires
+            if (isPendingProposal) ...[
+              const SizedBox(height: 32),
+              _buildProposalActions(),
+            ],
+          ],
+        ),
       ),
     );
   }
-
-  Widget _buildProjectDetailHeader() {
-    final project = _selectedProject!;
-    final status = project['status'] ?? 'active';
-    final statusColor = _getStatusColor(status);
-    final statusLabel = _getStatusLabel(status);
-    final projectId = project['id'].toString();
-    final tasks = _tasksByProject[projectId] ?? [];
-    final todoTasks = tasks.where((t) => t['status'] == 'todo').length;
-    final inProgressTasks = tasks.where((t) => t['status'] == 'in_progress').length;
-    final doneTasks = tasks.where((t) => t['status'] == 'done').length;
-
+  
+  Widget _buildProposalActions() {
     return Card(
-      elevation: 4,
+      elevation: 2,
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                IconButton(
-                  onPressed: _backToGrid,
-                  icon: const Icon(Icons.arrow_back),
-                  tooltip: 'Retour aux projets',
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        project['name'] ?? 'Projet sans nom',
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E3D54),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (project['description'] != null)
-                        Text(
-                          project['description'],
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: statusColor.withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    statusLabel,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                PopupMenuButton<String>(
-                  onSelected: (value) => _handleProjectAction(project, value),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'edit', child: Text('Modifier le projet')),
-                    const PopupMenuItem(value: 'delete', child: Text('Supprimer le projet')),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                _buildTaskStatCard('À faire', todoTasks, Colors.orange),
-                const SizedBox(width: 16),
-                _buildTaskStatCard('En cours', inProgressTasks, Colors.blue),
-                const SizedBox(width: 16),
-                _buildTaskStatCard('Terminées', doneTasks, Colors.green),
-                const SizedBox(width: 16),
-                _buildTaskStatCard('Total', tasks.length, Colors.grey),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTaskStatCard(String label, int count, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          children: [
-            Text(
-              '$count',
+            const Text(
+              'Proposition de mission',
               style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: color,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2A4B63),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
-              label,
+              'Vous avez reçu une proposition de mission. Acceptez-la ou refusez-la.',
               style: TextStyle(
                 fontSize: 14,
-                color: color,
-                fontWeight: FontWeight.w500,
+                color: Colors.grey[600],
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTaskFilters() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Text(
-              'Tâches',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E3D54),
-              ),
-            ),
-            const Spacer(),
-            _buildTaskFilterChip('Toutes', 'all'),
-            const SizedBox(width: 8),
-            _buildTaskFilterChip('À faire', 'todo'),
-            const SizedBox(width: 8),
-            _buildTaskFilterChip('En cours', 'in_progress'),
-            const SizedBox(width: 8),
-            _buildTaskFilterChip('Terminées', 'done'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTaskFilterChip(String label, String value) {
-    final isSelected = _taskFilter == value;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          _taskFilter = value;
-        });
-      },
-      backgroundColor: Colors.grey[100],
-      selectedColor: const Color(0xFF1784af).withOpacity(0.2),
-      labelStyle: TextStyle(
-        color: isSelected ? const Color(0xFF1784af) : Colors.grey[700],
-      ),
-    );
-  }
-
-  Widget _buildEmptyTasksState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.task_outlined,
-            size: 80,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Aucune tâche dans ce projet',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Créez votre première tâche pour commencer.',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
-            ),
-          ),
-          const SizedBox(height: 30),
-          ElevatedButton.icon(
-            onPressed: () => _showCreateTaskDialog(_selectedProject!),
-            icon: const Icon(Icons.add_task),
-            label: const Text('Créer une tâche'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1784af),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTasksBoard(List<Map<String, dynamic>> allTasks) {
-    // Filtrer les tâches selon le filtre sélectionné
-    List<Map<String, dynamic>> filteredTasks = allTasks;
-    if (_taskFilter != 'all') {
-      filteredTasks = allTasks.where((task) => task['status'] == _taskFilter).toList();
-    }
-
-    // Grouper les tâches par statut pour l'affichage en colonnes
-    final todoTasks = filteredTasks.where((t) => t['status'] == 'todo').toList();
-    final inProgressTasks = filteredTasks.where((t) => t['status'] == 'in_progress').toList();
-    final doneTasks = filteredTasks.where((t) => t['status'] == 'done').toList();
-
-    if (_taskFilter == 'all') {
-      // Vue Kanban avec colonnes
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: _buildTaskColumn('À faire', todoTasks, Colors.orange)),
-          const SizedBox(width: 16),
-          Expanded(child: _buildTaskColumn('En cours', inProgressTasks, Colors.blue)),
-          const SizedBox(width: 16),
-          Expanded(child: _buildTaskColumn('Terminées', doneTasks, Colors.green)),
-        ],
-      );
-    } else {
-      // Vue liste pour un statut spécifique
-      return _buildTasksList(filteredTasks);
-    }
-  }
-
-  Widget _buildTaskColumn(String title, List<Map<String, dynamic>> tasks, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.3)),
-          ),
-          child: Row(
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${tasks.length}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: ListView.builder(
-            itemCount: tasks.length,
-            itemBuilder: (context, index) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildTaskCard(tasks[index]),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTasksList(List<Map<String, dynamic>> tasks) {
-    return ListView.builder(
-      itemCount: tasks.length,
-      itemBuilder: (context, index) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: _buildTaskCard(tasks[index]),
-      ),
-    );
-  }
-
-  Widget _buildTaskCard(Map<String, dynamic> task) {
-    final priority = task['priority'] ?? 'medium';
-    final priorityColor = _getPriorityColor(priority);
-    final dueDate = task['due_date'] != null ? DateTime.parse(task['due_date']) : null;
-    final isOverdue = dueDate != null && dueDate.isBefore(DateTime.now());
-
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    task['title'] ?? 'Tâche sans titre',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E3D54),
-                    ),
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  onSelected: (value) => _handleTaskAction(task, value),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'edit', child: Text('Modifier')),
-                    const PopupMenuItem(value: 'assign', child: Text('Assigner')),
-                    const PopupMenuItem(value: 'delete', child: Text('Supprimer')),
-                  ],
-                ),
-              ],
-            ),
-            if (task['description'] != null && task['description'].toString().isNotEmpty) ...[
+            if (_selectedMission!['proposed_at'] != null) ...[
               const SizedBox(height: 8),
               Text(
-                task['description'],
+                'Proposée le: ${DateFormat('dd/MM/yyyy à HH:mm').format(DateTime.parse(_selectedMission!['proposed_at'].toString()))}',
                 style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
+                  fontSize: 12,
+                  color: Colors.grey[500],
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
             Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                _buildPriorityChip(priority, priorityColor),
-                const SizedBox(width: 8),
-                if (dueDate != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isOverdue ? Colors.red.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.schedule,
-                          size: 14,
-                          color: isOverdue ? Colors.red : Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          DateFormat('dd/MM').format(dueDate),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isOverdue ? Colors.red : Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
+                TextButton.icon(
+                  onPressed: () => _rejectMissionProposal(),
+                  icon: const Icon(Icons.close, color: Colors.red),
+                  label: const Text(
+                    'Refuser',
+                    style: TextStyle(color: Colors.red),
                   ),
-                const Spacer(),
-                if (task['assigned_to'] != null)
-                  _buildAssigneeAvatar(task),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: () => _acceptMissionProposal(),
+                  icon: const Icon(Icons.check),
+                  label: const Text('Accepter'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
-            _buildTaskStatusButtons(task),
           ],
         ),
       ),
     );
   }
+  
+  Future<void> _acceptMissionProposal() async {
+    final proposalId = _selectedMission!['proposal_id'] as String?;
+    if (proposalId == null) return;
 
-  Widget _buildPriorityChip(String priority, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        _getPriorityLabel(priority),
-        style: TextStyle(
-          fontSize: 12,
-          color: color,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAssigneeAvatar(Map<String, dynamic> task) {
-    // Essayer différentes clés pour récupérer l'email de l'assigné
-    String assigneeEmail = 'Assigné';
-    
-    if (task['assigned_user'] != null && task['assigned_user']['email'] != null) {
-      assigneeEmail = task['assigned_user']['email'];
-    } else if (task['assigned_to'] != null) {
-      // Chercher le partenaire par ID
-      final partner = _partners.firstWhere(
-        (p) => p['user_id'] == task['assigned_to'],
-        orElse: () => {},
-      );
-      if (partner.isNotEmpty && partner['email'] != null) {
-        assigneeEmail = partner['email'];
-      }
-    }
-
-    return Tooltip(
-      message: assigneeEmail,
-      child: CircleAvatar(
-        radius: 14,
-        backgroundColor: const Color(0xFF1784af),
-        child: Text(
-          assigneeEmail.substring(0, 1).toUpperCase(),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTaskStatusButtons(Map<String, dynamic> task) {
-    final status = task['status'];
-    
-    return Row(
-      children: [
-        if (status != 'todo')
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => _updateTaskStatus(task, 'todo'),
-              icon: const Icon(Icons.replay, size: 16),
-              label: const Text('À faire'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange,
-                side: const BorderSide(color: Colors.orange),
-              ),
-            ),
-          ),
-        if (status != 'todo' && status != 'in_progress') const SizedBox(width: 8),
-        if (status != 'in_progress')
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => _updateTaskStatus(task, 'in_progress'),
-              icon: const Icon(Icons.play_arrow, size: 16),
-              label: const Text('En cours'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ),
-        if (status != 'in_progress' && status != 'done') const SizedBox(width: 8),
-        if (status != 'done')
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => _updateTaskStatus(task, 'done'),
-              icon: const Icon(Icons.check, size: 16),
-              label: const Text('Terminer'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  // ============= ACTIONS ET DIALOGUES =============
-
-  void _handleProjectAction(Map<String, dynamic> project, String action) {
-    switch (action) {
-      case 'edit':
-        _showEditProjectDialog(project);
-        break;
-      case 'tasks':
-        _showProjectDetails(project);
-        break;
-      case 'delete':
-        _deleteProject(project);
-        break;
-    }
-  }
-
-  void _handleTaskAction(Map<String, dynamic> task, String action) {
-    switch (action) {
-      case 'edit':
-        _showEditTaskDialog(task);
-        break;
-      case 'assign':
-        _showAssignTaskDialog(task);
-        break;
-      case 'delete':
-        _deleteTask(task);
-        break;
-    }
-  }
-
-  Future<void> _updateTaskStatus(Map<String, dynamic> task, String newStatus) async {
     try {
       await SupabaseService.client
-          .from('tasks')
-          .update({'status': newStatus})
-          .eq('id', task['id']);
+          .from('mission_proposals')
+          .update({
+            'status': 'accepted',
+            'response_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', proposalId);
 
-      await _loadAllTasks();
-      setState(() {});
-      
+      // Mettre à jour le partner_id de la mission
+      await SupabaseService.client
+          .from('missions')
+          .update({
+            'partner_id': SupabaseService.client.auth.currentUser?.id,
+            'progress_status': 'en_cours',
+          })
+          .eq('id', _selectedMission!['id']);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Statut mis à jour vers: ${_getStatusLabel(newStatus)}'),
+          const SnackBar(
+            content: Text('✅ Mission acceptée avec succès'),
             backgroundColor: Colors.green,
           ),
         );
+        _loadData();
+        _backToGrid();
       }
     } catch (e) {
       if (mounted) {
@@ -1124,450 +804,148 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     }
   }
 
-  void _showCreateProjectDialog() {
-    final nameController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final estimatedDaysController = TextEditingController();
-    final dailyRateController = TextEditingController();
-    DateTime? endDate;
-    Map<String, dynamic>? selectedClient;
-    List<Map<String, dynamic>> clients = [];
-    bool isLoadingClients = true;
+  Future<void> _rejectMissionProposal() async {
+    final proposalId = _selectedMission!['proposal_id'] as String?;
+    if (proposalId == null) return;
 
-    // Charger les clients au démarrage
-    Future<void> loadClients() async {
-      try {
-        final clientsList = await SupabaseService.getCompanyClients();
-        clients = clientsList;
-        isLoadingClients = false;
-      } catch (e) {
-        isLoadingClients = false;
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erreur lors du chargement des clients: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-
-    showDialog(
+    // Demander une raison de refus
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          // Charger les clients au premier rendu
-          if (isLoadingClients) {
-            loadClients().then((_) {
-              if (context.mounted) {
-                setDialogState(() {});
-              }
-            });
-          }
-
-          return AlertDialog(
-            title: const Text('Nouveau Projet'),
-            content: SizedBox(
-              width: 600,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Nom du projet
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nom du projet *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.folder),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Description
-                    TextField(
-                      controller: descriptionController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.description),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Sélection du client
-                    if (isLoadingClients)
-                      const Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              CircularProgressIndicator(),
-                              SizedBox(width: 12),
-                              Text('Chargement des clients...'),
-                            ],
-                          ),
-                        ),
-                      )
-                    else if (clients.isEmpty)
-                      Card(
-                        color: Colors.orange.shade50,
-                        child: const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              Icon(Icons.warning, color: Colors.orange),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'Aucun client disponible. Veuillez d\'abord créer un client.',
-                                  style: TextStyle(color: Colors.orange),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    else
-                      DropdownButtonFormField<Map<String, dynamic>>(
-                        value: selectedClient,
-                        decoration: const InputDecoration(
-                          labelText: 'Client assigné *',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.person),
-                        ),
-                        hint: const Text('Sélectionner un client'),
-                        items: clients.map((client) {
-                          return DropdownMenuItem(
-                            value: client,
-                            child: Text(
-                              client['full_name'] ?? client['email'] ?? 'Client',
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setDialogState(() {
-                            selectedClient = value;
-                          });
-                        },
-                      ),
-                    const SizedBox(height: 16),
-
-                    // Date de fin
-                    InkWell(
-                      onTap: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now().add(const Duration(days: 30)),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-                        );
-                        if (date != null) {
-                          setDialogState(() {
-                            endDate = date;
-                          });
-                        }
-                      },
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Date de fin souhaitée',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.calendar_today),
-                        ),
-                        child: Text(
-                          endDate != null 
-                              ? DateFormat('dd/MM/yyyy').format(endDate!)
-                              : 'Sélectionner une date',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Estimation optionnelle
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: estimatedDaysController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Jours estimés',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.schedule),
-                              suffixText: 'jours',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextField(
-                            controller: dailyRateController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Tarif journalier',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.euro),
-                              suffixText: '€/jour',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+      builder: (context) => AlertDialog(
+        title: const Text('Refuser la mission'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Voulez-vous vraiment refuser cette mission ?'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'Raison du refus (optionnel)',
+                border: OutlineInputBorder(),
               ),
+              maxLines: 3,
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Annuler'),
-              ),
-              ElevatedButton(
-                onPressed: clients.isEmpty ? null : () async {
-                  if (nameController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Le nom du projet est requis')),
-                    );
-                    return;
-                  }
-
-                  if (selectedClient == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Veuillez sélectionner un client')),
-                    );
-                    return;
-                  }
-
-                  try {
-                    final estimatedDays = double.tryParse(estimatedDaysController.text);
-                    final dailyRate = double.tryParse(dailyRateController.text);
-
-                    final projectId = await SupabaseService.createProjectWithClient(
-                      name: nameController.text,
-                      description: descriptionController.text.isNotEmpty 
-                          ? descriptionController.text 
-                          : null,
-                      clientId: selectedClient!['user_id'],
-                      estimatedDays: estimatedDays,
-                      dailyRate: dailyRate,
-                      endDate: endDate,
-                    );
-
-                    Navigator.of(context).pop();
-                    await _loadData();
-                    
-                    if (mounted && projectId != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Projet "${nameController.text}" créé avec succès pour ${selectedClient!['full_name']}'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    } else {
-                      throw Exception('Échec de la création du projet');
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Erreur: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1784af),
-                ),
-                child: const Text('Créer', style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          );
-        },
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Refuser'),
+          ),
+        ],
       ),
     );
+
+    if (confirmed != true) return;
+
+    try {
+      await SupabaseService.client
+          .from('mission_proposals')
+          .update({
+            'status': 'rejected',
+            'response_at': DateTime.now().toIso8601String(),
+            'response_notes': reasonController.text.isEmpty ? null : reasonController.text,
+          })
+          .eq('id', proposalId);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Mission refusée'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        _loadData();
+        _backToGrid();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
-  void _showEditProjectDialog(Map<String, dynamic> project) {
-    final nameController = TextEditingController(text: project['name']);
-    final descriptionController = TextEditingController(text: project['description'] ?? '');
-    DateTime? startDate = project['start_date'] != null ? DateTime.parse(project['start_date']) : null;
-    DateTime? endDate = project['end_date'] != null ? DateTime.parse(project['end_date']) : null;
-    String selectedStatus = project['status'] ?? 'active';
+  Widget _buildMissionDetailHeader() {
+    final mission = _selectedMission!;
+    final progressStatus = mission['progress_status']?.toString() ?? 'à_assigner';
+    final progressStatusLabel = _getProgressStatusLabel(progressStatus);
+    final progressStatusColor = _getProgressStatusColor(progressStatus);
 
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Modifier le Projet'),
-          content: SizedBox(
-            width: 500,
-            child: SingleChildScrollView(
+    return Card(
+      elevation: 2,
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Row(
+          children: [
+            IconButton(
+              onPressed: _backToGrid,
+              icon: const Icon(Icons.arrow_back, color: Color(0xFF2A4B63)),
+              tooltip: 'Retour aux missions',
+            ),
+            const SizedBox(width: 16),
+            Expanded(
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nom du projet *',
-                      border: OutlineInputBorder(),
+                  Text(
+                    mission['title'] ?? mission['name'] ?? 'Mission sans nom',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2A4B63),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: descriptionController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: selectedStatus,
-                    decoration: const InputDecoration(
-                      labelText: 'Statut',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'active', child: Text('Actif')),
-                      DropdownMenuItem(value: 'paused', child: Text('En pause')),
-                      DropdownMenuItem(value: 'completed', child: Text('Terminé')),
-                    ],
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedStatus = value!;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: startDate ?? DateTime.now(),
-                              firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                              lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-                            );
-                            if (date != null) {
-                              setDialogState(() {
-                                startDate = date;
-                              });
-                            }
-                          },
-                          child: InputDecorator(
-                            decoration: const InputDecoration(
-                              labelText: 'Date de début',
-                              border: OutlineInputBorder(),
-                            ),
-                            child: Text(
-                              startDate != null 
-                                  ? DateFormat('dd/MM/yyyy').format(startDate!)
-                                  : 'Sélectionner',
-                            ),
-                          ),
-                        ),
+                  if (mission['description'] != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      mission['description'],
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey[700],
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: InkWell(
-                          onTap: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: endDate ?? startDate ?? DateTime.now(),
-                              firstDate: startDate ?? DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-                            );
-                            if (date != null) {
-                              setDialogState(() {
-                                endDate = date;
-                              });
-                            }
-                          },
-                          child: InputDecorator(
-                            decoration: const InputDecoration(
-                              labelText: 'Date de fin',
-                              border: OutlineInputBorder(),
-                            ),
-                            child: Text(
-                              endDate != null 
-                                  ? DateFormat('dd/MM/yyyy').format(endDate!)
-                                  : 'Sélectionner',
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ],
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Le nom du projet est requis')),
-                  );
-                  return;
-                }
-
-                try {
-                  await SupabaseService.client
-                      .from('projects')
-                      .update({
-                        'name': nameController.text,
-                        'description': descriptionController.text,
-                        'status': selectedStatus,
-                        'start_date': startDate?.toIso8601String(),
-                        'end_date': endDate?.toIso8601String(),
-                        'updated_at': DateTime.now().toIso8601String(),
-                      })
-                      .eq('id', project['id']);
-
-                  Navigator.of(context).pop();
-                  await _loadData();
-                  
-                  // Mettre à jour le projet sélectionné si c'est celui qu'on modifie
-                  if (_selectedProject != null && _selectedProject!['id'] == project['id']) {
-                    _selectedProject = _projects.firstWhere((p) => p['id'] == project['id']);
-                  }
-                  
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Projet modifié avec succès'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erreur: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1784af),
+            if (progressStatus == 'à_assigner')
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: progressStatusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: progressStatusColor.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  progressStatusLabel,
+                  style: TextStyle(
+                    color: progressStatusColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
               ),
-              child: const Text('Modifier', style: TextStyle(color: Colors.white)),
+            const SizedBox(width: 16),
+            PopupMenuButton<String>(
+              onSelected: (value) => _handleMissionAction(mission, value),
+              icon: const Icon(Icons.more_vert, color: Color(0xFF2A4B63)),
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'edit', child: Text('Modifier la mission')),
+                const PopupMenuItem(value: 'delete', child: Text('Supprimer la mission')),
+              ],
             ),
           ],
         ),
@@ -1575,82 +953,407 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     );
   }
 
-  void _showCreateTaskDialog(Map<String, dynamic> project) {
+  Widget _buildMissionDetailsGrid() {
+    final mission = _selectedMission!;
+    final isAssociate = SupabaseService.currentUserRole == UserRole.associe;
+    final hasPartner = mission['partner_id'] != null;
+    
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _buildInfoCard('Dates', _buildDatesInfo(mission), Icons.calendar_today)),
+            const SizedBox(width: 16),
+            Expanded(child: _buildInfoCard('Budget & Tarifs', _buildBudgetInfo(mission), Icons.attach_money)),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _buildInfoCard('Temps', _buildTimeInfo(mission), Icons.access_time)),
+            const SizedBox(width: 16),
+            Expanded(child: _buildInfoCard('Avancement', _buildTimeProgressInfo(mission), Icons.schedule)),
+          ],
+        ),
+        // Afficher le partenaire si c'est un associé et qu'il y a un partenaire assigné
+        if (isAssociate && hasPartner) ...[
+          const SizedBox(height: 16),
+          _buildInfoCard('Partenaire', _buildPartnerInfo(mission), Icons.person),
+        ],
+        if (mission['notes'] != null || mission['completion_notes'] != null) ...[
+          const SizedBox(height: 16),
+          _buildInfoCard('Notes', _buildNotesInfo(mission), Icons.note),
+        ],
+      ],
+    );
+  }
+  
+  Widget _buildPartnerInfo(Map<String, dynamic> mission) {
+    final firstName = mission['partner_first_name'] as String?;
+    final lastName = mission['partner_last_name'] as String?;
+    final email = mission['partner_email'] as String?;
+    final partnerId = mission['partner_id']?.toString();
+    
+    String partnerName = 'Non assigné';
+    if (firstName != null && lastName != null) {
+      partnerName = '$firstName $lastName';
+    } else if (firstName != null) {
+      partnerName = firstName;
+    } else if (lastName != null) {
+      partnerName = lastName;
+    } else if (email != null) {
+      partnerName = email;
+    } else if (partnerId != null) {
+      partnerName = 'Partenaire (ID: ${partnerId.substring(0, 8)}...)';
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Nom du partenaire en plus grand et visible
+        Row(
+          children: [
+            Icon(Icons.person, size: 18, color: const Color(0xFF2A4B63)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                partnerName,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2A4B63),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (email != null) ...[
+          const SizedBox(height: 12),
+          _buildInfoRow('Email', email),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildInfoCard(String title, Widget content, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: const Color(0xFF2A4B63)),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2A4B63),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          content,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDatesInfo(Map<String, dynamic> mission) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildInfoRow('Créée le', mission['created_at'] != null 
+            ? DateFormat('dd/MM/yyyy à HH:mm').format(DateTime.parse(mission['created_at'])) 
+            : 'Non spécifié'),
+        const SizedBox(height: 12),
+        _buildInfoRow('Mise à jour', mission['updated_at'] != null 
+            ? DateFormat('dd/MM/yyyy à HH:mm').format(DateTime.parse(mission['updated_at'])) 
+            : 'Non spécifié'),
+        const SizedBox(height: 12),
+        _buildInfoRow('Date de début', mission['start_date'] != null 
+            ? DateFormat('dd/MM/yyyy').format(DateTime.parse(mission['start_date'])) 
+            : 'Non spécifié'),
+        const SizedBox(height: 12),
+        _buildInfoRow('Date de fin', mission['end_date'] != null 
+            ? DateFormat('dd/MM/yyyy').format(DateTime.parse(mission['end_date'])) 
+            : 'Non spécifié'),
+      ],
+    );
+  }
+
+  Widget _buildBudgetInfo(Map<String, dynamic> mission) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildInfoRow('Budget', mission['budget'] != null 
+            ? '${mission['budget']} €' 
+            : 'Non spécifié'),
+        const SizedBox(height: 12),
+        _buildInfoRow('Tarif journalier', mission['daily_rate'] != null 
+            ? '${mission['daily_rate']} €/jour' 
+            : 'Non spécifié'),
+        const SizedBox(height: 12),
+        _buildInfoRow('Priorité', mission['priority']?.toString().toUpperCase() ?? 'MOYENNE'),
+      ],
+    );
+  }
+
+  Widget _buildTimeInfo(Map<String, dynamic> mission) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildInfoRow('Jours estimés', mission['estimated_days'] != null 
+            ? '${mission['estimated_days']} jours' 
+            : 'Non spécifié'),
+        const SizedBox(height: 12),
+        _buildInfoRow('Jours travaillés', mission['worked_days'] != null 
+            ? '${mission['worked_days']} jours' 
+            : '0 jours'),
+        const SizedBox(height: 12),
+        _buildInfoRow('Heures estimées', mission['estimated_hours'] != null 
+            ? '${mission['estimated_hours']} h' 
+            : 'Non spécifié'),
+        const SizedBox(height: 12),
+        _buildInfoRow('Heures travaillées', mission['worked_hours'] != null 
+            ? '${mission['worked_hours']} h' 
+            : '0 h'),
+      ],
+    );
+  }
+
+  Widget _buildTimeProgressInfo(Map<String, dynamic> mission) {
+    final now = DateTime.now();
+    final startDate = mission['start_date'] != null 
+        ? DateTime.parse(mission['start_date']) 
+        : now;
+    final endDate = mission['end_date'] != null 
+        ? DateTime.parse(mission['end_date']) 
+        : now.add(const Duration(days: 30));
+    
+    final totalDuration = endDate.difference(startDate).inDays;
+    final elapsedDuration = now.difference(startDate).inDays;
+    
+    final percentage = totalDuration > 0 
+        ? (elapsedDuration / totalDuration * 100).clamp(0, 100).toInt()
+        : 0;
+    
+    final isLate = now.isAfter(endDate);
+    final daysLate = isLate ? now.difference(endDate).inDays : 0;
+    
+    final Color barColor = isLate 
+        ? const Color(0xFFD32F2F)
+        : const Color(0xFF2A4B63);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Temps écoulé',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+              ),
+            ),
+            Text(
+              isLate 
+                  ? 'En retard de $daysLate jour${daysLate > 1 ? 's' : ''}'
+                  : '$percentage%',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isLate ? const Color(0xFFD32F2F) : const Color(0xFF2A4B63),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: isLate ? 1.0 : percentage / 100,
+            minHeight: 10,
+            backgroundColor: Colors.grey[300],
+            valueColor: AlwaysStoppedAnimation<Color>(barColor),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              DateFormat('dd/MM/yyyy').format(startDate),
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+            Text(
+              DateFormat('dd/MM/yyyy').format(endDate),
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNotesInfo(Map<String, dynamic> mission) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (mission['notes'] != null) ...[
+          const Text(
+            'Notes générales:',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            mission['notes'],
+            style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+          ),
+          if (mission['completion_notes'] != null) const SizedBox(height: 16),
+        ],
+        if (mission['completion_notes'] != null) ...[
+          const Text(
+            'Notes de complétion:',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            mission['completion_notes'],
+            style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 2,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2A4B63),
+            ),
+            textAlign: TextAlign.right,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============= ACTIONS SUR LES MISSIONS =============
+
+  void _handleMissionAction(Map<String, dynamic> mission, String action) {
+    switch (action) {
+      case 'edit':
+        _showEditMissionDialog(mission);
+        break;
+      case 'delete':
+        _deleteMission(mission);
+        break;
+    }
+  }
+
+  void _showCreateMissionDialog() {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
-    String selectedPriority = 'medium';
-    String? selectedPartnerId;
-    DateTime? selectedDueDate;
+    DateTime? startDate;
+    DateTime? endDate;
+    String priority = 'medium';
+    int? selectedCompanyId;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Nouvelle tâche - ${project['name']}'),
-          content: SizedBox(
-            width: 500,
-            child: SingleChildScrollView(
+          title: const Text('Nouvelle Mission'),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 500,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextField(
                     controller: titleController,
                     decoration: const InputDecoration(
-                      labelText: 'Titre de la tâche *',
+                      labelText: 'Titre de la mission',
                       border: OutlineInputBorder(),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int>(
+                    value: selectedCompanyId,
+                    decoration: const InputDecoration(
+                      labelText: 'Société *',
+                      prefixIcon: Icon(Icons.business),
+                      border: OutlineInputBorder(),
+                    ),
+                    hint: const Text('Sélectionner une société'),
+                    items: _companies.map((company) {
+                      return DropdownMenuItem<int>(
+                        value: company.id,
+                        child: Text(
+                          company.groupName != null
+                              ? '${company.name} (${company.groupName})'
+                              : company.name,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        selectedCompanyId = value;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Veuillez sélectionner une société';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: descriptionController,
-                    maxLines: 3,
                     decoration: const InputDecoration(
                       labelText: 'Description',
                       border: OutlineInputBorder(),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: selectedPriority,
-                    decoration: const InputDecoration(
-                      labelText: 'Priorité',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'low', child: Text('Basse')),
-                      DropdownMenuItem(value: 'medium', child: Text('Moyenne')),
-                      DropdownMenuItem(value: 'high', child: Text('Haute')),
-                      DropdownMenuItem(value: 'urgent', child: Text('Urgente')),
-                    ],
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedPriority = value!;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: selectedPartnerId,
-                    decoration: const InputDecoration(
-                      labelText: 'Assigner à un partenaire',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('Non assigné'),
-                      ),
-                      ..._partners.map((partner) => DropdownMenuItem(
-                        value: partner['user_id'],
-                        child: Text('${partner['first_name']} ${partner['last_name']} (${partner['email']})'),
-                      )),
-                    ],
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedPartnerId = value;
-                      });
-                    },
+                    maxLines: 3,
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -1660,36 +1363,63 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                           onPressed: () async {
                             final date = await showDatePicker(
                               context: context,
-                              initialDate: DateTime.now().add(const Duration(days: 7)),
+                              initialDate: DateTime.now(),
                               firstDate: DateTime.now(),
                               lastDate: DateTime.now().add(const Duration(days: 365)),
                             );
                             if (date != null) {
                               setDialogState(() {
-                                selectedDueDate = date;
+                                startDate = date;
                               });
                             }
                           },
                           icon: const Icon(Icons.calendar_today),
-                          label: Text(
-                            selectedDueDate != null
-                                ? 'Échéance: ${DateFormat('dd/MM/yyyy').format(selectedDueDate!)}'
-                                : 'Définir une échéance',
-                          ),
+                          label: Text(startDate != null
+                              ? DateFormat('dd/MM/yyyy').format(startDate!)
+                              : 'Date de début'),
                         ),
                       ),
-                      if (selectedDueDate != null) ...[
-                        const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: () {
-                            setDialogState(() {
-                              selectedDueDate = null;
-                            });
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: startDate ?? DateTime.now(),
+                              firstDate: startDate ?? DateTime.now(),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (date != null) {
+                              setDialogState(() {
+                                endDate = date;
+                              });
+                            }
                           },
-                          icon: const Icon(Icons.clear),
+                          icon: const Icon(Icons.calendar_today),
+                          label: Text(endDate != null
+                              ? DateFormat('dd/MM/yyyy').format(endDate!)
+                              : 'Date de fin'),
                         ),
-                      ],
+                      ),
                     ],
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: priority,
+                    decoration: const InputDecoration(
+                      labelText: 'Priorité',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'low', child: Text('Basse')),
+                      DropdownMenuItem(value: 'medium', child: Text('Moyenne')),
+                      DropdownMenuItem(value: 'high', child: Text('Haute')),
+                    ],
+                    onChanged: (value) {
+                      setDialogState(() {
+                        priority = value!;
+                      });
+                    },
                   ),
                 ],
               ),
@@ -1709,52 +1439,42 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                   return;
                 }
 
-                try {
-                  if (selectedPartnerId == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Veuillez sélectionner un partenaire')),
-                    );
-                    return;
-                  }
-
-                  await SupabaseService.createTaskForCompany(
-                    projectId: project['id'].toString(),
-                    title: titleController.text,
-                    description: descriptionController.text.isNotEmpty 
-                        ? descriptionController.text 
-                        : null,
-                    priority: selectedPriority,
-                    partnerId: selectedPartnerId!,
-                    assignedTo: selectedPartnerId,
-                    dueDate: selectedDueDate,
+                if (selectedCompanyId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Veuillez sélectionner une société')),
                   );
+                  return;
+                }
 
-                  Navigator.pop(context);
-                  await _loadAllTasks();
-                  setState(() {});
-                  
+                try {
+                  await SupabaseService.createMission({
+                    'title': titleController.text,
+                    'description': descriptionController.text,
+                    'company_id': selectedCompanyId,
+                    'start_date': startDate?.toIso8601String(),
+                    'end_date': endDate?.toIso8601String(),
+                    'priority': priority,
+                    'status': 'pending',
+                    'progress_status': 'à_assigner',
+                  });
+
                   if (mounted) {
+                    Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Tâche créée avec succès'),
-                        backgroundColor: Colors.green,
-                      ),
+                      const SnackBar(content: Text('Mission créée avec succès')),
                     );
+                    _loadData();
                   }
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erreur: $e'),
-                        backgroundColor: Colors.red,
-                      ),
+                      SnackBar(content: Text('Erreur: $e')),
                     );
                   }
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1784af),
-                foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF2A4B63),
               ),
               child: const Text('Créer'),
             ),
@@ -1764,82 +1484,67 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     );
   }
 
-  void _showEditTaskDialog(Map<String, dynamic> task) {
-    final titleController = TextEditingController(text: task['title']);
-    final descriptionController = TextEditingController(text: task['description'] ?? '');
-    String selectedPriority = task['priority'] ?? 'medium';
-    String? selectedPartnerId = task['assigned_to'];
-    DateTime? selectedDueDate = task['due_date'] != null ? DateTime.parse(task['due_date']) : null;
+  void _showEditMissionDialog(Map<String, dynamic> mission) {
+    final titleController = TextEditingController(text: mission['title'] ?? mission['name']);
+    final descriptionController = TextEditingController(text: mission['description']);
+    DateTime? startDate = mission['start_date'] != null ? DateTime.parse(mission['start_date']) : null;
+    DateTime? endDate = mission['end_date'] != null ? DateTime.parse(mission['end_date']) : null;
+    String priority = mission['priority'] ?? 'medium';
+    int? selectedCompanyId = mission['company_id'] != null 
+        ? (mission['company_id'] is int ? mission['company_id'] : int.tryParse(mission['company_id'].toString()))
+        : null;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Modifier la tâche'),
-          content: SizedBox(
-            width: 500,
-            child: SingleChildScrollView(
+          title: const Text('Modifier la Mission'),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 500,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextField(
                     controller: titleController,
                     decoration: const InputDecoration(
-                      labelText: 'Titre de la tâche *',
+                      labelText: 'Titre de la mission',
                       border: OutlineInputBorder(),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int>(
+                    value: selectedCompanyId,
+                    decoration: const InputDecoration(
+                      labelText: 'Société *',
+                      prefixIcon: Icon(Icons.business),
+                      border: OutlineInputBorder(),
+                    ),
+                    hint: const Text('Sélectionner une société'),
+                    items: _companies.map((company) {
+                      return DropdownMenuItem<int>(
+                        value: company.id,
+                        child: Text(
+                          company.groupName != null
+                              ? '${company.name} (${company.groupName})'
+                              : company.name,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        selectedCompanyId = value;
+                      });
+                    },
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: descriptionController,
-                    maxLines: 3,
                     decoration: const InputDecoration(
                       labelText: 'Description',
                       border: OutlineInputBorder(),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: selectedPriority,
-                    decoration: const InputDecoration(
-                      labelText: 'Priorité',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'low', child: Text('Basse')),
-                      DropdownMenuItem(value: 'medium', child: Text('Moyenne')),
-                      DropdownMenuItem(value: 'high', child: Text('Haute')),
-                      DropdownMenuItem(value: 'urgent', child: Text('Urgente')),
-                    ],
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedPriority = value!;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: selectedPartnerId,
-                    decoration: const InputDecoration(
-                      labelText: 'Assigner à un partenaire',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('Non assigné'),
-                      ),
-                      ..._partners.map((partner) => DropdownMenuItem(
-                        value: partner['user_id'],
-                        child: Text('${partner['first_name']} ${partner['last_name']} (${partner['email']})'),
-                      )),
-                    ],
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedPartnerId = value;
-                      });
-                    },
+                    maxLines: 3,
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -1849,36 +1554,63 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                           onPressed: () async {
                             final date = await showDatePicker(
                               context: context,
-                              initialDate: selectedDueDate ?? DateTime.now().add(const Duration(days: 7)),
-                              firstDate: DateTime.now(),
+                              initialDate: startDate ?? DateTime.now(),
+                              firstDate: DateTime.now().subtract(const Duration(days: 365)),
                               lastDate: DateTime.now().add(const Duration(days: 365)),
                             );
                             if (date != null) {
                               setDialogState(() {
-                                selectedDueDate = date;
+                                startDate = date;
                               });
                             }
                           },
                           icon: const Icon(Icons.calendar_today),
-                          label: Text(
-                            selectedDueDate != null
-                                ? 'Échéance: ${DateFormat('dd/MM/yyyy').format(selectedDueDate!)}'
-                                : 'Définir une échéance',
-                          ),
+                          label: Text(startDate != null
+                              ? DateFormat('dd/MM/yyyy').format(startDate!)
+                              : 'Date de début'),
                         ),
                       ),
-                      if (selectedDueDate != null) ...[
-                        const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: () {
-                            setDialogState(() {
-                              selectedDueDate = null;
-                            });
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: endDate ?? startDate ?? DateTime.now(),
+                              firstDate: startDate ?? DateTime.now().subtract(const Duration(days: 365)),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (date != null) {
+                              setDialogState(() {
+                                endDate = date;
+                              });
+                            }
                           },
-                          icon: const Icon(Icons.clear),
+                          icon: const Icon(Icons.calendar_today),
+                          label: Text(endDate != null
+                              ? DateFormat('dd/MM/yyyy').format(endDate!)
+                              : 'Date de fin'),
                         ),
-                      ],
+                      ),
                     ],
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: priority,
+                    decoration: const InputDecoration(
+                      labelText: 'Priorité',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'low', child: Text('Basse')),
+                      DropdownMenuItem(value: 'medium', child: Text('Moyenne')),
+                      DropdownMenuItem(value: 'high', child: Text('Haute')),
+                    ],
+                    onChanged: (value) {
+                      setDialogState(() {
+                        priority = value!;
+                      });
+                    },
                   ),
                 ],
               ),
@@ -1891,56 +1623,45 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
             ),
             ElevatedButton(
               onPressed: () async {
-                if (titleController.text.isEmpty) {
+                if (selectedCompanyId == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Le titre est requis')),
+                    const SnackBar(content: Text('Veuillez sélectionner une société')),
                   );
                   return;
                 }
 
                 try {
                   await SupabaseService.client
-                      .from('tasks')
+                      .from('missions')
                       .update({
                         'title': titleController.text,
-                        'description': descriptionController.text.isNotEmpty 
-                            ? descriptionController.text 
-                            : null,
-                        'priority': selectedPriority,
-                        'assigned_to': selectedPartnerId,
-                        'due_date': selectedDueDate?.toIso8601String(),
-                        'updated_by': SupabaseService.currentUser!.id,
+                        'description': descriptionController.text,
+                        'company_id': selectedCompanyId,
+                        'start_date': startDate?.toIso8601String(),
+                        'end_date': endDate?.toIso8601String(),
+                        'priority': priority,
                       })
-                      .eq('id', task['id']);
+                      .eq('id', mission['id']);
 
-                  Navigator.pop(context);
-                  await _loadAllTasks();
-                  setState(() {});
-                  
                   if (mounted) {
+                    Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Tâche modifiée avec succès'),
-                        backgroundColor: Colors.green,
-                      ),
+                      const SnackBar(content: Text('Mission mise à jour avec succès')),
                     );
+                    _loadData();
                   }
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erreur: $e'),
-                        backgroundColor: Colors.red,
-                      ),
+                      SnackBar(content: Text('Erreur: $e')),
                     );
                   }
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1784af),
-                foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF2A4B63),
               ),
-              child: const Text('Modifier'),
+              child: const Text('Enregistrer'),
             ),
           ],
         ),
@@ -1948,165 +1669,12 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     );
   }
 
-  void _showAssignTaskDialog(Map<String, dynamic> task) {
-    String? selectedPartnerId = task['assigned_to'];
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text('Assigner la tâche "${task['title']}"'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                value: selectedPartnerId,
-                decoration: const InputDecoration(
-                  labelText: 'Assigner à un partenaire',
-                  border: OutlineInputBorder(),
-                ),
-                items: [
-                  const DropdownMenuItem(
-                    value: null,
-                    child: Text('Non assigné'),
-                  ),
-                  ..._partners.map((partner) => DropdownMenuItem(
-                    value: partner['user_id'],
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${partner['first_name']} ${partner['last_name']}'),
-                        Text(
-                          partner['email'],
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  )),
-                ],
-                onChanged: (value) {
-                  setDialogState(() {
-                    selectedPartnerId = value;
-                  });
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                try {
-                  await SupabaseService.client
-                      .from('tasks')
-                      .update({
-                        'assigned_to': selectedPartnerId,
-                        'updated_by': SupabaseService.currentUser!.id,
-                      })
-                      .eq('id', task['id']);
-
-                  Navigator.pop(context);
-                  await _loadAllTasks();
-                  setState(() {});
-                  
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(selectedPartnerId != null 
-                            ? 'Tâche assignée avec succès'
-                            : 'Assignation supprimée'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erreur: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1784af),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Assigner'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _deleteProject(Map<String, dynamic> project) {
+  void _deleteMission(Map<String, dynamic> mission) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer le projet'),
-        content: Text('Êtes-vous sûr de vouloir supprimer le projet "${project['name']}" ?\n\nToutes les tâches associées seront également supprimées.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await SupabaseService.client
-                    .from('projects')
-                    .delete()
-                    .eq('id', project['id']);
-                
-                Navigator.of(context).pop();
-                
-                // Si on est en vue détail de ce projet, retourner à la grille
-                if (_selectedProject != null && _selectedProject!['id'] == project['id']) {
-                  _backToGrid();
-                }
-                
-                await _loadData();
-                
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Projet supprimé avec succès'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              } catch (e) {
-                Navigator.of(context).pop();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Erreur: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _deleteTask(Map<String, dynamic> task) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Supprimer la tâche'),
-        content: Text('Êtes-vous sûr de vouloir supprimer la tâche "${task['title']}" ?'),
+        title: const Text('Supprimer la mission'),
+        content: Text('Êtes-vous sûr de vouloir supprimer la mission "${mission['title'] ?? mission['name']}" ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -2116,102 +1684,33 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
             onPressed: () async {
               try {
                 await SupabaseService.client
-                    .from('tasks')
+                    .from('missions')
                     .delete()
-                    .eq('id', task['id']);
+                    .eq('id', mission['id']);
 
-                Navigator.pop(context);
-                await _loadAllTasks();
-                setState(() {});
-                
                 if (mounted) {
+                  Navigator.pop(context);
+                  _backToGrid();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Tâche supprimée avec succès'),
-                      backgroundColor: Colors.green,
-                    ),
+                    const SnackBar(content: Text('Mission supprimée avec succès')),
                   );
+                  _loadData();
                 }
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Erreur: $e'),
-                      backgroundColor: Colors.red,
-                    ),
+                    SnackBar(content: Text('Erreur: $e')),
                   );
                 }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Supprimer'),
           ),
         ],
       ),
     );
   }
-
-  // ============= UTILITAIRES =============
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'active':
-        return Colors.green;
-      case 'paused':
-        return Colors.orange;
-      case 'completed':
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getStatusLabel(String status) {
-    switch (status) {
-      case 'active':
-        return 'Actif';
-      case 'paused':
-        return 'En pause';
-      case 'completed':
-        return 'Terminé';
-      case 'todo':
-        return 'À faire';
-      case 'in_progress':
-        return 'En cours';
-      case 'done':
-        return 'Terminée';
-      default:
-        return status;
-    }
-  }
-
-  Color _getPriorityColor(String priority) {
-    switch (priority) {
-      case 'urgent':
-        return Colors.red;
-      case 'high':
-        return Colors.orange;
-      case 'medium':
-        return Colors.blue;
-      case 'low':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getPriorityLabel(String priority) {
-    switch (priority) {
-      case 'urgent':
-        return 'URGENT';
-      case 'high':
-        return 'Haute';
-      case 'medium':
-        return 'Moyenne';
-      case 'low':
-        return 'Basse';
-      default:
-        return priority;
-    }
-  }
-} 
+}

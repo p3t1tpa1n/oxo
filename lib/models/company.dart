@@ -1,38 +1,65 @@
+// ============================================================================
+// MODÈLE: Company (Société d'exploitation)
+// ============================================================================
+
 class Company {
   final int id;
   final String name;
-  final String? description;
-  final String? address;
-  final String? phone;
-  final String? email;
-  final String? website;
-  final String status;
+  final int? groupId;
+  final String? groupName; // Depuis company_with_group
+  final String? groupSector; // Depuis company_with_group
+  final String? city;
+  final String? postalCode;
+  final String? sector;
+  final double? ownershipShare;
+  final String? siret;
+  final String? contactName;
+  final String? contactEmail;
+  final String? contactPhone;
+  final bool active;
+  final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   Company({
     required this.id,
     required this.name,
-    this.description,
-    this.address,
-    this.phone,
-    this.email,
-    this.website,
-    required this.status,
+    this.groupId,
+    this.groupName,
+    this.groupSector,
+    this.city,
+    this.postalCode,
+    this.sector,
+    this.ownershipShare,
+    this.siret,
+    this.contactName,
+    this.contactEmail,
+    this.contactPhone,
+    required this.active,
+    this.notes,
     required this.createdAt,
     required this.updatedAt,
   });
 
   factory Company.fromJson(Map<String, dynamic> json) {
     return Company(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      description: json['description'] as String?,
-      address: json['address'] as String?,
-      phone: json['phone'] as String?,
-      email: json['email'] as String?,
-      website: json['website'] as String?,
-      status: json['status'] as String? ?? 'active',
+      id: (json['id'] ?? json['company_id']) as int,
+      name: (json['name'] ?? json['company_name']) as String,
+      groupId: json['group_id'] as int?,
+      groupName: json['group_name'] as String?,
+      groupSector: json['group_sector'] as String?,
+      city: json['city'] as String?,
+      postalCode: json['postal_code'] as String?,
+      sector: (json['sector'] ?? json['company_sector']) as String?,
+      ownershipShare: json['ownership_share'] != null 
+          ? (json['ownership_share'] as num).toDouble() 
+          : null,
+      siret: json['siret'] as String?,
+      contactName: json['contact_name'] as String?,
+      contactEmail: json['contact_email'] as String?,
+      contactPhone: json['contact_phone'] as String?,
+      active: (json['active'] ?? json['company_active']) as bool? ?? true,
+      notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -42,12 +69,17 @@ class Company {
     return {
       'id': id,
       'name': name,
-      'description': description,
-      'address': address,
-      'phone': phone,
-      'email': email,
-      'website': website,
-      'status': status,
+      'group_id': groupId,
+      'city': city,
+      'postal_code': postalCode,
+      'sector': sector,
+      'ownership_share': ownershipShare,
+      'siret': siret,
+      'contact_name': contactName,
+      'contact_email': contactEmail,
+      'contact_phone': contactPhone,
+      'active': active,
+      'notes': notes,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -56,41 +88,57 @@ class Company {
   Company copyWith({
     int? id,
     String? name,
-    String? description,
-    String? address,
-    String? phone,
-    String? email,
-    String? website,
-    String? status,
+    int? groupId,
+    String? groupName,
+    String? groupSector,
+    String? city,
+    String? postalCode,
+    String? sector,
+    double? ownershipShare,
+    String? siret,
+    String? contactName,
+    String? contactEmail,
+    String? contactPhone,
+    bool? active,
+    String? notes,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
     return Company(
       id: id ?? this.id,
       name: name ?? this.name,
-      description: description ?? this.description,
-      address: address ?? this.address,
-      phone: phone ?? this.phone,
-      email: email ?? this.email,
-      website: website ?? this.website,
-      status: status ?? this.status,
+      groupId: groupId ?? this.groupId,
+      groupName: groupName ?? this.groupName,
+      groupSector: groupSector ?? this.groupSector,
+      city: city ?? this.city,
+      postalCode: postalCode ?? this.postalCode,
+      sector: sector ?? this.sector,
+      ownershipShare: ownershipShare ?? this.ownershipShare,
+      siret: siret ?? this.siret,
+      contactName: contactName ?? this.contactName,
+      contactEmail: contactEmail ?? this.contactEmail,
+      contactPhone: contactPhone ?? this.contactPhone,
+      active: active ?? this.active,
+      notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
-  @override
-  String toString() {
-    return 'Company(id: $id, name: $name, status: $status)';
+  String get displayName {
+    if (groupName != null) {
+      return '$name ($groupName)';
+    }
+    return name;
+  }
+
+  String get displayLocation {
+    if (city != null) {
+      return city!;
+    }
+    return '';
   }
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-
-    return other is Company && other.id == id;
-  }
-
-  @override
-  int get hashCode => id.hashCode;
-} 
+  String toString() => 'Company(id: $id, name: $name, group: $groupName, city: $city)';
+}

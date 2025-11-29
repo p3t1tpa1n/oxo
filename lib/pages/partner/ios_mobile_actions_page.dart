@@ -2,11 +2,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oxo/services/supabase_service.dart';
-import '../../config/ios_theme.dart';
-import '../../widgets/ios_widgets.dart';
+import '../../config/app_theme.dart';
 
 class IOSMobileActionsPage extends StatefulWidget {
-  const IOSMobileActionsPage({Key? key}) : super(key: key);
+  final bool showHeader;
+  
+  const IOSMobileActionsPage({
+    Key? key,
+    this.showHeader = true,
+  }) : super(key: key);
 
   @override
   State<IOSMobileActionsPage> createState() => _IOSMobileActionsPageState();
@@ -39,74 +43,157 @@ class _IOSMobileActionsPageState extends State<IOSMobileActionsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return IOSScaffold(
-      // 🧭 RÈGLE 2: Navigation intuitive
-      navigationBar: IOSNavigationBar(
-        title: "Actions Commerciales", // 🎯 RÈGLE 1: Titre clair
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Icon(CupertinoIcons.back, color: IOSTheme.primaryBlue),
-        ),
+    return DefaultTextStyle(
+      style: TextStyle(
+        decoration: TextDecoration.none,
+        color: AppTheme.colors.textPrimary,
       ),
-      body: _isLoading
-          ? const Center(child: CupertinoActivityIndicator()) // ⚡ RÈGLE 4: Feedback chargement
-          : Column(
-              children: [
-                _buildOverview(),
-                _buildFilters(),
-                Expanded(child: _buildActionsList()),
-              ],
-            ),
+      child: Container(
+        color: AppTheme.colors.background,
+        child: _isLoading
+            ? const Center(child: CupertinoActivityIndicator())
+            : Column(
+                children: [
+                  // Header avec bouton retour (optionnel)
+                  if (widget.showHeader) _buildHeader(),
+                  // Compteurs
+                  _buildCounters(),
+                  // Filtres
+                  _buildFilters(),
+                  // Liste
+                  Expanded(child: _buildActionsList()),
+                ],
+              ),
+      ),
     );
   }
 
-  // 📊 RÈGLE 7: Vue d'ensemble en premier
-  Widget _buildOverview() {
-    final activeActions = _actions.where((a) => a['status'] == 'in_progress').length;
-    final potentialValue = _actions.fold(0.0, (sum, a) => sum + ((a['potential_value'] ?? 0.0) as num));
-
+  Widget _buildHeader() {
     return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: IOSTheme.primaryBlue,
-        borderRadius: BorderRadius.circular(16),
+      padding: EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing.md,
+        vertical: AppTheme.spacing.sm,
       ),
+      color: AppTheme.colors.surface,
       child: Row(
         children: [
-          Expanded(child: _buildStatCard('$activeActions', 'Actions en cours', CupertinoIcons.flame_fill)),
-          const SizedBox(width: 16),
-          Expanded(child: _buildStatCard(NumberFormat.currency(locale: 'fr_FR', symbol: '€').format(potentialValue), 'Valeur potentielle', CupertinoIcons.money_euro_circle)),
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Icon(
+              CupertinoIcons.chevron_left,
+              color: AppTheme.colors.textPrimary,
+              size: 24,
+            ),
+          ),
+          SizedBox(width: AppTheme.spacing.md),
+          Expanded(
+            child: Text(
+              'Actions Commerciales',
+              style: AppTheme.typography.h3.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.colors.textPrimary,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(String value, String label, IconData icon) {
+  Widget _buildCounters() {
+    final activeActions = _actions.where((a) {
+      final status = a['status'] ?? '';
+      return status == 'in_progress' || status == 'planned';
+    }).length;
+    
+    final potentialValue = _actions.fold(0.0, (sum, a) {
+      final value = a['estimated_value'] ?? a['potential_value'] ?? 0;
+      return sum + (value is num ? value.toDouble() : 0.0);
+    });
+
+    return Container(
+      padding: EdgeInsets.all(AppTheme.spacing.lg),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildCounterCard(activeActions.toString(), 'Actions en cours'),
+          _buildCounterCard(potentialValue.toStringAsFixed(0), 'Valeur potentielle'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCounterCard(String value, String label) {
     return Column(
       children: [
-        Icon(icon, color: Colors.white, size: 24),
-        const SizedBox(height: 8),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
-        Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
+        Text(
+          value,
+          style: AppTheme.typography.h1.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppTheme.colors.textPrimary,
+            decoration: TextDecoration.none,
+          ),
+        ),
+        SizedBox(height: AppTheme.spacing.xs),
+        Text(
+          label,
+          style: AppTheme.typography.bodyMedium.copyWith(
+            color: AppTheme.colors.textSecondary,
+            decoration: TextDecoration.none,
+          ),
+        ),
       ],
     );
   }
 
-  // 🎯 RÈGLE 1: Filtres clairs
   Widget _buildFilters() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: CupertinoSegmentedControl<String>(
-        children: const {
-          'all': Text('Toutes'),
-          'in_progress': Text('En cours'),
-          'done': Text('Terminées'),
-          'cancelled': Text('Annulées'),
-        },
-        onValueChanged: (value) => setState(() => _filterStatus = value),
-        groupValue: _filterStatus,
+      padding: EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing.md,
+        vertical: AppTheme.spacing.sm,
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildFilterChip('Toutes', 'all'),
+            SizedBox(width: AppTheme.spacing.sm),
+            _buildFilterChip('En cours', 'in_progress'),
+            SizedBox(width: AppTheme.spacing.sm),
+            _buildFilterChip('Terminées', 'completed'),
+            SizedBox(width: AppTheme.spacing.sm),
+            _buildFilterChip('Annulées', 'cancelled'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _filterStatus == value;
+    return GestureDetector(
+      onTap: () => setState(() => _filterStatus = value),
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: AppTheme.spacing.md,
+          vertical: AppTheme.spacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.colors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? AppTheme.colors.primary : AppTheme.colors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTheme.typography.bodyMedium.copyWith(
+            color: isSelected ? Colors.white : AppTheme.colors.textPrimary,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            decoration: TextDecoration.none,
+          ),
+        ),
       ),
     );
   }
@@ -114,156 +201,226 @@ class _IOSMobileActionsPageState extends State<IOSMobileActionsPage> {
   Widget _buildActionsList() {
     final filteredActions = _actions.where((action) {
       if (_filterStatus == 'all') return true;
-      return action['status'] == _filterStatus;
+      final status = action['status'] ?? '';
+      if (_filterStatus == 'in_progress') {
+        return status == 'in_progress' || status == 'planned';
+      }
+      if (_filterStatus == 'completed') {
+        return status == 'completed' || status == 'done';
+      }
+      return status == _filterStatus;
     }).toList();
 
     if (filteredActions.isEmpty) {
       return _buildEmptyState();
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: filteredActions.length,
-      itemBuilder: (context, index) {
-        return _buildActionCard(filteredActions[index]);
-      },
+    return RefreshIndicator(
+      onRefresh: _loadActions,
+      color: AppTheme.colors.primary,
+      child: ListView.builder(
+        padding: EdgeInsets.all(AppTheme.spacing.md),
+        itemCount: filteredActions.length,
+        itemBuilder: (context, index) {
+          return _buildActionCard(filteredActions[index]);
+        },
+      ),
     );
   }
 
-  // 📊 RÈGLE 7: Hiérarchisation visuelle de la carte
   Widget _buildActionCard(Map<String, dynamic> action) {
-    final status = action['status'] ?? 'in_progress';
+    final status = action['status'] ?? 'planned';
     final dueDate = DateTime.tryParse(action['due_date'] ?? '');
+    final estimatedValue = action['estimated_value'] ?? action['potential_value'] ?? 0;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
+      margin: EdgeInsets.only(bottom: AppTheme.spacing.md),
+      padding: EdgeInsets.all(AppTheme.spacing.md),
       decoration: BoxDecoration(
-        color: IOSTheme.systemBackground,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _getStatusColor(status).withOpacity(0.5)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border(
+          left: BorderSide(
+            color: _getStatusColor(status),
+            width: 4,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Titre
           Text(
-            action['action_name'] ?? 'Action non définie',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: IOSTheme.labelPrimary),
+            action['title'] ?? 'Action non définie',
+            style: AppTheme.typography.h4.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppTheme.colors.textPrimary,
+              decoration: TextDecoration.none,
+            ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: AppTheme.spacing.xs),
+          
+          // Client
           Text(
             'Client: ${action['client_name'] ?? 'Non spécifié'}',
-            style: const TextStyle(fontSize: 14, color: IOSTheme.labelSecondary),
+            style: AppTheme.typography.bodyMedium.copyWith(
+              color: AppTheme.colors.textSecondary,
+              decoration: TextDecoration.none,
+            ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: AppTheme.spacing.sm),
+          
+          // Description
           Text(
-            action['description'] ?? 'Aucune description.',
-            style: const TextStyle(fontSize: 14, color: IOSTheme.labelSecondary),
+            action['description'] ?? action['notes'] ?? '',
+            style: AppTheme.typography.bodyMedium.copyWith(
+              color: AppTheme.colors.textSecondary,
+              decoration: TextDecoration.none,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: AppTheme.spacing.md),
+          
+          // Badges
           Row(
             children: [
-              _buildInfoChip(
-                '${(action['potential_value'] ?? 0)}€',
+              _buildInfoBadge(
+                '${estimatedValue is num ? estimatedValue.toStringAsFixed(0) : estimatedValue}€',
                 CupertinoIcons.money_euro_circle,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: AppTheme.spacing.sm),
               if (dueDate != null)
-                _buildInfoChip(
+                _buildInfoBadge(
                   DateFormat('dd/MM/yyyy').format(dueDate),
                   CupertinoIcons.calendar,
                 ),
               const Spacer(),
-              // 🔒 RÈGLE 6: Statut avec couleur ET texte
+              // Badge statut
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacing.sm,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(status).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
+                  color: _getStatusColor(status).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   _getStatusLabel(status),
-                  style: TextStyle(color: _getStatusColor(status), fontSize: 12, fontWeight: FontWeight.w600),
+                  style: AppTheme.typography.caption.copyWith(
+                    color: _getStatusColor(status),
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.none,
+                  ),
                 ),
               ),
             ],
           ),
-          // 👤 RÈGLE 5: Actions claires
-          if (status == 'in_progress') ...[
-            const SizedBox(height: 20),
-            CupertinoButton(
-              color: IOSTheme.successColor,
-              onPressed: () => _updateActionStatus(action['id'], 'done'),
-              child: const Text('Marquer comme terminée'),
-            ),
-          ]
         ],
       ),
     );
   }
   
-  Widget _buildInfoChip(String text, IconData icon) {
+  Widget _buildInfoBadge(String text, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing.sm,
+        vertical: 4,
+      ),
       decoration: BoxDecoration(
-        color: IOSTheme.systemGray6,
-        borderRadius: BorderRadius.circular(8),
+        color: AppTheme.colors.inputBackground,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppTheme.colors.border),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: IOSTheme.labelSecondary),
-          const SizedBox(width: 6),
-          Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+          Icon(icon, size: 14, color: AppTheme.colors.textSecondary),
+          SizedBox(width: 4),
+          Text(
+            text,
+            style: AppTheme.typography.caption.copyWith(
+              fontWeight: FontWeight.w500,
+              color: AppTheme.colors.textPrimary,
+              decoration: TextDecoration.none,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  // 🎯 RÈGLE 1: État vide clair
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(CupertinoIcons.rocket, size: 50, color: IOSTheme.systemGray3),
-          const SizedBox(height: 16),
-          const Text('Aucune action commerciale', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          const Text('Les nouvelles actions apparaîtront ici.', style: TextStyle(fontSize: 16, color: IOSTheme.labelSecondary)),
-        ],
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: AppTheme.spacing.xl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              CupertinoIcons.briefcase,
+              size: 48,
+              color: AppTheme.colors.textSecondary,
+            ),
+            SizedBox(height: AppTheme.spacing.md),
+            Text(
+              'Aucune action commerciale',
+              style: AppTheme.typography.h4.copyWith(
+                color: AppTheme.colors.textSecondary,
+                decoration: TextDecoration.none,
+              ),
+            ),
+            SizedBox(height: AppTheme.spacing.xs),
+            Text(
+              'Créez votre première action pour commencer votre prospection.',
+              style: AppTheme.typography.bodyMedium.copyWith(
+                color: AppTheme.colors.textSecondary,
+                decoration: TextDecoration.none,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
-  }
-
-  // ⚡ RÈGLE 4: Feedback visuel
-  Future<void> _updateActionStatus(int id, String newStatus) async {
-    try {
-      await SupabaseService.client.from('commercial_actions').update({'status': newStatus}).eq('id', id);
-      _loadActions();
-    } catch (e) {
-      // Gérer l'erreur
-    }
   }
 
   Color _getStatusColor(String status) {
-    switch (status) {
-      case 'in_progress': return IOSTheme.warningColor;
-      case 'done': return IOSTheme.successColor;
-      case 'cancelled': return IOSTheme.errorColor;
-      default: return IOSTheme.systemGray;
+    switch (status.toLowerCase()) {
+      case 'in_progress':
+      case 'planned':
+        return const Color(0xFFF59E0B); // Orange
+      case 'done':
+      case 'completed':
+        return const Color(0xFF34C759); // Vert
+      case 'cancelled':
+        return const Color(0xFFFF3B30); // Rouge
+      default:
+        return AppTheme.colors.textSecondary;
     }
   }
 
   String _getStatusLabel(String status) {
-    switch (status) {
-      case 'in_progress': return 'En cours';
-      case 'done': return 'Terminée';
-      case 'cancelled': return 'Annulée';
-      default: return 'N/A';
+    switch (status.toLowerCase()) {
+      case 'in_progress':
+        return 'En cours';
+      case 'planned':
+        return 'Planifiée';
+      case 'done':
+      case 'completed':
+        return 'Terminée';
+      case 'cancelled':
+        return 'Annulée';
+      default:
+        return 'N/A';
     }
   }
 }
-
-
