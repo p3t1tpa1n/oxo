@@ -1,6 +1,7 @@
 // ============================================================================
 // MOBILE SHELL PROFESSIONAL - OXO TIME SHEETS
 // Shell iOS professionnel avec navigation stack par tab
+// Adapte les onglets selon le rôle de l'utilisateur
 // Utilise STRICTEMENT AppTheme (pas IOSTheme)
 // ============================================================================
 
@@ -9,13 +10,24 @@ import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../../config/app_icons.dart';
 import '../../utils/device_detector.dart';
+import '../../services/supabase_service.dart';
+import '../../models/user_role.dart';
 
-// Import des tabs
+// Import des tabs communs
 import '../../features/timesheet/presentation/mobile_timesheet_tab.dart';
 import '../../features/missions/presentation/mobile_missions_tab.dart';
 import '../../features/reporting/presentation/mobile_reporting_tab.dart';
 import '../../features/clients/presentation/mobile_clients_tab.dart';
 import '../../features/messaging/presentation/mobile_messaging_tab.dart';
+import '../../features/profile/presentation/mobile_profile_tab.dart';
+import '../../features/dashboard/presentation/mobile_dashboard_tab.dart';
+
+// Import des tabs spécifiques par rôle
+import '../../features/partner/presentation/mobile_partner_availability_tab.dart';
+import '../../features/client/presentation/mobile_client_projects_tab.dart';
+import '../../features/client/presentation/mobile_client_invoices_tab.dart';
+import '../../features/client/presentation/mobile_client_requests_tab.dart';
+import '../../features/admin/presentation/mobile_admin_tab.dart';
 
 class MobileShellProfessional extends StatefulWidget {
   const MobileShellProfessional({Key? key}) : super(key: key);
@@ -27,10 +39,12 @@ class MobileShellProfessional extends StatefulWidget {
 class _MobileShellProfessionalState extends State<MobileShellProfessional> {
   int _currentIndex = 0;
   final List<GlobalKey<NavigatorState>> _navigatorKeys = [];
+  UserRole? _userRole;
   
   @override
   void initState() {
     super.initState();
+    _userRole = SupabaseService.currentUserRole;
     final tabCount = _getTabCount();
     for (int i = 0; i < tabCount; i++) {
       _navigatorKeys.add(GlobalKey<NavigatorState>());
@@ -38,8 +52,17 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
   }
 
   int _getTabCount() {
-    // Tous les rôles ont maintenant 5 onglets fixes
-    return 5; // Timesheet, Mission, Reporting, Clients, Messages
+    switch (_userRole) {
+      case UserRole.partenaire:
+        return 5; // Timesheet, Missions, Disponibilités, Messages, Profil
+      case UserRole.client:
+        return 5; // Projets, Factures, Demandes, Messages, Profil
+      case UserRole.admin:
+        return 5; // Dashboard, Missions, Gestion, Messages, Profil
+      case UserRole.associe:
+      default:
+        return 5; // Timesheet, Mission, Reporting, Clients, Messages (actuel)
+    }
   }
 
   @override
@@ -71,7 +94,122 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
   }
 
   List<BottomNavigationBarItem> _getTabItems() {
-    // 5 onglets fixes pour tous les rôles
+    switch (_userRole) {
+      case UserRole.partenaire:
+        return _getPartnerTabItems();
+      case UserRole.client:
+        return _getClientTabItems();
+      case UserRole.admin:
+        return _getAdminTabItems();
+      case UserRole.associe:
+      default:
+        return _getAssociateTabItems();
+    }
+  }
+
+  // ============================================================================
+  // ONGLETS PARTENAIRE
+  // ============================================================================
+  List<BottomNavigationBarItem> _getPartnerTabItems() {
+    return [
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.timesheet, AppIcons.timesheetIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.timesheet, AppIcons.timesheetIOS)),
+        label: 'Timesheet',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
+        label: 'Missions',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.planning, AppIcons.planningIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.planning, AppIcons.planningIOS)),
+        label: 'Dispo',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
+        label: 'Messages',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.profile, AppIcons.profileIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.profile, AppIcons.profileIOS)),
+        label: 'Profil',
+      ),
+    ];
+  }
+
+  // ============================================================================
+  // ONGLETS CLIENT
+  // ============================================================================
+  List<BottomNavigationBarItem> _getClientTabItems() {
+    return [
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
+        label: 'Projets',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.reporting, AppIcons.reportingIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.reporting, AppIcons.reportingIOS)),
+        label: 'Factures',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.actions, AppIcons.actionsIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.actions, AppIcons.actionsIOS)),
+        label: 'Demandes',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
+        label: 'Messages',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.profile, AppIcons.profileIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.profile, AppIcons.profileIOS)),
+        label: 'Profil',
+      ),
+    ];
+  }
+
+  // ============================================================================
+  // ONGLETS ADMIN
+  // ============================================================================
+  List<BottomNavigationBarItem> _getAdminTabItems() {
+    return [
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.home, AppIcons.homeIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.home, AppIcons.homeIOS)),
+        label: 'Dashboard',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
+        label: 'Missions',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.admin, AppIcons.adminIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.admin, AppIcons.adminIOS)),
+        label: 'Admin',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
+        label: 'Messages',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(_getIconForPlatform(AppIcons.profile, AppIcons.profileIOS)),
+        activeIcon: Icon(_getIconForPlatform(AppIcons.profile, AppIcons.profileIOS)),
+        label: 'Profil',
+      ),
+    ];
+  }
+
+  // ============================================================================
+  // ONGLETS ASSOCIÉ (NE PAS MODIFIER)
+  // ============================================================================
+  List<BottomNavigationBarItem> _getAssociateTabItems() {
     return [
       BottomNavigationBarItem(
         icon: Icon(_getIconForPlatform(AppIcons.timesheet, AppIcons.timesheetIOS)),
@@ -106,7 +244,83 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
   }
 
   Widget _buildTabContent(int index) {
-    // 5 onglets fixes pour tous les rôles
+    switch (_userRole) {
+      case UserRole.partenaire:
+        return _buildPartnerTabContent(index);
+      case UserRole.client:
+        return _buildClientTabContent(index);
+      case UserRole.admin:
+        return _buildAdminTabContent(index);
+      case UserRole.associe:
+      default:
+        return _buildAssociateTabContent(index);
+    }
+  }
+
+  // ============================================================================
+  // CONTENU ONGLETS PARTENAIRE
+  // ============================================================================
+  Widget _buildPartnerTabContent(int index) {
+    switch (index) {
+      case 0:
+        return const MobileTimesheetTab();
+      case 1:
+        return const MobileMissionsTab();
+      case 2:
+        return const MobilePartnerAvailabilityTab();
+      case 3:
+        return const MobileMessagingTab();
+      case 4:
+        return const MobileProfileTab();
+      default:
+        return const MobileTimesheetTab();
+    }
+  }
+
+  // ============================================================================
+  // CONTENU ONGLETS CLIENT
+  // ============================================================================
+  Widget _buildClientTabContent(int index) {
+    switch (index) {
+      case 0:
+        return const MobileClientProjectsTab();
+      case 1:
+        return const MobileClientInvoicesTab();
+      case 2:
+        return const MobileClientRequestsTab();
+      case 3:
+        return const MobileMessagingTab();
+      case 4:
+        return const MobileProfileTab();
+      default:
+        return const MobileClientProjectsTab();
+    }
+  }
+
+  // ============================================================================
+  // CONTENU ONGLETS ADMIN
+  // ============================================================================
+  Widget _buildAdminTabContent(int index) {
+    switch (index) {
+      case 0:
+        return const MobileDashboardTab();
+      case 1:
+        return const MobileMissionsTab();
+      case 2:
+        return const MobileAdminTab();
+      case 3:
+        return const MobileMessagingTab();
+      case 4:
+        return const MobileProfileTab();
+      default:
+        return const MobileDashboardTab();
+    }
+  }
+
+  // ============================================================================
+  // CONTENU ONGLETS ASSOCIÉ (NE PAS MODIFIER)
+  // ============================================================================
+  Widget _buildAssociateTabContent(int index) {
     switch (index) {
       case 0:
         return const MobileTimesheetTab();
