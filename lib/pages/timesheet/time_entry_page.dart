@@ -434,7 +434,7 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF2A4B63).withValues(alpha: 0.05),
+                color: const Color(0xFF2A4B63).withOpacity(0.05),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -503,9 +503,9 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         children: [
@@ -547,7 +547,7 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
               dataRowMinHeight: 48,
               dataRowMaxHeight: 64,
               headingRowHeight: 48,
-              headingRowColor: WidgetStateProperty.all(const Color(0xFF2A4B63).withValues(alpha: 0.1)),
+              headingRowColor: MaterialStateProperty.all(const Color(0xFF2A4B63).withOpacity(0.1)),
               columns: const [
                 DataColumn(label: _HeaderCell('Date', 80)),
                 DataColumn(label: _HeaderCell('Jour', 70)),
@@ -601,13 +601,13 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
     } else if (isModified) {
       rowColor = Colors.blue[50];
     } else if (isToday) {
-      rowColor = const Color(0xFF2A4B63).withValues(alpha: 0.08);
+      rowColor = const Color(0xFF2A4B63).withOpacity(0.08);
     } else if (day.isWeekend) {
       rowColor = Colors.grey[200];
     }
 
     return DataRow(
-      color: WidgetStateProperty.all(rowColor),
+      color: MaterialStateProperty.all(rowColor),
       cells: [
         // Date
         DataCell(SizedBox(
@@ -796,9 +796,9 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
                         duration: const Duration(milliseconds: 200),
                         decoration: BoxDecoration(
                           color: isSaved
-                              ? Colors.green.withValues(alpha: 0.1)
+                              ? Colors.green.withOpacity(0.1)
                               : isModified
-                                  ? Colors.blue.withValues(alpha: 0.1)
+                                  ? Colors.blue.withOpacity(0.1)
                                   : null,
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -846,7 +846,7 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
                 : Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(day.entry?.status ?? 'draft').withValues(alpha: 0.1),
+                      color: _getStatusColor(day.entry?.status ?? 'draft').withOpacity(0.1),
                       borderRadius: BorderRadius.circular(3),
                     ),
                     child: Text(

@@ -497,9 +497,9 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF9800).withValues(alpha: 0.1),
+                    color: const Color(0xFFFF9800).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.3)),
+                    border: Border.all(color: const Color(0xFFFF9800).withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
@@ -551,9 +551,9 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: progressStatusColor.withValues(alpha: 0.1),
+                      color: progressStatusColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: progressStatusColor.withValues(alpha: 0.3)),
+                      border: Border.all(color: progressStatusColor.withOpacity(0.3)),
                     ),
                     child: Text(
                       progressStatusLabel,
@@ -925,9 +925,9 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: progressStatusColor.withValues(alpha: 0.1),
+                  color: progressStatusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: progressStatusColor.withValues(alpha: 0.3)),
+                  border: Border.all(color: progressStatusColor.withOpacity(0.3)),
                 ),
                 child: Text(
                   progressStatusLabel,

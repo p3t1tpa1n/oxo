@@ -152,7 +152,7 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
               children: [
                 CircleAvatar(
                   radius: 25,
-                  backgroundColor: const Color(0xFF1E3D54).withValues(alpha: 0.1),
+                  backgroundColor: const Color(0xFF1E3D54).withOpacity(0.1),
                   child: Text(
                     '${widget.partner['first_name']?[0] ?? ''}${widget.partner['last_name']?[0] ?? ''}',
                     style: const TextStyle(
@@ -424,7 +424,7 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -471,7 +471,7 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: _getPriorityColor(mission['priority']).withValues(alpha: 0.1),
+                          color: _getPriorityColor(mission['priority']).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(

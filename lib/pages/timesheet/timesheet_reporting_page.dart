@@ -148,7 +148,7 @@ class _TimesheetReportingPageState extends State<TimesheetReportingPage> with Si
 
     return Container(
       padding: const EdgeInsets.all(24),
-      color: const Color(0xFF2A4B63).withValues(alpha: 0.05),
+      color: const Color(0xFF2A4B63).withOpacity(0.05),
       child: Column(
         children: [
           Row(
@@ -221,14 +221,14 @@ class _TimesheetReportingPageState extends State<TimesheetReportingPage> with Si
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, size: 28, color: color),
@@ -366,7 +366,7 @@ class _TimesheetReportingPageState extends State<TimesheetReportingPage> with Si
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: _getStatusColor(e.status).withValues(alpha: 0.1),
+                color: _getStatusColor(e.status).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -399,7 +399,7 @@ class _TimesheetReportingPageState extends State<TimesheetReportingPage> with Si
             scrollDirection: Axis.vertical,
             child: DataTable(
               columnSpacing: 16,
-              headingRowColor: WidgetStateProperty.all(const Color(0xFF2A4B63).withValues(alpha: 0.1)),
+              headingRowColor: MaterialStateProperty.all(const Color(0xFF2A4B63).withOpacity(0.1)),
               columns: columns,
               rows: rows,
             ),

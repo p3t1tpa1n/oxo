@@ -194,7 +194,7 @@ class _TimesheetSettingsPageState extends State<TimesheetSettingsPage> with Sing
       child: SingleChildScrollView(
         child: DataTable(
           columnSpacing: 16,
-          headingRowColor: WidgetStateProperty.all(const Color(0xFF2A4B63).withValues(alpha: 0.1)),
+          headingRowColor: MaterialStateProperty.all(const Color(0xFF2A4B63).withOpacity(0.1)),
           columns: const [
             DataColumn(label: Text('Partenaire', style: TextStyle(fontWeight: FontWeight.w600))),
             DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.w600))),
@@ -539,7 +539,7 @@ class _TimesheetSettingsPageState extends State<TimesheetSettingsPage> with Sing
       child: SingleChildScrollView(
         child: DataTable(
           columnSpacing: 16,
-          headingRowColor: WidgetStateProperty.all(const Color(0xFF2A4B63).withValues(alpha: 0.1)),
+          headingRowColor: MaterialStateProperty.all(const Color(0xFF2A4B63).withOpacity(0.1)),
           columns: const [
             DataColumn(label: Text('Partenaire', style: TextStyle(fontWeight: FontWeight.w600))),
             DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.w600))),
@@ -556,10 +556,10 @@ class _TimesheetSettingsPageState extends State<TimesheetSettingsPage> with Sing
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: perm.allowed ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+                    color: perm.allowed ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
-                      color: perm.allowed ? Colors.green.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.3),
+                      color: perm.allowed ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3),
                     ),
                   ),
                   child: Text(

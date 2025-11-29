@@ -525,7 +525,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: CupertinoColors.systemGrey.withValues(alpha: 0.1),
+            color: CupertinoColors.systemGrey.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -566,7 +566,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: CupertinoColors.systemGrey.withValues(alpha: 0.1),
+            color: CupertinoColors.systemGrey.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

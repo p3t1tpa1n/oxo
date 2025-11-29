@@ -236,7 +236,7 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -300,7 +300,7 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _getStatusColor(status).withValues(alpha: 0.1),
+              color: _getStatusColor(status).withOpacity(0.1),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
@@ -615,7 +615,7 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -635,7 +635,7 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
