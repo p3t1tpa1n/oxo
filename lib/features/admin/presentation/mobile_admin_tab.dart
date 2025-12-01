@@ -427,9 +427,7 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
                 'Reporting',
                 'Voir les rapports et statistiques',
                 CupertinoIcons.chart_bar,
-                () {
-                  // TODO: Naviguer vers le reporting
-                },
+                () => _showReportingOptions(),
               ),
             ],
           ),
@@ -514,6 +512,199 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
       indent: 56,
       color: AppTheme.colors.border,
     );
+  }
+
+  void _showReportingOptions() {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: const Text('Rapports et Statistiques'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _showStatsReport();
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(CupertinoIcons.chart_pie),
+                SizedBox(width: 8),
+                Text('Statistiques générales'),
+              ],
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _showMissionsReport();
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(CupertinoIcons.folder),
+                SizedBox(width: 8),
+                Text('Rapport des missions'),
+              ],
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _showPartnersReport();
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(CupertinoIcons.person_2),
+                SizedBox(width: 8),
+                Text('Activité des partenaires'),
+              ],
+            ),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Fermer'),
+        ),
+      ),
+    );
+  }
+
+  void _showStatsReport() {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Statistiques Générales'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildReportRow('Utilisateurs actifs', '${_stats['users'] ?? 0}'),
+              _buildReportRow('Clients', '${_stats['clients'] ?? 0}'),
+              _buildReportRow('Missions en cours', '${_stats['missions'] ?? 0}'),
+              _buildReportRow('Demandes en attente', '${_stats['pendingRequests'] ?? 0}'),
+            ],
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Fermer'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 14)),
+          Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showMissionsReport() async {
+    try {
+      final missions = await SupabaseService.getCompanyMissions();
+      
+      int enCours = 0;
+      int termine = 0;
+      int aAssigner = 0;
+      
+      for (final m in missions) {
+        final status = m['progress_status'] ?? m['status'] ?? '';
+        if (status == 'en_cours' || status == 'in_progress') enCours++;
+        else if (status == 'fait' || status == 'done' || status == 'completed') termine++;
+        else aAssigner++;
+      }
+      
+      if (!mounted) return;
+      
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Rapport des Missions'),
+          content: Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildReportRow('Total missions', '${missions.length}'),
+                _buildReportRow('En cours', '$enCours'),
+                _buildReportRow('Terminées', '$termine'),
+                _buildReportRow('À assigner', '$aAssigner'),
+              ],
+            ),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('Fermer'),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      debugPrint('Erreur rapport missions: $e');
+    }
+  }
+
+  Future<void> _showPartnersReport() async {
+    try {
+      final partners = await SupabaseService.client
+          .from('profiles')
+          .select()
+          .eq('role', 'partenaire');
+      
+      if (!mounted) return;
+      
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Activité des Partenaires'),
+          content: Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildReportRow('Partenaires actifs', '${partners.length}'),
+                const SizedBox(height: 8),
+                const Text(
+                  'Pour un rapport détaillé, consultez la section "Profils partenaires".',
+                  style: TextStyle(fontSize: 12, color: CupertinoColors.secondaryLabel),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('Voir les profils'),
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.of(context, rootNavigator: true).pushNamed('/partner-profiles');
+              },
+            ),
+            CupertinoDialogAction(
+              child: const Text('Fermer'),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      debugPrint('Erreur rapport partenaires: $e');
+    }
   }
 
   IconData _getIconForPlatform(IconData material, IconData cupertino) {

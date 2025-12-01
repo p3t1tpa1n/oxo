@@ -472,21 +472,305 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
   }
 
   void _showBulkUpdateDialog() {
-    showCupertinoDialog(
+    DateTime startDate = DateTime.now();
+    DateTime endDate = DateTime.now().add(const Duration(days: 7));
+    String selectedStatus = 'available';
+
+    showCupertinoModalPopup(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Mise à jour en masse'),
-        content: const Text(
-          'Cette fonctionnalité permet de définir vos disponibilités pour une période entière.',
-        ),
-        actions: [
-          CupertinoDialogAction(
-            child: const Text('OK'),
-            onPressed: () => Navigator.pop(context),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => Material(
+          color: Colors.transparent,
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.6,
+            decoration: const BoxDecoration(
+              color: CupertinoColors.systemBackground,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // Handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey3,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          child: const Text('Annuler'),
+                          onPressed: () => Navigator.pop(dialogContext),
+                        ),
+                        const Text(
+                          'Mise à jour en masse',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          child: const Text('Appliquer'),
+                          onPressed: () async {
+                            Navigator.pop(dialogContext);
+                            await _applyBulkUpdate(startDate, endDate, selectedStatus);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const Divider(height: 1),
+                  
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Date de début
+                          const Text(
+                            'Date de début',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: CupertinoColors.secondaryLabel,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () async {
+                              await showCupertinoModalPopup(
+                                context: dialogContext,
+                                builder: (context) => Container(
+                                  height: 250,
+                                  color: CupertinoColors.systemBackground,
+                                  child: CupertinoDatePicker(
+                                    initialDateTime: startDate,
+                                    mode: CupertinoDatePickerMode.date,
+                                    onDateTimeChanged: (date) {
+                                      setDialogState(() => startDate = date);
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: CupertinoColors.systemGrey6,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(CupertinoIcons.calendar, size: 18),
+                                  const SizedBox(width: 10),
+                                  Text(DateFormat('dd/MM/yyyy').format(startDate)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 20),
+                          
+                          // Date de fin
+                          const Text(
+                            'Date de fin',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: CupertinoColors.secondaryLabel,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () async {
+                              await showCupertinoModalPopup(
+                                context: dialogContext,
+                                builder: (context) => Container(
+                                  height: 250,
+                                  color: CupertinoColors.systemBackground,
+                                  child: CupertinoDatePicker(
+                                    initialDateTime: endDate,
+                                    mode: CupertinoDatePickerMode.date,
+                                    onDateTimeChanged: (date) {
+                                      setDialogState(() => endDate = date);
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: CupertinoColors.systemGrey6,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(CupertinoIcons.calendar, size: 18),
+                                  const SizedBox(width: 10),
+                                  Text(DateFormat('dd/MM/yyyy').format(endDate)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 24),
+                          
+                          // Statut
+                          const Text(
+                            'Disponibilité',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: CupertinoColors.secondaryLabel,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              _buildStatusButton('available', 'Dispo', selectedStatus, AppTheme.colors.success, (s) => setDialogState(() => selectedStatus = s)),
+                              const SizedBox(width: 8),
+                              _buildStatusButton('partial', 'Partiel', selectedStatus, AppTheme.colors.warning, (s) => setDialogState(() => selectedStatus = s)),
+                              const SizedBox(width: 8),
+                              _buildStatusButton('unavailable', 'Indispo', selectedStatus, AppTheme.colors.error, (s) => setDialogState(() => selectedStatus = s)),
+                            ],
+                          ),
+                          
+                          const SizedBox(height: 24),
+                          
+                          // Info
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.colors.info.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(CupertinoIcons.info_circle, color: AppTheme.colors.info, size: 20),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Cette action mettra à jour ${endDate.difference(startDate).inDays + 1} jours.',
+                                    style: TextStyle(fontSize: 13, color: AppTheme.colors.info),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ],
+        ),
       ),
     );
+  }
+
+  Widget _buildStatusButton(String value, String label, String currentValue, Color color, Function(String) onSelect) {
+    final isSelected = currentValue == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onSelect(value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? color : CupertinoColors.systemGrey6,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : CupertinoColors.label,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _applyBulkUpdate(DateTime startDate, DateTime endDate, String status) async {
+    try {
+      final partnerId = SupabaseService.currentUser?.id;
+      if (partnerId == null) return;
+
+      // Créer une liste de jours à mettre à jour
+      final List<Map<String, dynamic>> updates = [];
+      DateTime current = startDate;
+      
+      while (!current.isAfter(endDate)) {
+        updates.add({
+          'partner_id': partnerId,
+          'date': current.toIso8601String().split('T')[0],
+          'status': status,
+        });
+        current = current.add(const Duration(days: 1));
+      }
+
+      // Insérer/mettre à jour en masse
+      for (final update in updates) {
+        await SupabaseService.client
+            .from('partner_availability')
+            .upsert(update, onConflict: 'partner_id,date');
+      }
+
+      // Recharger les données
+      await _loadData();
+      
+      if (mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Mise à jour réussie'),
+            content: Text('${updates.length} jours ont été mis à jour.'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur mise à jour en masse: $e');
+      if (mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Erreur'),
+            content: Text('Erreur lors de la mise à jour: $e'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 
   IconData _getIconForPlatform(IconData material, IconData cupertino) {

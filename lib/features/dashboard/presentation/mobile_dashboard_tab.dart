@@ -320,7 +320,7 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
               size: 24,
             ),
             onPressed: () {
-              // TODO: Navigate to notifications
+              Navigator.of(context, rootNavigator: true).pushNamed('/messaging');
             },
           ),
           SizedBox(width: AppTheme.spacing.sm),
@@ -681,9 +681,7 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
         QuickAction(
           label: 'Mes missions',
           icon: _getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS),
-          onTap: () {
-            // TODO: Navigate to missions tab
-          },
+          onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/missions'),
         ),
         QuickAction(
           label: 'Disponibilités',

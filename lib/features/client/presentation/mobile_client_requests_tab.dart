@@ -487,32 +487,182 @@ class _MobileClientRequestsTabState extends State<MobileClientRequestsTab> {
   }
 
   void _showRequestDetails(Map<String, dynamic> request) {
+    final status = request['status'] ?? 'pending';
+    final statusLabel = _getStatusLabel(status);
+    final statusColor = _getStatusColor(status);
+    
     showCupertinoModalPopup(
       context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: Text(request['title'] ?? 'Demande'),
-        message: Text(request['description'] ?? 'Aucune description'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Naviguer vers les messages
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(CupertinoIcons.chat_bubble),
-                SizedBox(width: 8),
-                Text('Voir les messages'),
+      builder: (context) => Material(
+        color: Colors.transparent,
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          decoration: const BoxDecoration(
+            color: CupertinoColors.systemBackground,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Handle
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey3,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          request['title'] ?? 'Demande',
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          statusLabel,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: statusColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const Divider(height: 1),
+                
+                // Description
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Description',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: CupertinoColors.secondaryLabel,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          request['description'] ?? 'Aucune description',
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Type de demande',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: CupertinoColors.secondaryLabel,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _getTypeLabel(request['request_type'] ?? 'general'),
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                        if (request['created_at'] != null) ...[
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Date de création',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: CupertinoColors.secondaryLabel,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            DateFormat('dd/MM/yyyy à HH:mm').format(DateTime.parse(request['created_at'])),
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                
+                // Actions
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey6,
+                    border: const Border(top: BorderSide(color: CupertinoColors.separator)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: CupertinoButton(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          color: AppTheme.colors.primary,
+                          borderRadius: BorderRadius.circular(10),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _navigateToMessages(request);
+                          },
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(CupertinoIcons.chat_bubble, color: Colors.white, size: 18),
+                              SizedBox(width: 8),
+                              Text('Envoyer un message', style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      CupertinoButton(
+                        padding: const EdgeInsets.all(12),
+                        color: CupertinoColors.systemGrey5,
+                        borderRadius: BorderRadius.circular(10),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Icon(CupertinoIcons.xmark, color: CupertinoColors.label, size: 20),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Fermer'),
         ),
       ),
+    );
+  }
+
+  void _navigateToMessages(Map<String, dynamic> request) {
+    // Naviguer vers la messagerie avec le contexte de la demande
+    Navigator.of(context, rootNavigator: true).pushNamed(
+      '/messaging',
+      arguments: {
+        'requestId': request['id'],
+        'requestTitle': request['title'],
+      },
     );
   }
 

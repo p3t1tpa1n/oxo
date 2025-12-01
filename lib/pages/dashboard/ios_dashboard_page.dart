@@ -11,6 +11,10 @@ import '../client/project_request_form_page.dart';
 import '../admin/project_creation_form_page.dart';
 import '../partner/ios_partners_page.dart';
 import '../associate/ios_partner_profiles_page.dart';
+import '../projects/ios_project_detail_page.dart';
+import '../admin/ios_mobile_admin_clients_page.dart';
+import '../admin/ios_mobile_client_requests_page.dart';
+import '../admin/add_user_page.dart';
 
 class IOSDashboardPage extends StatefulWidget {
   final int? initialTab;
@@ -601,7 +605,14 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
 
 
   void _showMissionDetail(Map<String, dynamic> mission) {
-    // TODO: Implémenter la navigation vers les détails de la mission
+    final missionId = mission['id']?.toString();
+    if (missionId != null) {
+      Navigator.of(context).push(
+        CupertinoPageRoute(
+          builder: (context) => IOSProjectDetailPage(projectId: missionId),
+        ),
+      );
+    }
   }
 
   void _showCreateMissionDialog() {
@@ -770,7 +781,11 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                   subtitle: const Text('Ajouter, modifier, gérer les rôles', style: IOSTheme.footnote),
                   trailing: const Icon(CupertinoIcons.chevron_right, color: IOSTheme.systemGray),
                   onTap: () {
-                    // TODO: Navigation vers gestion utilisateurs
+                    Navigator.of(context).push(
+                      CupertinoPageRoute(
+                        builder: (context) => const AddUserPage(),
+                      ),
+                    );
                   },
                 ),
                 IOSListTile(
@@ -779,7 +794,11 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                   subtitle: const Text('Créer, assigner des entreprises', style: IOSTheme.footnote),
                   trailing: const Icon(CupertinoIcons.chevron_right, color: IOSTheme.systemGray),
                   onTap: () {
-                    // TODO: Navigation vers gestion entreprises
+                    Navigator.of(context).push(
+                      CupertinoPageRoute(
+                        builder: (context) => const IOSMobileAdminClientsPage(),
+                      ),
+                    );
                   },
                 ),
                 IOSListTile(
@@ -788,7 +807,11 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
                   subtitle: const Text('Examiner les propositions de missions', style: IOSTheme.footnote),
                   trailing: const Icon(CupertinoIcons.chevron_right, color: IOSTheme.systemGray),
                   onTap: () {
-                    // TODO: Navigation vers demandes clients
+                    Navigator.of(context).push(
+                      CupertinoPageRoute(
+                        builder: (context) => const IOSMobileClientRequestsPage(),
+                      ),
+                    );
                   },
                 ),
                 IOSListTile(

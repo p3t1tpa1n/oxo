@@ -598,38 +598,353 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
     );
   }
 
+  /// Vérifie si l'utilisateur peut modifier le projet (admin ou associé uniquement)
+  bool get _canEditProject {
+    return _userRole == UserRole.admin || _userRole == UserRole.associe;
+  }
+
   void _showProjectActions() {
+    // Définir les actions disponibles selon le rôle
+    final List<CupertinoActionSheetAction> actions = [];
+    
+    // Modifier le projet (admin/associé uniquement)
+    if (_canEditProject) {
+      actions.add(
+        CupertinoActionSheetAction(
+          child: const Text('Modifier le projet'),
+          onPressed: () {
+            Navigator.of(context).pop();
+            _showEditProjectDialog();
+          },
+        ),
+      );
+      actions.add(
+        CupertinoActionSheetAction(
+          child: const Text('Ajouter une tâche'),
+          onPressed: () {
+            Navigator.of(context).pop();
+            _showAddTaskDialog();
+          },
+        ),
+      );
+    }
+    
+    // Voir les documents (accessible à tous)
+    actions.add(
+      CupertinoActionSheetAction(
+        child: const Text('Voir les documents'),
+        onPressed: () {
+          Navigator.of(context).pop();
+          _showDocumentsDialog();
+        },
+      ),
+    );
+    
+    // Contacter l'équipe (partenaires et clients)
+    if (_userRole == UserRole.partenaire || _userRole == UserRole.client) {
+      actions.add(
+        CupertinoActionSheetAction(
+          child: const Text('Contacter l\'équipe'),
+          onPressed: () {
+            Navigator.of(context).pop();
+            Navigator.of(context, rootNavigator: true).pushNamed('/messaging');
+          },
+        ),
+      );
+    }
+
     showCupertinoModalPopup(
       context: context,
       builder: (BuildContext context) => CupertinoActionSheet(
-        title: Text(_project!['name'] ?? 'Actions du projet'),
-        actions: [
-          CupertinoActionSheetAction(
-            child: const Text('Modifier le projet'),
-            onPressed: () {
-              Navigator.of(context).pop();
-              // TODO: Implémenter l'édition
-            },
-          ),
-          CupertinoActionSheetAction(
-            child: const Text('Ajouter une tâche'),
-            onPressed: () {
-              Navigator.of(context).pop();
-              // TODO: Implémenter l'ajout de tâche
-            },
-          ),
-          CupertinoActionSheetAction(
-            child: const Text('Voir les documents'),
-            onPressed: () {
-              Navigator.of(context).pop();
-              // TODO: Implémenter la vue des documents
-            },
-          ),
-        ],
+        title: Text(_project!['title'] ?? _project!['name'] ?? 'Actions du projet'),
+        actions: actions,
         cancelButton: CupertinoActionSheetAction(
           child: const Text('Annuler'),
           onPressed: () => Navigator.of(context).pop(),
         ),
+      ),
+    );
+  }
+
+  void _showEditProjectDialog() {
+    final titleController = TextEditingController(text: _project!['title'] ?? _project!['name'] ?? '');
+    final descriptionController = TextEditingController(text: _project!['description'] ?? '');
+    
+    showCupertinoModalPopup(
+      context: context,
+      builder: (dialogContext) => Material(
+        color: Colors.transparent,
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          decoration: const BoxDecoration(
+            color: CupertinoColors.systemBackground,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey3,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        child: const Text('Annuler'),
+                        onPressed: () => Navigator.pop(dialogContext),
+                      ),
+                      const Text('Modifier le projet', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        child: const Text('Enregistrer'),
+                        onPressed: () async {
+                          try {
+                            await SupabaseService.client
+                                .from('missions')
+                                .update({
+                                  'title': titleController.text,
+                                  'description': descriptionController.text,
+                                })
+                                .eq('id', widget.projectId);
+                            Navigator.pop(dialogContext);
+                            _loadProjectDetails();
+                            _showSuccessMessage('Projet modifié avec succès');
+                          } catch (e) {
+                            _showErrorMessage('Erreur lors de la modification: $e');
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Titre', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: CupertinoColors.secondaryLabel)),
+                        const SizedBox(height: 8),
+                        CupertinoTextField(
+                          controller: titleController,
+                          placeholder: 'Titre du projet',
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.systemGrey6,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text('Description', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: CupertinoColors.secondaryLabel)),
+                        const SizedBox(height: 8),
+                        CupertinoTextField(
+                          controller: descriptionController,
+                          placeholder: 'Description du projet',
+                          maxLines: 4,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.systemGrey6,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddTaskDialog() {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    String priority = 'medium';
+
+    showCupertinoModalPopup(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => Material(
+          color: Colors.transparent,
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.6,
+            decoration: const BoxDecoration(
+              color: CupertinoColors.systemBackground,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey3,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          child: const Text('Annuler'),
+                          onPressed: () => Navigator.pop(dialogContext),
+                        ),
+                        const Text('Nouvelle tâche', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          child: const Text('Créer'),
+                          onPressed: () async {
+                            if (titleController.text.isEmpty) {
+                              _showErrorMessage('Le titre est requis');
+                              return;
+                            }
+                            try {
+                              await SupabaseService.client
+                                  .from('missions')
+                                  .insert({
+                                    'title': titleController.text,
+                                    'description': descriptionController.text,
+                                    'mission_id': widget.projectId,
+                                    'priority': priority,
+                                    'status': 'pending',
+                                    'progress_status': 'à_assigner',
+                                  });
+                              Navigator.pop(dialogContext);
+                              _loadProjectDetails();
+                              _showSuccessMessage('Tâche créée avec succès');
+                            } catch (e) {
+                              _showErrorMessage('Erreur lors de la création: $e');
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Titre', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: CupertinoColors.secondaryLabel)),
+                          const SizedBox(height: 8),
+                          CupertinoTextField(
+                            controller: titleController,
+                            placeholder: 'Titre de la tâche',
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: CupertinoColors.systemGrey6,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text('Description', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: CupertinoColors.secondaryLabel)),
+                          const SizedBox(height: 8),
+                          CupertinoTextField(
+                            controller: descriptionController,
+                            placeholder: 'Description (optionnel)',
+                            maxLines: 3,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: CupertinoColors.systemGrey6,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text('Priorité', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: CupertinoColors.secondaryLabel)),
+                          const SizedBox(height: 12),
+                          CupertinoSlidingSegmentedControl<String>(
+                            groupValue: priority,
+                            children: const {
+                              'low': Text('Basse'),
+                              'medium': Text('Moyenne'),
+                              'high': Text('Haute'),
+                            },
+                            onValueChanged: (value) {
+                              if (value != null) {
+                                setDialogState(() => priority = value);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDocumentsDialog() {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Documents'),
+        content: const Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: Text('Aucun document n\'est attaché à ce projet pour le moment.'),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccessMessage(String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Succès'),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorMessage(String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Erreur'),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
       ),
     );
   }

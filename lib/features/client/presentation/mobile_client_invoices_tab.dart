@@ -552,7 +552,7 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
           CupertinoActionSheetAction(
             onPressed: () {
               Navigator.pop(context);
-              // TODO: Télécharger la facture
+              _downloadInvoice(invoice);
             },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -567,7 +567,7 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.pop(context);
-                // TODO: Marquer comme payée
+                _markAsPaid(invoice);
               },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -583,6 +583,115 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Fermer'),
         ),
+      ),
+    );
+  }
+
+  Future<void> _downloadInvoice(Map<String, dynamic> invoice) async {
+    try {
+      final invoiceUrl = invoice['file_url'] as String?;
+      
+      if (invoiceUrl == null || invoiceUrl.isEmpty) {
+        _showMessage('Le fichier de facture n\'est pas encore disponible', isError: true);
+        return;
+      }
+      
+      // Ouvrir l'URL de la facture
+      // Pour le web, on peut utiliser url_launcher ou ouvrir dans un nouvel onglet
+      _showMessage('Téléchargement de la facture en cours...');
+      
+      // Afficher les détails de la facture dans une boîte de dialogue pour l'instant
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: Text(invoice['invoice_number'] ?? 'Facture'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
+              Text('Montant: ${NumberFormat.currency(locale: 'fr_FR', symbol: '€').format((invoice['amount'] ?? 0).toDouble())}'),
+              if (invoice['description'] != null) ...[
+                const SizedBox(height: 8),
+                Text('Description: ${invoice['description']}'),
+              ],
+              const SizedBox(height: 8),
+              Text('Statut: ${invoice['status'] == 'paid' ? 'Payée' : 'En attente'}'),
+            ],
+          ),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('Fermer'),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      debugPrint('❌ Erreur téléchargement facture: $e');
+      _showMessage('Erreur lors du téléchargement', isError: true);
+    }
+  }
+
+  Future<void> _markAsPaid(Map<String, dynamic> invoice) async {
+    try {
+      // Confirmation avant de marquer comme payée
+      final confirmed = await showCupertinoDialog<bool>(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Confirmer le paiement'),
+          content: Text('Voulez-vous signaler la facture ${invoice['invoice_number'] ?? ''} comme payée ?'),
+          actions: [
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              child: const Text('Annuler'),
+              onPressed: () => Navigator.pop(context, false),
+            ),
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              child: const Text('Confirmer'),
+              onPressed: () => Navigator.pop(context, true),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) return;
+
+      // Créer une demande de confirmation de paiement
+      final userCompany = await SupabaseService.getUserCompany();
+      if (userCompany == null) throw Exception('Entreprise non trouvée');
+
+      await SupabaseService.client
+          .from('client_requests')
+          .insert({
+            'client_id': userCompany['company_id'],
+            'title': 'Confirmation paiement facture ${invoice['invoice_number'] ?? ''}',
+            'description': 'Le client confirme avoir payé la facture ${invoice['invoice_number'] ?? ''} d\'un montant de ${NumberFormat.currency(locale: 'fr_FR', symbol: '€').format((invoice['amount'] ?? 0).toDouble())}',
+            'request_type': 'payment_confirmation',
+            'status': 'pending',
+          });
+
+      _showMessage('Confirmation de paiement envoyée');
+      await _loadData();
+    } catch (e) {
+      debugPrint('❌ Erreur confirmation paiement: $e');
+      _showMessage('Erreur lors de la confirmation', isError: true);
+    }
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text(isError ? 'Erreur' : 'Information'),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
       ),
     );
   }

@@ -28,16 +28,30 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
   String _selectedFilter = 'en_cours'; // "En cours" sélectionné par défaut
   String _searchQuery = '';
   int _unreadCount = 0;
+  UserRole? _userRole;
 
   final TextEditingController _searchController = TextEditingController();
+  
+  // Permissions selon les rôles - seuls admin et associé peuvent créer des missions
+  bool get _canCreateMission => _userRole == UserRole.admin || _userRole == UserRole.associe;
 
   @override
   void initState() {
     super.initState();
+    _loadUserRole();
     _loadMissions();
     _loadUnreadCount();
     _loadCompanies();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  Future<void> _loadUserRole() async {
+    final role = await SupabaseService.getCurrentUserRole();
+    if (mounted) {
+      setState(() {
+        _userRole = role;
+      });
+    }
   }
 
   Future<void> _loadCompanies() async {
@@ -223,35 +237,36 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
               ],
             ),
           ),
-            // FAB positionné en bas à droite
-            Positioned(
-              right: AppTheme.spacing.md,
-              bottom: AppTheme.spacing.md + 60, // Au-dessus de la barre de navigation
-              child: CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: _showCreateMissionDialog,
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppTheme.colors.primary,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.colors.primary.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    _getIconForPlatform(AppIcons.add, AppIcons.addIOS),
-                    color: Colors.white,
-                    size: 24,
+            // FAB positionné en bas à droite - visible uniquement pour les admins/associés
+            if (_canCreateMission)
+              Positioned(
+                right: AppTheme.spacing.md,
+                bottom: AppTheme.spacing.md + 60, // Au-dessus de la barre de navigation
+                child: CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: _showCreateMissionDialog,
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: AppTheme.colors.primary,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.colors.primary.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _getIconForPlatform(AppIcons.add, AppIcons.addIOS),
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),

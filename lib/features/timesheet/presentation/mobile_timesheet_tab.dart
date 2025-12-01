@@ -185,7 +185,7 @@ class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTick
             size: 24,
           ),
           onPressed: () {
-            // TODO: Navigate to settings
+            Navigator.of(context, rootNavigator: true).pushNamed('/profile');
           },
         ),
       ),
