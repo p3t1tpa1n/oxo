@@ -11,6 +11,7 @@ import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../models/timesheet_models.dart';
 import '../../../models/mission.dart';
+import '../../../models/user_role.dart';
 import '../../../services/timesheet_service.dart';
 import '../../../services/mission_service.dart';
 import '../../../services/supabase_service.dart';
@@ -25,28 +26,40 @@ class MobileTimesheetTab extends StatefulWidget {
 }
 
 class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  TabController? _tabController;
   
   List<CalendarDay> _calendar = [];
   List<Mission> _availableMissions = [];
   MonthlyStats _stats = MonthlyStats.empty();
   bool _isLoading = true;
   DateTime _selectedMonth = DateTime.now();
+  UserRole? _userRole;
   
   // Contrôleurs pour les saisies
   final Map<String, double?> _selectedDays = {};
   final Map<String, String?> _selectedMissions = {};
 
+  // Partenaires: uniquement saisie du temps (pas de tarifs ni reporting)
+  bool get _isPartner => _userRole == UserRole.partenaire;
+  int get _tabCount => _isPartner ? 1 : 3;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _initializeWithRole();
+  }
+
+  Future<void> _initializeWithRole() async {
+    _userRole = SupabaseService.currentUserRole ?? await SupabaseService.getCurrentUserRole();
+    debugPrint('📱 MobileTimesheetTab: Rôle = $_userRole, isPartner = $_isPartner');
+    
+    _tabController = TabController(length: _tabCount, vsync: this);
     _loadData();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -169,6 +182,14 @@ class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTick
 
   @override
   Widget build(BuildContext context) {
+    // Afficher un chargement si le tabController n'est pas encore initialisé
+    if (_tabController == null) {
+      return CupertinoPageScaffold(
+        backgroundColor: AppTheme.colors.background,
+        child: const Center(child: CupertinoActivityIndicator()),
+      );
+    }
+
     return CupertinoPageScaffold(
       backgroundColor: AppTheme.colors.background,
       navigationBar: CupertinoNavigationBar(
@@ -190,36 +211,38 @@ class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTick
         ),
       ),
       child: SafeArea(
-        child: Column(
-          children: [
-            // Tabs - wrapped in Material for TabBar
-            Material(
-              color: AppTheme.colors.surface,
-              child: TabBar(
-                controller: _tabController,
-                labelColor: AppTheme.colors.primary,
-                unselectedLabelColor: AppTheme.colors.textSecondary,
-                indicatorColor: AppTheme.colors.primary,
-                tabs: const [
-                  Tab(text: 'Saisie du temps'),
-                  Tab(text: 'Tarifs'),
-                  Tab(text: 'Reporting'),
-                ],
-              ),
+        child: _isPartner 
+          ? _buildTimeEntryTab() // Partenaire: uniquement saisie du temps
+          : Column(
+              children: [
+                // Tabs visibles uniquement pour associés/admins
+                Material(
+                  color: AppTheme.colors.surface,
+                  child: TabBar(
+                    controller: _tabController,
+                    labelColor: AppTheme.colors.primary,
+                    unselectedLabelColor: AppTheme.colors.textSecondary,
+                    indicatorColor: AppTheme.colors.primary,
+                    tabs: const [
+                      Tab(text: 'Saisie du temps'),
+                      Tab(text: 'Tarifs'),
+                      Tab(text: 'Reporting'),
+                    ],
+                  ),
+                ),
+                // Content
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildTimeEntryTab(),
+                      _buildRatesTab(),
+                      _buildReportingTab(),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            // Content
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildTimeEntryTab(),
-                  _buildRatesTab(),
-                  _buildReportingTab(),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

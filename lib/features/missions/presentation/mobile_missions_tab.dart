@@ -120,31 +120,75 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
 
   /// Charge les missions assignées à un partenaire
   Future<List<Map<String, dynamic>>> _loadPartnerMissions(String? partnerId) async {
-    if (partnerId == null) return [];
-    
-    try {
-      // Chercher les missions où le partenaire est assigné
-      final response = await SupabaseService.client
-          .from('missions')
-          .select('*, company:company_id(name)')
-          .or('partner_id.eq.$partnerId,assigned_to.eq.$partnerId')
-          .inFilter('status', ['in_progress', 'pending', 'accepted'])
-          .order('start_date', ascending: false);
-      
-      debugPrint('📱 Missions partenaire trouvées: ${response.length}');
-      
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      debugPrint('❌ Erreur chargement missions partenaire: $e');
-      
-      // Fallback: essayer avec getCompanyMissions et filtrer
-      final allMissions = await SupabaseService.getCompanyMissions();
-      return allMissions.where((m) {
-        final assignedTo = m['assigned_to']?.toString();
-        final missionPartnerId = m['partner_id']?.toString();
-        return assignedTo == partnerId || missionPartnerId == partnerId;
-      }).toList();
+    if (partnerId == null) {
+      debugPrint('❌ _loadPartnerMissions: partnerId est null');
+      return [];
     }
+    
+    debugPrint('🔍 _loadPartnerMissions: Recherche pour $partnerId');
+    
+    List<Map<String, dynamic>> allMissions = [];
+    
+    // Méthode 1: Chercher par assigned_to
+    try {
+      final response1 = await SupabaseService.client
+          .from('missions')
+          .select()
+          .eq('assigned_to', partnerId);
+      
+      debugPrint('📱 Méthode 1 (assigned_to): ${response1.length} missions');
+      allMissions.addAll(List<Map<String, dynamic>>.from(response1));
+    } catch (e) {
+      debugPrint('⚠️ Erreur méthode 1: $e');
+    }
+    
+    // Méthode 2: Chercher par partner_id
+    try {
+      final response2 = await SupabaseService.client
+          .from('missions')
+          .select()
+          .eq('partner_id', partnerId);
+      
+      debugPrint('📱 Méthode 2 (partner_id): ${response2.length} missions');
+      
+      // Ajouter seulement les missions pas déjà présentes
+      for (final mission in response2) {
+        final exists = allMissions.any((m) => m['id'] == mission['id']);
+        if (!exists) {
+          allMissions.add(Map<String, dynamic>.from(mission));
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Erreur méthode 2: $e');
+    }
+    
+    // Si toujours rien, fallback sur toutes les missions et filtrer
+    if (allMissions.isEmpty) {
+      debugPrint('🔄 Fallback: récupération de toutes les missions et filtrage');
+      try {
+        final allResponse = await SupabaseService.client
+            .from('missions')
+            .select()
+            .order('created_at', ascending: false);
+        
+        allMissions = (allResponse as List).where((m) {
+          final assignedTo = m['assigned_to']?.toString();
+          final missionPartnerId = m['partner_id']?.toString();
+          return assignedTo == partnerId || missionPartnerId == partnerId;
+        }).map((m) => Map<String, dynamic>.from(m)).toList();
+        
+        debugPrint('📱 Fallback: ${allMissions.length} missions après filtrage');
+      } catch (e) {
+        debugPrint('❌ Erreur fallback: $e');
+      }
+    }
+    
+    debugPrint('✅ Total missions partenaire: ${allMissions.length}');
+    for (final m in allMissions) {
+      debugPrint('  - ${m['title']} (ID: ${m['id']}, assigned_to: ${m['assigned_to']}, partner_id: ${m['partner_id']})');
+    }
+    
+    return allMissions;
   }
 
   /// Charge les missions pour un client (de son entreprise)
