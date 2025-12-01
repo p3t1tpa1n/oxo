@@ -36,100 +36,90 @@ class MissionService {
     required String partnerId,
     DateTime? date,
   }) async {
+    debugPrint('🔍 MissionService: Recherche missions pour partenaire $partnerId');
+    
+    // Essayer plusieurs méthodes en cascade
+    List<Mission> missions = [];
+    
+    // Méthode 1: RPC (si la fonction existe et fonctionne)
     try {
       final targetDate = date ?? DateTime.now();
-      debugPrint('🔍 Récupération des missions disponibles pour: ${targetDate.toIso8601String().split('T')[0]}');
-      
       final response = await SupabaseService.client
           .rpc('get_available_missions_for_timesheet', params: {
         'p_partner_id': partnerId,
         'p_date': targetDate.toIso8601String().split('T')[0],
       });
 
-      debugPrint('✅ ${response.length} missions disponibles');
-      
-      return (response as List)
+      missions = (response as List)
           .map((json) => Mission.fromJson(json as Map<String, dynamic>))
           .toList();
+      
+      debugPrint('✅ RPC: ${missions.length} missions');
+      if (missions.isNotEmpty) return missions;
     } catch (e) {
-      debugPrint('❌ Erreur lors de la récupération des missions disponibles: $e');
-      // En cas d'erreur, essayer de récupérer depuis la vue
-      return await _getMissionsFromView(partnerId, date);
+      debugPrint('⚠️ RPC échouée: $e');
     }
-  }
 
-  /// Fallback: récupère les missions depuis la vue si la fonction RPC échoue
-  static Future<List<Mission>> _getMissionsFromView(
-    String partnerId,
-    DateTime? date,
-  ) async {
+    // Méthode 2: Requête directe par partner_id
     try {
-      final targetDate = date ?? DateTime.now();
-      final dateStr = targetDate.toIso8601String().split('T')[0];
-      debugPrint('🔄 Fallback: récupération depuis mission_with_context');
-      
-      // Chercher les missions assignées au partenaire (partner_id OU assigned_to)
-      var response = await SupabaseService.client
-          .from('mission_with_context')
-          .select()
-          .or('partner_id.eq.$partnerId,assigned_to.eq.$partnerId')
-          .inFilter('status', ['in_progress', 'pending', 'accepted'])
-          .lte('start_date', dateStr)
-          .or('end_date.is.null,end_date.gte.$dateStr')
-          .order('start_date', ascending: false);
-
-      debugPrint('✅ ${response.length} missions récupérées depuis la vue');
-      
-      if (response.isEmpty) {
-        // Si aucune mission trouvée, essayer directement depuis la table missions
-        debugPrint('🔄 Aucune mission dans la vue, tentative directe depuis missions');
-        response = await SupabaseService.client
-            .from('missions')
-            .select('*, company:company_id(name, city, group_id, investor_group:group_id(name, sector))')
-            .or('partner_id.eq.$partnerId,assigned_to.eq.$partnerId')
-            .inFilter('status', ['in_progress', 'pending', 'accepted'])
-            .lte('start_date', dateStr)
-            .or('end_date.is.null,end_date.gte.$dateStr')
-            .order('start_date', ascending: false);
-        debugPrint('✅ ${response.length} missions récupérées directement depuis missions');
-      }
-      
-      return response
-          .map<Mission>((json) => Mission.fromJson(Map<String, dynamic>.from(json)))
-          .toList();
-    } catch (e) {
-      debugPrint('❌ Erreur fallback: $e');
-      // Dernier fallback : récupérer toutes les missions actives du partenaire
-      return await _getSimpleMissionsForPartner(partnerId, date);
-    }
-  }
-
-  /// Dernier recours : récupération simple des missions
-  static Future<List<Mission>> _getSimpleMissionsForPartner(
-    String partnerId,
-    DateTime? date,
-  ) async {
-    try {
-      // Note: date non utilisée dans ce fallback simple pour maximiser les résultats
-      debugPrint('🔄 Dernier fallback: récupération simple des missions pour $partnerId');
-      
       final response = await SupabaseService.client
           .from('missions')
           .select()
-          .or('partner_id.eq.$partnerId,assigned_to.eq.$partnerId')
-          .inFilter('status', ['in_progress', 'pending', 'accepted'])
-          .order('start_date', ascending: false);
+          .eq('partner_id', partnerId)
+          .inFilter('status', ['in_progress', 'pending', 'accepted']);
       
-      debugPrint('✅ ${response.length} missions récupérées (fallback simple)');
-      
-      return response
-          .map<Mission>((json) => Mission.fromJson(Map<String, dynamic>.from(json)))
+      missions = (response as List)
+          .map((json) => Mission.fromJson(Map<String, dynamic>.from(json)))
           .toList();
+      
+      debugPrint('✅ Query partner_id: ${missions.length} missions');
+      if (missions.isNotEmpty) return missions;
     } catch (e) {
-      debugPrint('❌ Erreur fallback simple: $e');
-      return [];
+      debugPrint('⚠️ Query partner_id échouée: $e');
     }
+
+    // Méthode 3: Requête directe par assigned_to
+    try {
+      final response = await SupabaseService.client
+          .from('missions')
+          .select()
+          .eq('assigned_to', partnerId)
+          .inFilter('status', ['in_progress', 'pending', 'accepted']);
+      
+      missions = (response as List)
+          .map((json) => Mission.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+      
+      debugPrint('✅ Query assigned_to: ${missions.length} missions');
+      if (missions.isNotEmpty) return missions;
+    } catch (e) {
+      debugPrint('⚠️ Query assigned_to échouée: $e');
+    }
+
+    // Méthode 4: Récupérer toutes les missions actives (dernier recours)
+    try {
+      debugPrint('🔄 Dernier recours: toutes les missions actives');
+      final response = await SupabaseService.client
+          .from('missions')
+          .select()
+          .inFilter('status', ['in_progress', 'pending', 'accepted'])
+          .order('created_at', ascending: false)
+          .limit(100);
+      
+      missions = (response as List)
+          .map((json) => Mission.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+      
+      debugPrint('✅ Toutes missions actives: ${missions.length} missions');
+      return missions;
+    } catch (e) {
+      debugPrint('❌ Dernier recours échoué: $e');
+    }
+
+    debugPrint('❌ AUCUNE mission trouvée !');
+    return [];
   }
+
 
   /// Récupère une mission par ID
   static Future<Mission?> getMissionById(String missionId) async {

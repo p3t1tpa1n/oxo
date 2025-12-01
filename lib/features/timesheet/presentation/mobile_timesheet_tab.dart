@@ -57,16 +57,15 @@ class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTick
       final partnerId = SupabaseService.currentUser?.id;
       if (partnerId == null) throw Exception('Utilisateur non connecté');
 
+      debugPrint('📱 MobileTimesheetTab: Chargement données pour $partnerId');
+
       final results = await Future.wait([
         TimesheetService.getMonthCalendarWithEntries(
           partnerId: partnerId,
           year: _selectedMonth.year,
           month: _selectedMonth.month,
         ),
-        MissionService.getAvailableMissionsForTimesheet(
-          partnerId: partnerId,
-          date: _selectedMonth,
-        ),
+        _loadMissionsWithFallback(partnerId),
         TimesheetService.getOperatorMonthlyStats(
           partnerId: partnerId,
           year: _selectedMonth.year,
@@ -74,9 +73,20 @@ class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTick
         ),
       ]);
 
+      final missions = results[1] as List<Mission>;
+      debugPrint('📱 MobileTimesheetTab: ${missions.length} missions chargées');
+      
+      if (missions.isEmpty) {
+        debugPrint('⚠️ MobileTimesheetTab: AUCUNE mission disponible !');
+      } else {
+        for (final m in missions) {
+          debugPrint('  - Mission: ${m.title} (ID: ${m.id})');
+        }
+      }
+
       setState(() {
         _calendar = results[0] as List<CalendarDay>;
-        _availableMissions = results[1] as List<Mission>;
+        _availableMissions = missions;
         _stats = results[2] as MonthlyStats;
         _isLoading = false;
       });
@@ -85,6 +95,58 @@ class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTick
     } catch (e) {
       debugPrint('❌ Erreur chargement: $e');
       setState(() => _isLoading = false);
+    }
+  }
+
+  /// Charge les missions avec plusieurs fallbacks
+  Future<List<Mission>> _loadMissionsWithFallback(String partnerId) async {
+    try {
+      // Essayer d'abord via le service standard
+      var missions = await MissionService.getAvailableMissionsForTimesheet(
+        partnerId: partnerId,
+        date: _selectedMonth,
+      );
+      
+      if (missions.isNotEmpty) {
+        debugPrint('✅ Missions chargées via MissionService: ${missions.length}');
+        return missions;
+      }
+
+      // Fallback: récupérer directement depuis Supabase
+      debugPrint('🔄 Fallback: récupération directe depuis Supabase');
+      
+      final response = await SupabaseService.client
+          .from('missions')
+          .select()
+          .or('partner_id.eq.$partnerId,assigned_to.eq.$partnerId')
+          .inFilter('status', ['in_progress', 'pending', 'accepted'])
+          .order('start_date', ascending: false);
+      
+      debugPrint('📊 Requête directe: ${response.length} missions trouvées');
+      
+      return (response as List).map((json) {
+        return Mission.fromJson(Map<String, dynamic>.from(json));
+      }).toList();
+    } catch (e) {
+      debugPrint('❌ Erreur chargement missions: $e');
+      
+      // Dernier recours: récupérer TOUTES les missions actives
+      try {
+        debugPrint('🔄 Dernier recours: toutes les missions actives');
+        final response = await SupabaseService.client
+            .from('missions')
+            .select()
+            .inFilter('status', ['in_progress', 'pending', 'accepted'])
+            .order('start_date', ascending: false)
+            .limit(50);
+        
+        return (response as List).map((json) {
+          return Mission.fromJson(Map<String, dynamic>.from(json));
+        }).toList();
+      } catch (e2) {
+        debugPrint('❌ Dernier recours échoué: $e2');
+        return [];
+      }
     }
   }
 
@@ -525,11 +587,45 @@ class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTick
   }
 
   void _showMissionPicker(CalendarDay day, String key) {
+    debugPrint('📱 Ouverture picker mission - ${_availableMissions.length} missions disponibles');
+    
+    if (_availableMissions.isEmpty) {
+      // Afficher un message si aucune mission n'est disponible
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Aucune mission disponible'),
+          content: const Text(
+            'Aucune mission ne vous est assignée pour le moment.\n\n'
+            'Contactez votre associé pour vous faire assigner une mission.',
+          ),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('Recharger'),
+              onPressed: () {
+                Navigator.pop(context);
+                _loadData();
+              },
+            ),
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              child: const Text('OK'),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    
     showCupertinoModalPopup(
       context: context,
       builder: (context) => CupertinoActionSheet(
-        title: Text('Sélectionner une mission'),
+        title: Text('Sélectionner une mission (${_availableMissions.length})'),
         actions: _availableMissions.map((mission) {
+          final subtitle = mission.companyName != null 
+              ? ' - ${mission.companyName}' 
+              : '';
           return CupertinoActionSheetAction(
             onPressed: () {
               setState(() {
@@ -537,12 +633,27 @@ class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTick
               });
               Navigator.pop(context);
             },
-            child: Text(mission.title),
+            child: Column(
+              children: [
+                Text(
+                  mission.title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                if (subtitle.isNotEmpty)
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: CupertinoColors.secondaryLabel,
+                    ),
+                  ),
+              ],
+            ),
           );
         }).toList(),
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.pop(context),
-          child: Text('Annuler'),
+          child: const Text('Annuler'),
         ),
       ),
     );
