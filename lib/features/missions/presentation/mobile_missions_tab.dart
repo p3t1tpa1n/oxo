@@ -84,22 +84,30 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
     setState(() => _isLoading = true);
     
     try {
-      final allMissions = await SupabaseService.getCompanyMissions();
-      final userRole = SupabaseService.currentUserRole;
+      final currentUserId = SupabaseService.currentUser?.id;
+      final userRole = _userRole ?? await SupabaseService.getCurrentUserRole();
+      
+      debugPrint('📱 MobileMissionsTab: Chargement missions pour rôle=$userRole, userId=$currentUserId');
       
       List<Map<String, dynamic>> missions;
       
       if (userRole == UserRole.partenaire) {
-        missions = allMissions.where((m) => 
-          m['assigned_to'] == SupabaseService.currentUser?.id ||
-          m['created_by'] == SupabaseService.currentUser?.id
-        ).toList();
+        // Pour les partenaires: uniquement leurs missions assignées
+        missions = await _loadPartnerMissions(currentUserId);
+      } else if (userRole == UserRole.client) {
+        // Pour les clients: uniquement les missions de leur entreprise
+        missions = await _loadClientMissions();
       } else {
+        // Pour admin/associé: toutes les missions
+        final allMissions = await SupabaseService.getCompanyMissions();
         missions = allMissions;
       }
       
+      debugPrint('📱 MobileMissionsTab: ${missions.length} missions chargées');
+      
       setState(() {
         _missions = missions;
+        _userRole = userRole;
         _isLoading = false;
       });
       
@@ -107,6 +115,56 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
     } catch (e) {
       debugPrint('❌ Erreur chargement missions: $e');
       setState(() => _isLoading = false);
+    }
+  }
+
+  /// Charge les missions assignées à un partenaire
+  Future<List<Map<String, dynamic>>> _loadPartnerMissions(String? partnerId) async {
+    if (partnerId == null) return [];
+    
+    try {
+      // Chercher les missions où le partenaire est assigné
+      final response = await SupabaseService.client
+          .from('missions')
+          .select('*, company:company_id(name)')
+          .or('partner_id.eq.$partnerId,assigned_to.eq.$partnerId')
+          .inFilter('status', ['in_progress', 'pending', 'accepted'])
+          .order('start_date', ascending: false);
+      
+      debugPrint('📱 Missions partenaire trouvées: ${response.length}');
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('❌ Erreur chargement missions partenaire: $e');
+      
+      // Fallback: essayer avec getCompanyMissions et filtrer
+      final allMissions = await SupabaseService.getCompanyMissions();
+      return allMissions.where((m) {
+        final assignedTo = m['assigned_to']?.toString();
+        final missionPartnerId = m['partner_id']?.toString();
+        return assignedTo == partnerId || missionPartnerId == partnerId;
+      }).toList();
+    }
+  }
+
+  /// Charge les missions pour un client (de son entreprise)
+  Future<List<Map<String, dynamic>>> _loadClientMissions() async {
+    try {
+      final userCompany = await SupabaseService.getUserCompany();
+      if (userCompany == null) return [];
+      
+      final companyId = userCompany['company_id'];
+      
+      final response = await SupabaseService.client
+          .from('missions')
+          .select()
+          .eq('company_id', companyId)
+          .order('start_date', ascending: false);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('❌ Erreur chargement missions client: $e');
+      return [];
     }
   }
 
@@ -273,6 +331,15 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
     );
   }
 
+  String get _headerTitle {
+    if (_userRole == UserRole.partenaire) {
+      return 'Mes Missions';
+    } else if (_userRole == UserRole.client) {
+      return 'Mes Projets';
+    }
+    return 'Missions';
+  }
+
   Widget _buildHeader() {
     return Container(
       padding: EdgeInsets.symmetric(
@@ -282,9 +349,9 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
       color: AppTheme.colors.surface,
       child: Row(
         children: [
-          // Titre "Missions" en grand et gras
+          // Titre adapté selon le rôle
           Text(
-            'Missions',
+            _headerTitle,
             style: AppTheme.typography.h1.copyWith(
               fontWeight: FontWeight.bold,
               color: AppTheme.colors.textPrimary,

@@ -40,14 +40,52 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
   int _currentIndex = 0;
   final List<GlobalKey<NavigatorState>> _navigatorKeys = [];
   UserRole? _userRole;
+  bool _isLoading = true;
   
   @override
   void initState() {
     super.initState();
-    _userRole = SupabaseService.currentUserRole;
-    final tabCount = _getTabCount();
-    for (int i = 0; i < tabCount; i++) {
-      _navigatorKeys.add(GlobalKey<NavigatorState>());
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    try {
+      // D'abord essayer de récupérer le rôle depuis le cache
+      _userRole = SupabaseService.currentUserRole;
+      
+      // Si pas de rôle en cache, le charger depuis Supabase
+      if (_userRole == null) {
+        _userRole = await SupabaseService.getCurrentUserRole();
+      }
+      
+      debugPrint('📱 MobileShellProfessional: Rôle utilisateur = $_userRole');
+      
+      // Initialiser les clés de navigation
+      final tabCount = _getTabCount();
+      _navigatorKeys.clear();
+      for (int i = 0; i < tabCount; i++) {
+        _navigatorKeys.add(GlobalKey<NavigatorState>());
+      }
+      
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur chargement rôle: $e');
+      // Fallback sur associe par défaut
+      _userRole = UserRole.associe;
+      final tabCount = _getTabCount();
+      _navigatorKeys.clear();
+      for (int i = 0; i < tabCount; i++) {
+        _navigatorKeys.add(GlobalKey<NavigatorState>());
+      }
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -67,6 +105,31 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
 
   @override
   Widget build(BuildContext context) {
+    // Afficher un écran de chargement pendant le chargement du rôle
+    if (_isLoading) {
+      return CupertinoPageScaffold(
+        backgroundColor: AppTheme.colors.background,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CupertinoActivityIndicator(
+                radius: 16,
+                color: AppTheme.colors.primary,
+              ),
+              SizedBox(height: AppTheme.spacing.md),
+              Text(
+                'Chargement...',
+                style: AppTheme.typography.bodyMedium.copyWith(
+                  color: AppTheme.colors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return CupertinoTabScaffold(
       tabBar: CupertinoTabBar(
         backgroundColor: AppTheme.colors.surface,

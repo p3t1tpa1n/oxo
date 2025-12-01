@@ -958,57 +958,104 @@ class SupabaseService {
     }
   }
 
-  // === MISSIONS FILTRÉES PAR ENTREPRISE ===
+  // === MISSIONS FILTRÉES PAR RÔLE ===
 
-  /// Récupérer les missions de l'entreprise de l'utilisateur connecté
+  /// Récupérer les missions selon le rôle de l'utilisateur
   static Future<List<Map<String, dynamic>>> getCompanyMissions() async {
     try {
       debugPrint('getCompanyMissions() appelée');
-      // Pour les admins/associés : voir toutes les missions
       final userRole = await getCurrentUserRole();
-      debugPrint('Rôle utilisateur: $userRole');
+      final userId = currentUser?.id;
+      debugPrint('Rôle utilisateur: $userRole, ID: $userId');
       
+      // Admin/Associé : voir toutes les missions
       if (userRole == UserRole.admin || userRole == UserRole.associe) {
-        final response = await client
-            .from('missions') // Utiliser la table missions
-            .select('*')
-            .order('created_at', ascending: false);
-        
-        debugPrint('Admin/Associé: ${response.length} missions récupérées');
-        debugPrint('Données des missions: $response');
-        return List<Map<String, dynamic>>.from(response);
-      } else {
-        // Pour les clients/partenaires : filtrer par entreprise
-        final userCompany = await getUserCompany();
-        if (userCompany == null || userCompany['company_id'] == null) {
-          debugPrint('Aucune entreprise trouvée pour l\'utilisateur');
-          return [];
-        }
-
-        final response = await client
-            .from('missions') // Utiliser la table missions
-            .select('*')
-            .eq('company_id', userCompany['company_id'])
-            .order('created_at', ascending: false);
-        
-        debugPrint('Client/Partenaire: ${response.length} missions récupérées pour l\'entreprise ${userCompany['company_name']}');
-        return List<Map<String, dynamic>>.from(response);
-      }
-    } catch (e) {
-      debugPrint('Erreur lors de la récupération des missions de l\'entreprise: $e');
-      // Fallback : essayer sans la vue
-      try {
         final response = await client
             .from('missions')
             .select('*')
             .order('created_at', ascending: false);
         
-        debugPrint('Fallback: ${response.length} missions récupérées');
+        debugPrint('Admin/Associé: ${response.length} missions récupérées');
         return List<Map<String, dynamic>>.from(response);
-      } catch (fallbackError) {
-        debugPrint('Erreur fallback: $fallbackError');
-        return [];
       }
+      
+      // Partenaire : voir uniquement les missions assignées
+      if (userRole == UserRole.partenaire && userId != null) {
+        return await getPartnerMissions(userId);
+      }
+      
+      // Client : voir les missions de son entreprise
+      if (userRole == UserRole.client) {
+        final userCompany = await getUserCompany();
+        if (userCompany == null || userCompany['company_id'] == null) {
+          debugPrint('Client: Aucune entreprise trouvée');
+          return [];
+        }
+
+        final response = await client
+            .from('missions')
+            .select('*')
+            .eq('company_id', userCompany['company_id'])
+            .order('created_at', ascending: false);
+        
+        debugPrint('Client: ${response.length} missions récupérées');
+        return List<Map<String, dynamic>>.from(response);
+      }
+      
+      return [];
+    } catch (e) {
+      debugPrint('Erreur getCompanyMissions: $e');
+      return [];
+    }
+  }
+
+  /// Récupérer les missions assignées à un partenaire
+  static Future<List<Map<String, dynamic>>> getPartnerMissions(String partnerId) async {
+    try {
+      debugPrint('🔍 getPartnerMissions() pour $partnerId');
+      
+      // Méthode 1: Chercher par assigned_to
+      var response = await client
+          .from('missions')
+          .select('*')
+          .eq('assigned_to', partnerId)
+          .order('created_at', ascending: false);
+      
+      if (response.isNotEmpty) {
+        debugPrint('✅ ${response.length} missions trouvées par assigned_to');
+        return List<Map<String, dynamic>>.from(response);
+      }
+      
+      // Méthode 2: Chercher par partner_id
+      response = await client
+          .from('missions')
+          .select('*')
+          .eq('partner_id', partnerId)
+          .order('created_at', ascending: false);
+      
+      if (response.isNotEmpty) {
+        debugPrint('✅ ${response.length} missions trouvées par partner_id');
+        return List<Map<String, dynamic>>.from(response);
+      }
+      
+      // Méthode 3: Chercher avec OR (nécessite RPC ou requête combinée)
+      // Essayer avec filtrage côté client
+      final allMissions = await client
+          .from('missions')
+          .select('*')
+          .order('created_at', ascending: false);
+      
+      final partnerMissions = (allMissions as List).where((m) {
+        final assignedTo = m['assigned_to']?.toString();
+        final missionPartnerId = m['partner_id']?.toString();
+        return assignedTo == partnerId || missionPartnerId == partnerId;
+      }).toList();
+      
+      debugPrint('📊 Partenaire: ${partnerMissions.length} missions trouvées (filtrage côté client)');
+      return List<Map<String, dynamic>>.from(partnerMissions);
+    } catch (e) {
+      debugPrint('❌ Erreur getPartnerMissions: $e');
+      return [];
     }
   }
 
