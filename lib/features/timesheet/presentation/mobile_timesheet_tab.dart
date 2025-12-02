@@ -32,12 +32,16 @@ class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTick
   List<Mission> _availableMissions = [];
   MonthlyStats _stats = MonthlyStats.empty();
   bool _isLoading = true;
+  bool _isSaving = false;
   DateTime _selectedMonth = DateTime.now();
   UserRole? _userRole;
   
   // Contrôleurs pour les saisies
   final Map<String, double?> _selectedDays = {};
   final Map<String, String?> _selectedMissions = {};
+  
+  // Suivi des modifications
+  final Set<String> _modifiedDays = {};
 
   // Partenaires: uniquement saisie du temps (pas de tarifs ni reporting)
   bool get _isPartner => _userRole == UserRole.partenaire;
@@ -252,52 +256,117 @@ class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTick
       return const Center(child: CupertinoActivityIndicator());
     }
 
-    return DefaultTextStyle(
-      style: TextStyle(
-        decoration: TextDecoration.none,
-        color: AppTheme.colors.textPrimary,
-        fontFamily: AppTheme.typography.bodyMedium.fontFamily,
-      ),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.all(AppTheme.spacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Mois/Année
-              Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      child: Icon(CupertinoIcons.chevron_left, color: AppTheme.colors.primary),
-                      onPressed: () => _changeMonth(-1),
+    return Stack(
+      children: [
+        DefaultTextStyle(
+          style: TextStyle(
+            decoration: TextDecoration.none,
+            color: AppTheme.colors.textPrimary,
+            fontFamily: AppTheme.typography.bodyMedium.fontFamily,
+          ),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: 100), // Espace pour le bouton
+            child: Padding(
+              padding: EdgeInsets.all(AppTheme.spacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Mois/Année
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          child: Icon(CupertinoIcons.chevron_left, color: AppTheme.colors.primary),
+                          onPressed: () => _changeMonth(-1),
+                        ),
+                        SizedBox(width: AppTheme.spacing.md),
+                        Text(
+                          DateFormat('MMMM yyyy', 'fr_FR').format(_selectedMonth),
+                          style: AppTheme.typography.h2.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.colors.textPrimary,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                        SizedBox(width: AppTheme.spacing.md),
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          child: Icon(CupertinoIcons.chevron_right, color: AppTheme.colors.primary),
+                          onPressed: () => _changeMonth(1),
+                        ),
+                      ],
                     ),
-                    SizedBox(width: AppTheme.spacing.md),
-                    Text(
-                      DateFormat('MMMM yyyy', 'fr_FR').format(_selectedMonth),
-                      style: AppTheme.typography.h2.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.colors.textPrimary,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                    SizedBox(width: AppTheme.spacing.md),
-                    CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      child: Icon(CupertinoIcons.chevron_right, color: AppTheme.colors.primary),
-                      onPressed: () => _changeMonth(1),
-                    ),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: AppTheme.spacing.lg),
+                  // Cartes KPI
+                  _buildKPICards(),
+                  SizedBox(height: AppTheme.spacing.lg),
+                  // Liste des jours
+                  _buildDaysList(),
+                ],
               ),
-              SizedBox(height: AppTheme.spacing.lg),
-              // Cartes KPI
-              _buildKPICards(),
-              SizedBox(height: AppTheme.spacing.lg),
-              // Liste des jours
-              _buildDaysList(),
+            ),
+          ),
+        ),
+        // Bouton de sauvegarde flottant
+        Positioned(
+          bottom: 16,
+          left: 16,
+          right: 16,
+          child: _buildSaveButton(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSaveButton() {
+    final hasModifications = _modifiedDays.isNotEmpty;
+    
+    return AnimatedOpacity(
+      opacity: hasModifications ? 1.0 : 0.6,
+      duration: const Duration(milliseconds: 200),
+      child: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          color: hasModifications 
+              ? const Color(0xFF10B981) // Vert émeraude
+              : CupertinoColors.systemGrey3,
+          borderRadius: BorderRadius.circular(12),
+          onPressed: _isSaving ? null : _saveAllEntries,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (_isSaving)
+                const CupertinoActivityIndicator(color: Colors.white)
+              else ...[
+                const Icon(
+                  CupertinoIcons.checkmark_shield_fill,
+                  color: Colors.white,
+                  size: 22,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  hasModifications 
+                      ? 'Sauvegarder (${_modifiedDays.length})' 
+                      : 'Sauvegarder',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -653,6 +722,7 @@ class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTick
             onPressed: () {
               setState(() {
                 _selectedMissions[key] = mission.id;
+                _modifiedDays.add(key); // Marquer comme modifié
               });
               Navigator.pop(context);
             },
@@ -686,33 +756,228 @@ class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTick
     showCupertinoModalPopup(
       context: context,
       builder: (context) => CupertinoActionSheet(
-        title: Text('Sélectionner les jours'),
+        title: const Text('Sélectionner les jours'),
         actions: [
           CupertinoActionSheetAction(
             onPressed: () {
               setState(() {
                 _selectedDays[key] = 0.5;
+                _modifiedDays.add(key); // Marquer comme modifié
               });
               Navigator.pop(context);
             },
-            child: Text('0.5 jour'),
+            child: const Text('0.5 jour'),
           ),
           CupertinoActionSheetAction(
             onPressed: () {
               setState(() {
                 _selectedDays[key] = 1.0;
+                _modifiedDays.add(key); // Marquer comme modifié
               });
               Navigator.pop(context);
             },
-            child: Text('1.0 jour'),
+            child: const Text('1.0 jour'),
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.pop(context),
-          child: Text('Annuler'),
+          child: const Text('Annuler'),
         ),
       ),
     );
+  }
+
+  /// Sauvegarde toutes les entrées modifiées
+  Future<void> _saveAllEntries() async {
+    if (_modifiedDays.isEmpty) {
+      _showQuickSnackBar('Aucune modification à sauvegarder', CupertinoColors.systemGrey);
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      final partnerId = SupabaseService.currentUser?.id;
+      if (partnerId == null) throw Exception('Utilisateur non connecté');
+
+      debugPrint('💾 Début sauvegarde - Partner: $partnerId');
+      debugPrint('💾 Jours modifiés: ${_modifiedDays.length}');
+
+      final userCompany = await SupabaseService.getUserCompany();
+      final companyId = userCompany?['company_id'];
+      debugPrint('💾 Company ID: $companyId');
+
+      int savedCount = 0;
+      int errorCount = 0;
+      String? lastError;
+
+      for (final key in _modifiedDays.toList()) {
+        final missionId = _selectedMissions[key];
+        final days = _selectedDays[key];
+
+        debugPrint('💾 Traitement: $key - Mission: $missionId, Jours: $days');
+
+        // Skip si pas de mission ou de jours sélectionnés
+        if (missionId == null || days == null) {
+          debugPrint('⚠️ Skip - mission ou jours null');
+          continue;
+        }
+
+        // Trouver la mission pour récupérer le tarif
+        final mission = _availableMissions.firstWhere(
+          (m) => m.id == missionId,
+          orElse: () => Mission(
+            id: '',
+            title: '',
+            startDate: DateTime.now(),
+            status: '',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        );
+
+        if (mission.id.isEmpty) {
+          debugPrint('⚠️ Skip - mission non trouvée');
+          continue;
+        }
+
+        // Trouver le jour correspondant dans le calendrier
+        final day = _calendar.firstWhere(
+          (d) => d.date.toIso8601String() == key,
+          orElse: () => CalendarDay(
+            date: DateTime.now(),
+            dayName: '',
+            dayNumber: 0,
+            isWeekend: false,
+            weekNumber: 0,
+          ),
+        );
+
+        final entryDate = day.date.toIso8601String().split('T')[0];
+        final dailyRate = mission.dailyRate ?? 0.0;
+
+        try {
+          if (day.hasEntry && day.entry!.id.isNotEmpty) {
+            // Mise à jour d'une entrée existante
+            debugPrint('📝 UPDATE entry: ${day.entry!.id}');
+            
+            await SupabaseService.client
+                .from('timesheet_entries')
+                .update({
+              'mission_id': missionId,
+              'days': days,
+              'daily_rate': dailyRate,
+            }).eq('id', day.entry!.id);
+            
+            debugPrint('✅ UPDATE réussi');
+          } else {
+            // Création d'une nouvelle entrée
+            debugPrint('📝 INSERT new entry');
+            debugPrint('   - partner_id: $partnerId');
+            debugPrint('   - mission_id: $missionId');
+            debugPrint('   - entry_date: $entryDate');
+            debugPrint('   - days: $days');
+            debugPrint('   - daily_rate: $dailyRate');
+            
+            final insertData = {
+              'partner_id': partnerId,
+              'mission_id': missionId,
+              'entry_date': entryDate,
+              'days': days,
+              'daily_rate': dailyRate,
+              'is_weekend': day.isWeekend,
+              'status': 'draft',
+            };
+
+            // Ajouter company_id seulement s'il existe
+            if (companyId != null) {
+              insertData['company_id'] = companyId;
+            }
+
+            await SupabaseService.client
+                .from('timesheet_entries')
+                .insert(insertData);
+            
+            debugPrint('✅ INSERT réussi');
+          }
+          savedCount++;
+        } catch (e) {
+          debugPrint('❌ Erreur sauvegarde $key: $e');
+          lastError = e.toString();
+          errorCount++;
+        }
+      }
+
+      // Effacer les modifications après sauvegarde réussie
+      if (savedCount > 0) {
+        _modifiedDays.clear();
+      }
+
+      // Recharger les données
+      await _loadData();
+
+      // Afficher le résultat
+      if (errorCount == 0 && savedCount > 0) {
+        _showQuickSnackBar('$savedCount entrée(s) sauvegardée(s) ✓', CupertinoColors.systemGreen);
+      } else if (errorCount > 0) {
+        _showQuickSnackBar('Erreur: $lastError', CupertinoColors.systemRed);
+      } else {
+        _showQuickSnackBar('Aucune entrée valide à sauvegarder', CupertinoColors.systemOrange);
+      }
+
+    } catch (e) {
+      debugPrint('❌ Erreur sauvegarde globale: $e');
+      _showQuickSnackBar('Erreur: $e', CupertinoColors.systemRed);
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  void _showQuickSnackBar(String message, Color color) {
+    // Utiliser un overlay au lieu de SnackBar pour Cupertino
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 100,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    
+    // Retirer après 2 secondes
+    Future.delayed(const Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
   }
 
   Widget _buildRatesTab() {
