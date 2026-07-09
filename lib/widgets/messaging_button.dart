@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
-import '../pages/messaging/messaging_page.dart';
 
 class MessagingFloatingButton extends StatelessWidget {
   final Color backgroundColor;

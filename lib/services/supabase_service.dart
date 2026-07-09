@@ -1114,45 +1114,6 @@ class SupabaseService {
     }
   }
 
-  /// Créer une mission pour l'entreprise de l'utilisateur (DÉPRÉCIÉ - Utiliser createProjectWithClient)
-  @Deprecated('Utilisez createProjectWithClient pour spécifier un client spécifique')
-  static Future<Map<String, dynamic>?> createProjectForCompany({
-    required String name,
-    String? description,
-    String? status,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async {
-    debugPrint('⚠️ ATTENTION: createProjectForCompany est déprécié. Utilisez createProjectWithClient pour spécifier un client.');
-    
-    try {
-      // Récupérer l'entreprise de l'utilisateur
-      final userCompany = await getUserCompany();
-      if (userCompany == null || userCompany['company_id'] == null) {
-        throw Exception('Utilisateur non assigné à une entreprise');
-      }
-
-      final response = await client
-          .from('missions')
-          .insert({
-            'title': name,
-            'description': description,
-            'status': status ?? 'active',
-            'start_date': startDate?.toIso8601String(),
-            'end_date': endDate?.toIso8601String(),
-            'company_id': userCompany['company_id'],
-            // NOTE: client_id sera NULL - Il faudra l'assigner plus tard
-          })
-          .select()
-          .single();
-      
-      return response;
-    } catch (e) {
-      debugPrint('Erreur lors de la création de la mission: $e');
-      rethrow;
-    }
-  }
-
   // === TÂCHES FILTRÉES PAR ENTREPRISE ===
 
 
