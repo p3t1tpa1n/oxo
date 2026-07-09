@@ -26,12 +26,17 @@ jobs:
           flutter pub get
           flutter doctor -v
         
+      - name: Create .env file
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
+
       - name: Build macOS App
         run: |
           flutter config --enable-macos-desktop
           flutter clean
           flutter pub get
-          flutter build macos --release --verbose
+          flutter build macos --release --verbose --dart-define-from-file=.env
           
       - name: Package macOS App
         run: |

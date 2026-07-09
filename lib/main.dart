@@ -1,7 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
 import 'dart:io' show Platform;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:window_manager/window_manager.dart';
@@ -77,6 +77,11 @@ import 'config/app_theme.dart';
 void main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
+
+    // Couper les logs de diagnostic en production
+    if (kReleaseMode) {
+      debugPrint = (String? message, {int? wrapWidth}) {};
+    }
     await initializeDateFormatting('fr_FR', null);
     
     // Forcer l'orientation portrait sur mobile

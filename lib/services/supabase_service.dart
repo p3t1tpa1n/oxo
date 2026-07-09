@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
@@ -11,49 +10,34 @@ class SupabaseService {
   static SupabaseClient get client => _client!;
   static UserRole? _currentUserRole;
 
-  // URL et clé par défaut - CREDENTIALS CONFIRMÉS
-  static const defaultUrl = 'https://dswirxxbzbyhnxsrzyzi.supabase.co';
-  static const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzd2lyeHhiemJ5aG54c3J6eXppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkxMTE0MTksImV4cCI6MjA2NDY4NzQxOX0.eIpOuCszUaldsiIxb9WzQcra34VbImWaRHx5lysPtOg';
+  // Configuration injectée au build : flutter run/build --dart-define-from-file=.env
+  // (ou --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...)
+  static const _envUrl = String.fromEnvironment('SUPABASE_URL');
+  static const _envAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
   static Future<bool> initialize() async {
     if (_client != null) return true;
 
     debugPrint('Initialisation de Supabase...');
-    
+
     try {
-      String url = defaultUrl;
-      String anonKey = defaultKey;
-      
-      if (kIsWeb) {
-        // Pour Vercel et autres déploiements web, récupérer les variables depuis window
-        debugPrint('Initialisation en mode web (Vercel)');
-        try {
-          // Tentative d'utiliser les variables d'environnement injectées via window.ENV
-          url = _getWebEnvVar('SUPABASE_URL') ?? defaultUrl;
-          anonKey = _getWebEnvVar('SUPABASE_ANON_KEY') ?? defaultKey;
-          debugPrint('Variables d\'environnement web récupérées: URL=$url');
-        } catch (e) {
-          debugPrint('Erreur lors de la récupération des variables d\'environnement web: $e');
-          debugPrint('Utilisation des valeurs par défaut');
-        }
-      } else {
-        try {
-          await dotenv.load(fileName: '.env');
-          url = dotenv.env['SUPABASE_URL'] ?? defaultUrl;
-          anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? defaultKey;
-        } catch (e) {
-          debugPrint('Erreur lors du chargement du fichier .env: $e');
-        }
+      const url = _envUrl;
+      const anonKey = _envAnonKey;
+
+      if (url.isEmpty || anonKey.isEmpty) {
+        throw StateError(
+          'Configuration Supabase manquante. Lancer avec '
+          '--dart-define-from-file=.env (le fichier .env doit définir '
+          'SUPABASE_URL et SUPABASE_ANON_KEY).',
+        );
       }
-      
+
       debugPrint('Création du client Supabase avec URL: $url');
-      debugPrint('🔍 URL utilisée: $url');
-      debugPrint('🔍 Clé utilisée: ${anonKey.substring(0, 20)}...');
-      
+
       await Supabase.initialize(
         url: url,
         anonKey: anonKey,
-        debug: true, // Forcer le mode debug même en production pour diagnostiquer le problème
+        debug: kDebugMode,
       );
       
       _client = Supabase.instance.client;
@@ -92,40 +76,6 @@ class SupabaseService {
       debugPrint('Erreur lors de l\'initialisation de Supabase: $e');
       debugPrint('Stack trace: $stackTrace');
       return false;
-    }
-  }
-
-  static String? _getWebEnvVar(String key) {
-    if (!kIsWeb) return null;
-    
-    try {
-      // En mode développement, retourner les valeurs par défaut
-      if (kDebugMode) {
-        if (key == 'SUPABASE_URL') {
-          return defaultUrl;
-        } else if (key == 'SUPABASE_ANON_KEY') {
-          return defaultKey;
-        }
-      }
-      
-      // Tenter d'accéder aux variables d'environnement injectées par Vercel
-      debugPrint('Tentative d\'accès à la variable d\'environnement web: $key');
-      
-      // Si nous sommes sur Vercel, les variables sont accessibles via window.ENV
-      // Mais comme nous ne pouvons pas appeler directement js.context['ENV'][key],
-      // nous utilisons les valeurs par défaut
-      
-      debugPrint('Utilisation des valeurs par défaut pour les variables d\'environnement web');
-      if (key == 'SUPABASE_URL') {
-        return defaultUrl;
-      } else if (key == 'SUPABASE_ANON_KEY') {
-        return defaultKey;
-      }
-      
-      return null;
-    } catch (e) {
-      debugPrint('Erreur lors de la récupération de la variable web $key: $e');
-      return null;
     }
   }
 
@@ -796,11 +746,9 @@ class SupabaseService {
         'status': 'actif',
       });
 
-      // Envoyer un email de confirmation
-      await client.auth.resetPasswordForEmail(
-        email,
-        redirectTo: defaultUrl,
-      );
+      // Envoyer un email de définition du mot de passe.
+      // Sans redirectTo, Supabase utilise la Site URL configurée dans le dashboard.
+      await client.auth.resetPasswordForEmail(email);
 
     } catch (e) {
       debugPrint('Erreur lors de la création de l\'utilisateur: $e');
