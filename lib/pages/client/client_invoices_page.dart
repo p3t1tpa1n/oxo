@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
+import '../../services/invoice_service.dart';
+import '../../services/company_service.dart';
 
 class ClientInvoicesPage extends StatefulWidget {
   const ClientInvoicesPage({super.key});
@@ -32,10 +34,10 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
 
     try {
       // Charger les informations de l'entreprise
-      final userCompany = await SupabaseService.getUserCompany();
+      final userCompany = await CompanyService.getUserCompany();
       
       // Charger les factures
-      final invoicesData = await SupabaseService.getClientInvoices();
+      final invoicesData = await InvoiceService.getClientInvoices();
       
       final invoices = invoicesData.map((data) {
         final amount = (data['total_amount'] ?? data['amount'] ?? 0).toDouble();

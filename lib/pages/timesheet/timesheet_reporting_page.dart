@@ -11,6 +11,7 @@ import '../../services/timesheet_service.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
+import '../../services/company_service.dart';
 
 class TimesheetReportingPage extends StatefulWidget {
   const TimesheetReportingPage({super.key});
@@ -46,7 +47,7 @@ class _TimesheetReportingPageState extends State<TimesheetReportingPage> with Si
     });
 
     try {
-      final userCompany = await SupabaseService.getUserCompany();
+      final userCompany = await CompanyService.getUserCompany();
       final companyId = userCompany?['company_id'] as int?;
 
       final results = await Future.wait([

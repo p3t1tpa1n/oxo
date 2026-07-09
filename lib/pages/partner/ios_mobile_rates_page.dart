@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/timesheet_models.dart';
 import '../../services/timesheet_service.dart';
 import '../../services/supabase_service.dart';
+import '../../services/company_service.dart';
 
 class IOSMobileRatesPage extends StatefulWidget {
   final bool showHeader;
@@ -48,7 +49,7 @@ class _IOSMobileRatesPageState extends State<IOSMobileRatesPage> with SingleTick
         TimesheetService.getAllRates(),
         TimesheetService.getAllPermissions(),
         SupabaseService.getPartners(),
-        SupabaseService.getAllCompanies(),
+        CompanyService.getAllCompanies(),
       ]);
 
       if (mounted) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
+import '../../services/invoice_service.dart';
 
 class ClientsPage extends StatefulWidget {
   final bool embedded;
@@ -526,7 +527,7 @@ class _ClientsPageState extends State<ClientsPage> {
                     final amount = double.parse(amountController.text);
                     final taxRate = double.tryParse(taxRateController.text) ?? 20.0;
                     
-                    await SupabaseService.createInvoice(
+                    await InvoiceService.createInvoice(
                       clientUserId: client['user_id'],
                       title: titleController.text,
                       description: descriptionController.text,

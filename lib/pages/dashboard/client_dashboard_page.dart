@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
 import '../client/project_request_form_page.dart';
+import '../../services/company_service.dart';
 
 class ClientDashboardPage extends StatefulWidget {
   const ClientDashboardPage({super.key});
@@ -28,7 +29,7 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final userCompany = await SupabaseService.getUserCompany();
+      final userCompany = await CompanyService.getUserCompany();
       final missions = await SupabaseService.getClientRecentMissions();
       
       // Récupérer aussi les propositions de projets en attente

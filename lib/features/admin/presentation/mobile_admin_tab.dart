@@ -10,6 +10,7 @@ import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
 import '../../../utils/device_detector.dart';
+import '../../../services/company_service.dart';
 
 class MobileAdminTab extends StatefulWidget {
   const MobileAdminTab({Key? key}) : super(key: key);
@@ -51,7 +52,7 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
           .select('role')
           .neq('role', 'client');
       
-      final clients = await SupabaseService.getAllCompanies();
+      final clients = await CompanyService.getAllCompanies();
       final missions = await SupabaseService.getCompanyMissions();
       
       // Compter les demandes clients en attente

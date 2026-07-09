@@ -8,6 +8,7 @@ import '../../services/timesheet_service.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
+import '../../services/company_service.dart';
 
 class TimesheetSettingsPage extends StatefulWidget {
   const TimesheetSettingsPage({super.key});
@@ -48,7 +49,7 @@ class _TimesheetSettingsPageState extends State<TimesheetSettingsPage> with Sing
         TimesheetService.getAllRates(),
         TimesheetService.getAllPermissions(),
         SupabaseService.getPartners(),
-        SupabaseService.getAllCompanies(), // Pour les tarifs journaliers
+        CompanyService.getAllCompanies(), // Pour les tarifs journaliers
         SupabaseService.fetchClients(), // Pour les permissions (encore basées sur clients)
       ]);
 

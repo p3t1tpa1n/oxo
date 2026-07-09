@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_service.dart';
+import 'company_service.dart';
 
 /// Gestion des actions commerciales (extrait de SupabaseService).
 class CommercialActionsService {
@@ -10,7 +11,7 @@ class CommercialActionsService {
   static User? get currentUser => SupabaseService.currentUser;
 
   static Future<Map<String, dynamic>?> getUserCompany() =>
-      SupabaseService.getUserCompany();
+      CompanyService.getUserCompany();
 
   /// Récupérer toutes les actions commerciales pour l'entreprise de l'utilisateur connecté
   static Future<List<Map<String, dynamic>>> getCommercialActions() async {

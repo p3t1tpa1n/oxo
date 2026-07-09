@@ -17,6 +17,7 @@ import '../../../services/mission_service.dart';
 import '../../../services/supabase_service.dart';
 import '../../../utils/device_detector.dart';
 import '../../../pages/partner/ios_mobile_rates_page.dart';
+import '../../../services/company_service.dart';
 
 class MobileTimesheetTab extends StatefulWidget {
   const MobileTimesheetTab({Key? key}) : super(key: key);
@@ -803,7 +804,7 @@ class _MobileTimesheetTabState extends State<MobileTimesheetTab> with SingleTick
       debugPrint('💾 Début sauvegarde - Partner: $partnerId');
       debugPrint('💾 Jours modifiés: ${_modifiedDays.length}');
 
-      final userCompany = await SupabaseService.getUserCompany();
+      final userCompany = await CompanyService.getUserCompany();
       final companyId = userCompany?['company_id'];
       debugPrint('💾 Company ID: $companyId');
 

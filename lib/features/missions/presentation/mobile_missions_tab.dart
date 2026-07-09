@@ -12,6 +12,7 @@ import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
 import '../../../models/user_role.dart';
 import '../../../utils/device_detector.dart';
+import '../../../services/company_service.dart';
 
 class MobileMissionsTab extends StatefulWidget {
   const MobileMissionsTab({Key? key}) : super(key: key);
@@ -56,7 +57,7 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
 
   Future<void> _loadCompanies() async {
     try {
-      final companies = await SupabaseService.getAllCompanies();
+      final companies = await CompanyService.getAllCompanies();
       if (mounted) {
         setState(() {
           _companies = companies;
@@ -194,7 +195,7 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
   /// Charge les missions pour un client (de son entreprise)
   Future<List<Map<String, dynamic>>> _loadClientMissions() async {
     try {
-      final userCompany = await SupabaseService.getUserCompany();
+      final userCompany = await CompanyService.getUserCompany();
       if (userCompany == null) return [];
       
       final companyId = userCompany['company_id'];

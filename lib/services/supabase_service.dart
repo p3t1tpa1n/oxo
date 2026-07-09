@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import '../models/user_role.dart';
+import 'company_service.dart';
 
 class SupabaseService {
   static SupabaseClient? _client;
@@ -82,6 +83,10 @@ class SupabaseService {
   static UserRole? get currentUserRole => _currentUserRole;
 
   static User? get currentUser => client.auth.currentUser;
+
+  /// Délégation vers CompanyService (utilisé par les méthodes missions restantes).
+  static Future<Map<String, dynamic>?> getUserCompany() =>
+      CompanyService.getUserCompany();
 
   static Future<UserRole?> getCurrentUserRole() async {
     try {
@@ -526,195 +531,6 @@ class SupabaseService {
     }
   }
 
-  // === GESTION DES FACTURES ===
-
-  /// Récupérer toutes les factures (pour admins/associés)
-  static Future<List<Map<String, dynamic>>> getAllInvoices() async {
-    try {
-      final response = await client
-          .from('invoice_details')
-          .select('*')
-          .order('created_at', ascending: false);
-      
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      debugPrint('Erreur lors de la récupération de toutes les factures: $e');
-      return [];
-    }
-  }
-
-  /// Récupérer les factures d'un client spécifique
-  static Future<List<Map<String, dynamic>>> getClientInvoices([String? clientUserId]) async {
-    try {
-      var query = client.from('invoice_details').select('*');
-      
-      // Si un clientUserId est fourni, filtrer par ce client
-      // Sinon, utiliser l'utilisateur connecté (pour les clients qui consultent leurs propres factures)
-      final targetUserId = clientUserId ?? currentUser?.id;
-      if (targetUserId != null) {
-        query = query.eq('client_user_id', targetUserId);
-      }
-      
-      final response = await query.order('created_at', ascending: false);
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      debugPrint('Erreur lors de la récupération des factures client: $e');
-      return [];
-    }
-  }
-
-  /// Créer une nouvelle facture
-  static Future<Map<String, dynamic>?> createInvoice({
-    required String clientUserId,
-    required String title,
-    required String description,
-    required double amount,
-    required DateTime dueDate,
-    String? projectId,
-    double? taxRate,
-    DateTime? invoiceDate,
-    String status = 'draft',
-  }) async {
-    try {
-      // Récupérer l'entreprise de l'utilisateur connecté (admin/associé)
-      debugPrint('Tentative de récupération de l\'entreprise pour l\'utilisateur: ${currentUser?.id}');
-      
-      final userCompany = await getUserCompany();
-      debugPrint('Entreprise récupérée: $userCompany');
-      
-      if (userCompany == null) {
-        // Diagnostic plus détaillé
-        debugPrint('❌ Aucune entreprise trouvée pour l\'utilisateur');
-        
-        // Vérifier si l'utilisateur existe dans profiles
-        try {
-          final userProfile = await getUserProfile(currentUser!.id);
-          debugPrint('Profil utilisateur: $userProfile');
-          
-          if (userProfile == null) {
-            throw Exception('Profil utilisateur non trouvé. Contactez l\'administrateur.');
-          }
-          
-          final userRole = userProfile['user_role'] ?? userProfile['role'];
-          final companyId = userProfile['company_id'];
-          
-          debugPrint('Rôle utilisateur: $userRole, company_id: $companyId');
-          
-          if (companyId == null || companyId == 0) {
-            throw Exception(
-              'Utilisateur non assigné à une entreprise.\n\n'
-              'Solutions:\n'
-              '1. Exécutez le script SQL de diagnostic dans Supabase\n'
-              '2. Ou contactez l\'administrateur pour vous assigner à une entreprise\n\n'
-              'Votre rôle: $userRole\n'
-              'Votre ID: ${currentUser?.id}'
-            );
-          } else {
-            throw Exception('Entreprise trouvée (ID: $companyId) mais vue user_company_info inaccessible');
-          }
-        } catch (e) {
-          throw Exception('Erreur lors du diagnostic utilisateur: $e');
-        }
-      }
-      
-      if (userCompany['company_id'] == null) {
-        throw Exception(
-          'Données d\'entreprise incohérentes.\n'
-          'Entreprise: ${userCompany['company_name']}\n'
-          'ID: ${userCompany['company_id']}\n'
-          'Contactez l\'administrateur.'
-        );
-      }
-
-      debugPrint('✅ Création de facture pour l\'entreprise: ${userCompany['company_name']} (ID: ${userCompany['company_id']})');
-
-      final invoiceData = {
-        'company_id': userCompany['company_id'],
-        'client_user_id': clientUserId,
-        'title': title,
-        'description': description,
-        'amount': amount,
-        'due_date': dueDate.toIso8601String().split('T')[0], // Format YYYY-MM-DD
-        'invoice_date': (invoiceDate ?? DateTime.now()).toIso8601String().split('T')[0],
-        'status': status,
-        'created_by': currentUser!.id,
-      };
-
-      if (projectId != null) {
-        invoiceData['mission_id'] = projectId;
-      }
-      if (taxRate != null) {
-        invoiceData['tax_rate'] = taxRate;
-      }
-
-      debugPrint('Données de la facture à insérer: $invoiceData');
-
-      final response = await client
-          .from('invoices')
-          .insert(invoiceData)
-          .select()
-          .single();
-      
-      debugPrint('✅ Facture créée avec succès: ${response['invoice_number']}');
-      return response;
-    } catch (e) {
-      debugPrint('❌ Erreur lors de la création de la facture: $e');
-      rethrow;
-    }
-  }
-
-  /// Mettre à jour une facture
-  static Future<void> updateInvoice(int invoiceId, Map<String, dynamic> updates) async {
-    try {
-      await client
-          .from('invoices')
-          .update(updates)
-          .eq('id', invoiceId);
-    } catch (e) {
-      debugPrint('Erreur lors de la mise à jour de la facture: $e');
-      rethrow;
-    }
-  }
-
-  /// Supprimer une facture
-  static Future<void> deleteInvoice(int invoiceId) async {
-    try {
-      await client
-          .from('invoices')
-          .delete()
-          .eq('id', invoiceId);
-    } catch (e) {
-      debugPrint('Erreur lors de la suppression de la facture: $e');
-      rethrow;
-    }
-  }
-
-  /// Marquer une facture comme payée
-  static Future<void> markInvoiceAsPaid(int invoiceId, {
-    String? paymentMethod,
-    String? paymentReference,
-    DateTime? paymentDate,
-  }) async {
-    try {
-      final updates = {
-        'status': 'paid',
-        'payment_date': (paymentDate ?? DateTime.now()).toIso8601String().split('T')[0],
-      };
-
-      if (paymentMethod != null) {
-        updates['payment_method'] = paymentMethod;
-      }
-      if (paymentReference != null) {
-        updates['payment_reference'] = paymentReference;
-      }
-
-      await updateInvoice(invoiceId, updates);
-    } catch (e) {
-      debugPrint('Erreur lors du marquage de la facture comme payée: $e');
-      rethrow;
-    }
-  }
-
   // Méthode pour créer un nouvel utilisateur
   static Future<void> createUser({
     required String email,
@@ -799,112 +615,6 @@ class SupabaseService {
     }
   }
 
-  // === GESTION DES ENTREPRISES ===
-
-  /// Récupérer toutes les entreprises (pour admins/associés)
-  static Future<List<Map<String, dynamic>>> getAllCompanies() async {
-    try {
-      // Essayer d'abord 'company' (singulier), puis 'companies' (pluriel) en fallback
-      try {
-        final response = await client
-            .from('company')
-            .select('id, name')
-            .order('name', ascending: true);
-        
-        final companies = List<Map<String, dynamic>>.from(response);
-        debugPrint('✅ ${companies.length} companies récupérées depuis la table "company"');
-        return companies;
-      } catch (e) {
-        debugPrint('⚠️ Table "company" non trouvée, tentative avec "companies"...');
-      final response = await client
-          .from('companies')
-            .select('id, name')
-          .order('name', ascending: true);
-      
-        final companies = List<Map<String, dynamic>>.from(response);
-        debugPrint('✅ ${companies.length} companies récupérées depuis la table "companies"');
-        return companies;
-      }
-    } catch (e) {
-      debugPrint('❌ Erreur lors de la récupération des entreprises: $e');
-      return [];
-    }
-  }
-
-  /// Récupérer l'entreprise de l'utilisateur connecté
-  static Future<Map<String, dynamic>?> getUserCompany() async {
-    try {
-      final response = await client
-          .from('user_company_info')
-          .select()
-          .eq('user_id', currentUser!.id)
-          .single();
-      
-      return response;
-    } catch (e) {
-      debugPrint('Erreur lors de la récupération de l\'entreprise utilisateur: $e');
-      return null;
-    }
-  }
-
-  /// Créer une nouvelle entreprise
-  static Future<Map<String, dynamic>?> createCompany({
-    required String name,
-    String? description,
-    String? address,
-    String? phone,
-    String? email,
-    String? website,
-  }) async {
-    try {
-      final response = await client
-          .from('companies')
-          .insert({
-            'name': name,
-            'description': description,
-            'address': address,
-            'phone': phone,
-            'email': email,
-            'website': website,
-            'status': 'active',
-          })
-          .select()
-          .single();
-      
-      return response;
-    } catch (e) {
-      debugPrint('Erreur lors de la création de l\'entreprise: $e');
-      rethrow;
-    }
-  }
-
-  /// Mettre à jour une entreprise
-  static Future<void> updateCompany(int companyId, Map<String, dynamic> updates) async {
-    try {
-      await client
-          .from('companies')
-          .update(updates)
-          .eq('id', companyId);
-    } catch (e) {
-      debugPrint('Erreur lors de la mise à jour de l\'entreprise: $e');
-      rethrow;
-    }
-  }
-
-  /// Assigner un utilisateur à une entreprise
-  static Future<bool> assignUserToCompany(String userId, int companyId) async {
-    try {
-      final result = await client.rpc('assign_user_to_company', params: {
-        'user_id_param': userId,
-        'company_id_param': companyId,
-      });
-      
-      return result as bool;
-    } catch (e) {
-      debugPrint('Erreur lors de l\'assignation à l\'entreprise: $e');
-      rethrow;
-    }
-  }
 
   // === MISSIONS FILTRÉES PAR RÔLE ===
 

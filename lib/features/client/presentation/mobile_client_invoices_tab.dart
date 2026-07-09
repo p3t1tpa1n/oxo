@@ -11,6 +11,7 @@ import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
 import '../../../utils/device_detector.dart';
+import '../../../services/company_service.dart';
 
 class MobileClientInvoicesTab extends StatefulWidget {
   const MobileClientInvoicesTab({Key? key}) : super(key: key);
@@ -53,7 +54,7 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
     
     try {
       // Récupérer les factures du client
-      final userCompany = await SupabaseService.getUserCompany();
+      final userCompany = await CompanyService.getUserCompany();
       if (userCompany == null) throw Exception('Entreprise non trouvée');
 
       final response = await SupabaseService.client
@@ -659,7 +660,7 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
       if (confirmed != true) return;
 
       // Créer une demande de confirmation de paiement
-      final userCompany = await SupabaseService.getUserCompany();
+      final userCompany = await CompanyService.getUserCompany();
       if (userCompany == null) throw Exception('Entreprise non trouvée');
 
       await SupabaseService.client

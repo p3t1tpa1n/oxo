@@ -11,6 +11,7 @@ import '../../services/mission_service.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
+import '../../services/company_service.dart';
 
 class TimeEntryPage extends StatefulWidget {
   const TimeEntryPage({super.key});
@@ -179,7 +180,7 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
             .eq('id', day.entry!.id);
       } else {
         // Création
-        final userCompany = await SupabaseService.getUserCompany();
+        final userCompany = await CompanyService.getUserCompany();
         await SupabaseService.client
             .from('timesheet_entries')
             .insert({

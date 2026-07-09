@@ -11,6 +11,7 @@ import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
 import '../../../utils/device_detector.dart';
+import '../../../services/company_service.dart';
 
 class MobileClientRequestsTab extends StatefulWidget {
   const MobileClientRequestsTab({Key? key}) : super(key: key);
@@ -46,7 +47,7 @@ class _MobileClientRequestsTabState extends State<MobileClientRequestsTab> {
     setState(() => _isLoading = true);
     
     try {
-      final userCompany = await SupabaseService.getUserCompany();
+      final userCompany = await CompanyService.getUserCompany();
       if (userCompany == null) throw Exception('Entreprise non trouvée');
 
       final response = await SupabaseService.client
@@ -721,7 +722,7 @@ class _MobileClientRequestsTabState extends State<MobileClientRequestsTab> {
                             if (titleController.text.isEmpty) return;
                             
                             try {
-                              final userCompany = await SupabaseService.getUserCompany();
+                              final userCompany = await CompanyService.getUserCompany();
                               if (userCompany == null) return;
 
                               await SupabaseService.client
