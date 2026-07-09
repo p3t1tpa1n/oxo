@@ -15,6 +15,7 @@ import '../projects/ios_project_detail_page.dart';
 import '../admin/ios_mobile_admin_clients_page.dart';
 import '../admin/ios_mobile_client_requests_page.dart';
 import '../admin/add_user_page.dart';
+import '../../services/project_proposal_service.dart';
 
 class IOSDashboardPage extends StatefulWidget {
   final int? initialTab;
@@ -211,7 +212,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
         case UserRole.associe:
           // Admins et associés voient toutes les données de l'entreprise
           missions = await SupabaseService.getCompanyMissions();
-          missions = await SupabaseService.getProjectProposals();
+          missions = await ProjectProposalService.getProjectProposals();
           break;
           
         case UserRole.partenaire:
@@ -223,7 +224,7 @@ class _IOSDashboardPageState extends State<IOSDashboardPage> with TickerProvider
           ).toList();
           
           // Missions où le partenaire est impliqué
-          final allProjects = await SupabaseService.getProjectProposals();
+          final allProjects = await ProjectProposalService.getProjectProposals();
           missions = allProjects.where((p) => 
             missions.any((m) => m['project_id'] == p['id'])
           ).toList();

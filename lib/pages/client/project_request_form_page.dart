@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../config/ios_theme.dart';
 import '../../widgets/ios_widgets.dart';
 import '../../services/supabase_service.dart';
+import '../../services/project_proposal_service.dart';
+import '../../services/document_storage_service.dart';
 
 class ProjectRequestFormPage extends StatefulWidget {
   const ProjectRequestFormPage({super.key});
@@ -146,11 +148,11 @@ class _ProjectRequestFormPageState extends State<ProjectRequestFormPage> {
       // Upload des documents si nécessaire
       List<Map<String, dynamic>>? documents;
       if (_selectedFiles.isNotEmpty) {
-        documents = await SupabaseService.uploadDocuments(_selectedFiles);
+        documents = await DocumentStorageService.uploadDocuments(_selectedFiles);
       }
 
       // Soumission de la demande
-      final proposalId = await SupabaseService.submitProjectProposal(
+      final proposalId = await ProjectProposalService.submitProjectProposal(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         estimatedBudget: budgetValue > 0 ? budgetValue : null,

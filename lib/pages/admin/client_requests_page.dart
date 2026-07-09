@@ -9,6 +9,9 @@ import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
 import '../../widgets/messaging_button.dart';
 
+import '../../services/project_proposal_service.dart';
+import '../../services/document_storage_service.dart';
+
 // Imports spécifiques selon la plateforme
 import 'download_helper_stub.dart'
     if (dart.library.html) 'download_helper_web.dart'
@@ -46,8 +49,8 @@ class _ClientRequestsPageState extends State<ClientRequestsPage> with TickerProv
     });
 
     try {
-      final proposals = await SupabaseService.getProjectProposals();
-      final extensions = await SupabaseService.getTimeExtensionRequests();
+      final proposals = await ProjectProposalService.getProjectProposals();
+      final extensions = await ProjectProposalService.getTimeExtensionRequests();
 
       if (mounted) {
         setState(() {
@@ -672,7 +675,7 @@ class _ClientRequestsPageState extends State<ClientRequestsPage> with TickerProv
 
   Widget _buildDocumentsSection(String proposalId) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: SupabaseService.getProposalDocuments(proposalId),
+      future: DocumentStorageService.getProposalDocuments(proposalId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox(
@@ -857,7 +860,7 @@ class _ClientRequestsPageState extends State<ClientRequestsPage> with TickerProv
       );
 
       // Télécharger le fichier depuis Supabase
-      final fileBytes = await SupabaseService.downloadDocument(filePath);
+      final fileBytes = await DocumentStorageService.downloadDocument(filePath);
       
       if (fileBytes != null) {
         // Sauvegarder selon la plateforme
@@ -897,7 +900,7 @@ class _ClientRequestsPageState extends State<ClientRequestsPage> with TickerProv
       bool success = false;
       
       if (status == 'approved') {
-        final projectId = await SupabaseService.approveProjectProposal(
+        final projectId = await ProjectProposalService.approveProjectProposal(
           proposalId: proposalId,
           responseMessage: message.isNotEmpty ? message : null,
         );
@@ -912,7 +915,7 @@ class _ClientRequestsPageState extends State<ClientRequestsPage> with TickerProv
           );
         }
       } else {
-        success = await SupabaseService.rejectProjectProposal(
+        success = await ProjectProposalService.rejectProjectProposal(
           proposalId: proposalId,
           responseMessage: message.isNotEmpty ? message : null,
         );
@@ -947,7 +950,7 @@ class _ClientRequestsPageState extends State<ClientRequestsPage> with TickerProv
       bool success = false;
       
       if (status == 'approved') {
-        success = await SupabaseService.approveTimeExtensionRequest(
+        success = await ProjectProposalService.approveTimeExtensionRequest(
           requestId: extensionId,
           responseMessage: message.isNotEmpty ? message : null,
         );
@@ -961,7 +964,7 @@ class _ClientRequestsPageState extends State<ClientRequestsPage> with TickerProv
           );
         }
       } else {
-        success = await SupabaseService.rejectTimeExtensionRequest(
+        success = await ProjectProposalService.rejectTimeExtensionRequest(
           requestId: extensionId,
           responseMessage: message.isNotEmpty ? message : null,
         );

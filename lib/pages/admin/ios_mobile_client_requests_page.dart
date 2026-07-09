@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:oxo/services/supabase_service.dart';
+import 'package:oxo/services/project_proposal_service.dart';
 import '../../config/app_theme.dart';
 
 class IOSMobileClientRequestsPage extends StatefulWidget {
@@ -25,8 +26,8 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
     setState(() => _isLoading = true);
     
     try {
-      final proposalsFuture = SupabaseService.getProjectProposals();
-      final extensionsFuture = SupabaseService.getTimeExtensionRequests();
+      final proposalsFuture = ProjectProposalService.getProjectProposals();
+      final extensionsFuture = ProjectProposalService.getTimeExtensionRequests();
       
       final results = await Future.wait([proposalsFuture, extensionsFuture]);
       
