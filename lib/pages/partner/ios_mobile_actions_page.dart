@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oxo/services/supabase_service.dart';
+import 'package:oxo/services/commercial_actions_service.dart';
 import '../../config/app_theme.dart';
 
 class IOSMobileActionsPage extends StatefulWidget {
@@ -30,7 +31,7 @@ class _IOSMobileActionsPageState extends State<IOSMobileActionsPage> {
   Future<void> _loadActions() async {
     setState(() => _isLoading = true);
     try {
-      final actions = await SupabaseService.getCommercialActions();
+      final actions = await CommercialActionsService.getCommercialActions();
       if (mounted) {
         setState(() => _actions = actions);
       }

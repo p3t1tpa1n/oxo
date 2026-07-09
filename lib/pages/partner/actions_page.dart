@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
+import '../../services/commercial_actions_service.dart';
 import '../../widgets/base_page_widget.dart';
 import '../../widgets/standard_dialogs.dart' as dialogs;
 
@@ -36,7 +37,7 @@ class _ActionsPageState extends State<ActionsPage> {
 
     try {
       // Charger les vraies actions commerciales depuis Supabase
-      final actions = await SupabaseService.getCommercialActions();
+      final actions = await CommercialActionsService.getCommercialActions();
       
       setState(() {
         _actions = actions;
@@ -620,7 +621,7 @@ class _ActionsPageState extends State<ActionsPage> {
           }
 
           // Créer l'action commerciale dans Supabase
-          final action = await SupabaseService.createCommercialAction(
+          final action = await CommercialActionsService.createCommercialAction(
             title: result['title'],
             description: result['description'] ?? '',
             type: result['type'],
@@ -778,7 +779,7 @@ class _ActionsPageState extends State<ActionsPage> {
           }
 
           // Mettre à jour l'action commerciale dans Supabase
-          final success = await SupabaseService.updateCommercialAction(
+          final success = await CommercialActionsService.updateCommercialAction(
             actionId: action['id'],
             title: result['title'],
             description: result['description'],
@@ -816,7 +817,7 @@ class _ActionsPageState extends State<ActionsPage> {
     ).then((confirmed) async {
       if (confirmed == true) {
         try {
-          final success = await SupabaseService.completeCommercialAction(
+          final success = await CommercialActionsService.completeCommercialAction(
             actionId: action['id'],
           );
           
@@ -842,7 +843,7 @@ class _ActionsPageState extends State<ActionsPage> {
     ).then((confirmed) async {
       if (confirmed == true) {
         try {
-          final success = await SupabaseService.deleteCommercialAction(action['id']);
+          final success = await CommercialActionsService.deleteCommercialAction(action['id']);
           
           if (success && mounted) {
             context.showSuccess('Action supprimée avec succès');
