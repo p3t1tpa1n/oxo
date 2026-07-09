@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
+import '../../services/partner_profile_service.dart';
 import 'partner_detail_page.dart';
 
 class PartnerProfilesPage extends StatefulWidget {
@@ -37,7 +38,7 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
     });
 
     try {
-      final partners = await SupabaseService.getAllPartnerProfiles();
+      final partners = await PartnerProfileService.getAllPartnerProfiles();
       setState(() {
         _partners = partners;
         _filteredPartners = partners;

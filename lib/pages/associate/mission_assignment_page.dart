@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
+import '../../services/notification_service.dart';
 
 class MissionAssignmentPage extends StatefulWidget {
   final Map<String, dynamic> partner;
@@ -339,7 +340,7 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
 
       if (success) {
         // Envoyer une notification au partenaire
-        await SupabaseService.sendNotificationToPartner(
+        await NotificationService.sendNotificationToPartner(
           widget.partner['user_id'],
           'Mission proposée',
           'Une mission vous a été proposée: ${_selectedMission!['title']}',

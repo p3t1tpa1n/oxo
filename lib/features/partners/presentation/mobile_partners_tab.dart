@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
+import '../../../services/notification_service.dart';
 import '../../../models/user_role.dart';
 import '../../../utils/device_detector.dart';
 import '../../../widgets/oxo_card.dart';
@@ -53,7 +54,7 @@ class _MobilePartnersTabState extends State<MobilePartnersTab> {
 
   Future<void> _loadUnreadCount() async {
     try {
-      final count = await SupabaseService.getUnreadNotificationsCount();
+      final count = await NotificationService.getUnreadNotificationsCount();
       if (mounted) {
         setState(() => _unreadCount = count);
       }

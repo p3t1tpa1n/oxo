@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../config/ios_theme.dart';
 import '../../widgets/ios_widgets.dart';
 import '../../services/supabase_service.dart';
+import '../../services/notification_service.dart';
 
 class IOSMobileMissionManagementPage extends StatefulWidget {
   const IOSMobileMissionManagementPage({Key? key}) : super(key: key);
@@ -60,7 +61,7 @@ class _IOSMobileMissionManagementPageState extends State<IOSMobileMissionManagem
 
   Future<void> _loadUnreadCount() async {
     try {
-      final count = await SupabaseService.getUnreadNotificationsCount();
+      final count = await NotificationService.getUnreadNotificationsCount();
       if (mounted) {
         setState(() => _unreadCount = count);
       }

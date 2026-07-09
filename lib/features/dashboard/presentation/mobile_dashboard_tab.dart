@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
+import '../../../services/notification_service.dart';
 import '../../../models/user_role.dart';
 import '../../../utils/device_detector.dart';
 import '../../../utils/progress_utils.dart';
@@ -36,7 +37,7 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
 
   Future<void> _loadUnreadCount() async {
     try {
-      final count = await SupabaseService.getUnreadNotificationsCount();
+      final count = await NotificationService.getUnreadNotificationsCount();
       if (mounted) {
         setState(() => _unreadCount = count);
       }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
+import '../../services/notification_service.dart';
 import '../../services/availability_service.dart';
 
 class PartnerAvailabilityPage extends StatefulWidget {
@@ -335,7 +336,7 @@ class _PartnerAvailabilityPageState extends State<PartnerAvailabilityPage> {
 
   Future<void> _sendAvailabilityRequest() async {
     try {
-      await SupabaseService.sendNotificationToPartner(
+      await NotificationService.sendNotificationToPartner(
         widget.partner['user_id'],
         'Demande de disponibilités',
         'Veuillez mettre à jour vos disponibilités pour les prochaines semaines.',

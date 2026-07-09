@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
+import '../../../services/notification_service.dart';
 import '../../../utils/device_detector.dart';
 import '../../../services/company_service.dart';
 
@@ -33,7 +34,7 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
 
   Future<void> _loadUnreadCount() async {
     try {
-      final count = await SupabaseService.getUnreadNotificationsCount();
+      final count = await NotificationService.getUnreadNotificationsCount();
       if (mounted) {
         setState(() => _unreadCount = count);
       }

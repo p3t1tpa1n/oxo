@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
+import '../../services/partner_profile_service.dart';
 import '../../widgets/ios_widgets.dart';
 import '../../config/ios_theme.dart';
 import 'ios_partner_detail_page.dart';
@@ -38,7 +39,7 @@ class _IOSPartnerProfilesPageState extends State<IOSPartnerProfilesPage> {
     });
 
     try {
-      final partners = await SupabaseService.getAllPartnerProfiles();
+      final partners = await PartnerProfileService.getAllPartnerProfiles();
       setState(() {
         _partners = partners;
         _filteredPartners = partners;

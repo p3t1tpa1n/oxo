@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
+import '../../services/partner_profile_service.dart';
 import '../../widgets/ios_widgets.dart';
 import '../../config/ios_theme.dart';
 
@@ -730,7 +731,7 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
       };
 
       // Sauvegarder le profil
-      await SupabaseService.createPartnerProfile(profileData);
+      await PartnerProfileService.createPartnerProfile(profileData);
 
       if (mounted) {
         // Afficher le succès

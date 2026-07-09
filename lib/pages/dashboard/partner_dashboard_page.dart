@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../services/supabase_service.dart';
+import '../../services/partner_profile_service.dart';
 import '../../services/availability_service.dart';
 import '../../widgets/calendar_widget.dart';
 import '../../widgets/standard_dialogs.dart' as dialogs;
@@ -49,7 +50,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
 
   Future<void> _checkQuestionnaireCompletion() async {
     try {
-      final hasCompleted = await SupabaseService.hasCompletedQuestionnaire();
+      final hasCompleted = await PartnerProfileService.hasCompletedQuestionnaire();
       if (!hasCompleted && mounted) {
         // Rediriger vers le questionnaire
         Navigator.pushReplacementNamed(context, '/partner-questionnaire');
