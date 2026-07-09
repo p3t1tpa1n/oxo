@@ -111,6 +111,7 @@ class _ActionsPageState extends State<ActionsPage> {
       onRefresh: _loadActions,
       floatingActionButtons: [
         FloatingActionButton.extended(
+          heroTag: 'fab_actions',
           onPressed: _showCreateActionDialog,
           backgroundColor: const Color(0xFF1784af),
           icon: const Icon(Icons.add, color: Colors.white),

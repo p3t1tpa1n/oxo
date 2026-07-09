@@ -123,6 +123,7 @@ class _TimesheetSettingsPageState extends State<TimesheetSettingsPage> with Sing
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_timesheet_settings',
         onPressed: () {
           if (_tabController.index == 0) {
             _showAddRateDialog();

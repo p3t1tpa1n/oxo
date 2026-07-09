@@ -52,13 +52,15 @@ class NotificationService {
       final currentUser = SupabaseService.currentUser;
       if (currentUser == null) return 0;
 
+      // maybeSingle : la vue n'a pas de ligne quand il n'y a aucune
+      // notification non lue — .single() lèverait PGRST116.
       final response = await client
           .from('unread_notifications_count')
           .select('unread_count')
           .eq('user_id', currentUser.id)
-          .single();
+          .maybeSingle();
 
-      return response['unread_count'] ?? 0;
+      return response?['unread_count'] ?? 0;
     } catch (e) {
       debugPrint('❌ Erreur lors du comptage des notifications: $e');
       return 0;

@@ -14,6 +14,9 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   List<Map<String, dynamic>> _missions = [];
+  String? _statusFilter; // null = toutes
+  int _sortColumnIndex = 0;
+  bool _sortAscending = true;
   bool _isLoading = false;
 
   @override
@@ -462,9 +465,6 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildDashboardContent() {
-    double screenWidth = MediaQuery.of(context).size.width;
-    int crossAxisCount = screenWidth < 500 ? 1 : 2;
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -479,435 +479,261 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          
-          // Calendriers
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return _buildCalendarsSection(constraints, crossAxisCount);
-            },
-          ),
         ],
       ),
     );
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // TABLE DES MISSIONS (remplace l'ancien kanban drag & drop)
+  // ══════════════════════════════════════════════════════════════════════
+
+  static const _statusOptions = ['à_assigner', 'en_cours', 'fait'];
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'en_cours':
+        return const Color(0xFFFF9800);
+      case 'fait':
+        return const Color(0xFF4CAF50);
+      default:
+        return const Color(0xFF1784af);
+    }
+  }
+
+  List<Map<String, dynamic>> get _visibleMissions {
+    var list = _statusFilter == null
+        ? List<Map<String, dynamic>>.from(_missions)
+        : _missions
+            .where((m) => (m['progress_status'] ?? 'à_assigner') == _statusFilter)
+            .toList();
+    list.sort((a, b) {
+      int cmp;
+      switch (_sortColumnIndex) {
+        case 1:
+          cmp = (a['progress_status'] ?? '')
+              .toString()
+              .compareTo((b['progress_status'] ?? '').toString());
+          break;
+        case 2:
+          cmp = (a['end_date'] ?? a['due_date'] ?? '')
+              .toString()
+              .compareTo((b['end_date'] ?? b['due_date'] ?? '').toString());
+          break;
+        default:
+          cmp = (a['title'] ?? '')
+              .toString()
+              .toLowerCase()
+              .compareTo((b['title'] ?? '').toString().toLowerCase());
+      }
+      return _sortAscending ? cmp : -cmp;
+    });
+    return list;
+  }
+
   Widget _buildTasksSection() {
+    final missions = _visibleMissions;
+
     return Card(
-      elevation: 8,
-      shadowColor: Colors.black.withOpacity(0.2),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFF1784af), width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // En-tête : titre + filtres + ajout
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
                   'Missions',
                   style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: Color(0xFF122b35),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add, color: Color(0xFF1784af)),
+                const SizedBox(width: 12),
+                Text(
+                  '${missions.length}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                ),
+                const Spacer(),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Toutes'),
+                      selected: _statusFilter == null,
+                      onSelected: (_) => setState(() => _statusFilter = null),
+                    ),
+                    ..._statusOptions.map((s) => ChoiceChip(
+                          label: Text(_getStatusDisplayName(s)),
+                          selected: _statusFilter == s,
+                          selectedColor: _statusColor(s).withOpacity(0.15),
+                          onSelected: (_) => setState(() => _statusFilter = s),
+                        )),
+                  ],
+                ),
+                const SizedBox(width: 12),
+                FilledButton.icon(
                   onPressed: _showAddMissionDialog,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Nouvelle mission'),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Row(
+            const SizedBox(height: 16),
+            if (missions.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 48),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.assignment_outlined,
+                          size: 48, color: Colors.grey[400]),
+                      const SizedBox(height: 12),
+                      Text(
+                        _statusFilter == null
+                            ? 'Aucune mission pour le moment'
+                            : 'Aucune mission « ${_getStatusDisplayName(_statusFilter!)} »',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                child: DataTable(
+                  sortColumnIndex: _sortColumnIndex,
+                  sortAscending: _sortAscending,
+                  headingTextStyle: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF122b35),
+                    fontSize: 13,
+                  ),
+                  columns: [
+                    DataColumn(
+                      label: const Text('Mission'),
+                      onSort: (i, asc) => setState(() {
+                        _sortColumnIndex = i;
+                        _sortAscending = asc;
+                      }),
+                    ),
+                    DataColumn(
+                      label: const Text('Statut'),
+                      onSort: (i, asc) => setState(() {
+                        _sortColumnIndex = i;
+                        _sortAscending = asc;
+                      }),
+                    ),
+                    DataColumn(
+                      label: const Text('Échéance'),
+                      onSort: (i, asc) => setState(() {
+                        _sortColumnIndex = i;
+                        _sortAscending = asc;
+                      }),
+                    ),
+                    const DataColumn(label: Text('')),
+                  ],
+                  rows: missions.map(_buildMissionRow).toList(),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  DataRow _buildMissionRow(Map<String, dynamic> mission) {
+    final title = mission['title']?.toString() ?? 'Sans titre';
+    final description = mission['description']?.toString() ?? '';
+    final status = mission['progress_status']?.toString() ?? 'à_assigner';
+    final rawDate = mission['end_date'] ?? mission['due_date'];
+    final dueDate = rawDate != null ? DateTime.tryParse(rawDate.toString()) : null;
+
+    return DataRow(
+      cells: [
+        DataCell(
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 340),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Colonne "À assigner"
-                Expanded(
-                  child: Container(
-                    height: MediaQuery.of(context).size.height * 0.7,
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE3F2FD),
-                            borderRadius: const BorderRadius.all(Radius.circular(8)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Row(
-                                children: [
-                                  Icon(
-                                    Icons.assignment_outlined,
-                                    size: 20,
-                                    color: Color(0xFF1784af),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'À assigner',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF1784af),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  _missions.where((mission) => mission['progress_status'] == 'à_assigner').length.toString(),
-                                  style: const TextStyle(
-                                    color: Color(0xFF1784af),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: DragTarget<Map<String, dynamic>>(
-                            onWillAcceptWithDetails: (details) => true,
-                            onAcceptWithDetails: (details) {
-                              _updateMissionStatus(details.data, 'todo');
-                            },
-                            builder: (context, candidateData, rejectedData) {
-                              return ListView(
-                                children: _missions
-                                  .where((mission) => mission['progress_status'] == 'à_assigner')
-                                  .map((mission) => Column(
-                                    children: [
-                                      _buildMissionCard(mission),
-                                      const SizedBox(height: 8),
-                                    ],
-                                  ))
-                                  .toList(),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Colonne "En cours"
-                Expanded(
-                  child: Container(
-                    height: MediaQuery.of(context).size.height * 0.7,
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFF3E0),
-                            borderRadius: const BorderRadius.all(Radius.circular(8)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.pending_actions,
-                                    size: 20,
-                                    color: Color(0xFFFF9800),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'En cours',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFFFF9800),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: DragTarget<Map<String, dynamic>>(
-                            onWillAcceptWithDetails: (details) => true,
-                            onAcceptWithDetails: (details) {
-                              _updateMissionStatus(details.data, 'en_cours');
-                            },
-                            builder: (context, candidateData, rejectedData) {
-                              return ListView(
-                                children: _missions
-                                  .where((mission) => mission['progress_status'] == 'en_cours')
-                                  .map((mission) => Column(
-                                    children: [
-                                      _buildMissionCard(mission),
-                                      const SizedBox(height: 8),
-                                    ],
-                                  ))
-                                  .toList(),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Colonne "Fait"
-                Expanded(
-                  child: Container(
-                    height: MediaQuery.of(context).size.height * 0.7,
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE8F5E9),
-                            borderRadius: const BorderRadius.all(Radius.circular(8)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.task_alt,
-                                    size: 20,
-                                    color: Color(0xFF4CAF50),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Fait',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF4CAF50),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: DragTarget<Map<String, dynamic>>(
-                            onWillAcceptWithDetails: (details) => true,
-                            onAcceptWithDetails: (details) {
-                              _updateMissionStatus(details.data, 'fait');
-                            },
-                            builder: (context, candidateData, rejectedData) {
-                              return ListView(
-                                children: _missions
-                                  .where((mission) => mission['progress_status'] == 'fait')
-                                  .map((mission) => Column(
-                                    children: [
-                                      _buildMissionCard(mission),
-                                      const SizedBox(height: 8),
-                                    ],
-                                  ))
-                                  .toList(),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                Text(title,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                if (description.isNotEmpty)
+                  Text(description,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
               ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCalendarsSection(BoxConstraints constraints, int crossAxisCount) {
-    // Calculer un aspect ratio fixe pour éviter les valeurs négatives ou nulles
-    double width = constraints.maxWidth / crossAxisCount;
-    double height = width * 0.75; // Ratio 4:3
-    double aspectRatio = width / height;
-
-    return GridView.custom(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: aspectRatio,
-      ),
-      childrenDelegate: SliverChildListDelegate([
-      ]),
-    );
-  }
-
-  Widget _buildMissionCard(Map<String, dynamic> mission) {
-    final title = mission['title'] ?? 'Sans titre';
-    final description = mission['description'] ?? 'Pas de description';
-    final dueDate = mission['due_date'] != null 
-        ? DateTime.parse(mission['due_date']) 
-        : DateTime.now();
-    final isDone = mission['progress_status'] == 'fait';
-
-    return Draggable<Map<String, dynamic>>(
-      data: mission,
-      feedback: Material(
-        elevation: 4,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          width: 200,
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+          onTap: () => Navigator.pushNamed(context, '/mission_detail',
+              arguments: mission['id']?.toString()),
+        ),
+        // Statut modifiable directement depuis la table
+        DataCell(
+          PopupMenuButton<String>(
+            tooltip: 'Changer le statut',
+            onSelected: (value) => _updateMissionStatus(mission, value),
+            itemBuilder: (context) => _statusOptions
+                .map((s) => PopupMenuItem(
+                      value: s,
+                      child: Row(
+                        children: [
+                          Icon(Icons.circle, size: 10, color: _statusColor(s)),
+                          const SizedBox(width: 8),
+                          Text(_getStatusDisplayName(s)),
+                        ],
+                      ),
+                    ))
+                .toList(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: _statusColor(status).withOpacity(0.12),
+                borderRadius: BorderRadius.circular(20),
               ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.5,
-        child: _buildMissionCardContent(title, description, dueDate, isDone: isDone),
-      ),
-      child: _buildMissionCardContent(title, description, dueDate, isDone: isDone),
-    );
-  }
-
-  Widget _buildMissionCardContent(String title, String description, DateTime dueDate, {bool isDone = false}) {
-    return Card(
-      elevation: 3,
-      shadowColor: Colors.black.withOpacity(0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isDone ? const Color(0xFF4CAF50) : Colors.transparent,
-            width: 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.circle, size: 10, color: _statusColor(status)),
+                  const SizedBox(width: 6),
+                  Text(
+                    _getStatusDisplayName(status),
                     style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      decoration: isDone ? TextDecoration.lineThrough : null,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: _statusColor(status),
                     ),
                   ),
-                ),
-                Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isDone ? const Color(0xFF4CAF50) : Colors.grey[300],
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    size: 14,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[600],
-                decoration: isDone ? TextDecoration.lineThrough : null,
+                  const SizedBox(width: 4),
+                  Icon(Icons.expand_more, size: 14, color: _statusColor(status)),
+                ],
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  size: 14,
-                  color: Colors.grey[600],
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  DateFormat('dd/MM/yyyy').format(dueDate),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
-      ),
+        DataCell(Text(
+          dueDate != null ? DateFormat('dd/MM/yyyy').format(dueDate) : '—',
+          style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+        )),
+        DataCell(
+          IconButton(
+            icon: const Icon(Icons.chevron_right, size: 20),
+            tooltip: 'Voir la mission',
+            onPressed: () => Navigator.pushNamed(context, '/mission_detail',
+                arguments: mission['id']?.toString()),
+          ),
+        ),
+      ],
     );
   }
 }

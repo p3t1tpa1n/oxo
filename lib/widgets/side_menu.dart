@@ -272,9 +272,11 @@ class SideMenu extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // Éviter la navigation si nous sommes déjà sur la page
+            // Éviter la navigation si nous sommes déjà sur la page.
+            // pushReplacementNamed : changer de section ne doit pas empiler
+            // les écrans (le retour arrière est réservé aux pages de détail).
             if (selectedRoute != route) {
-              Navigator.pushNamed(context, route);
+              Navigator.pushReplacementNamed(context, route);
             }
           },
           borderRadius: BorderRadius.circular(8),

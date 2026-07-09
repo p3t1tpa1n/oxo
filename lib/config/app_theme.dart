@@ -32,6 +32,18 @@ class AppTheme {
       error: colors.error,
     ),
     scaffoldBackgroundColor: colors.background,
+    // Transitions de pages homogènes et fluides :
+    // slide Cupertino sur iOS/Android, fondu discret sur desktop
+    // (le zoom Material par défaut donne un rendu saccadé en fenêtre).
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.macOS: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+      },
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: colors.primary,
       foregroundColor: Colors.white,

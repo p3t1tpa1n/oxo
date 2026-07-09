@@ -30,7 +30,13 @@ import '../../features/client/presentation/mobile_client_requests_tab.dart';
 import '../../features/admin/presentation/mobile_admin_tab.dart';
 
 class MobileShellProfessional extends StatefulWidget {
-  const MobileShellProfessional({Key? key}) : super(key: key);
+  /// Onglet initial demandé, par clé sémantique :
+  /// 'timesheet', 'missions', 'reporting', 'clients', 'messages', 'profile',
+  /// 'availability', 'dashboard', 'admin', 'projects', 'invoices', 'requests'.
+  /// Si la clé n'existe pas pour le rôle courant, l'onglet 0 est utilisé.
+  final String? initialTab;
+
+  const MobileShellProfessional({Key? key, this.initialTab}) : super(key: key);
 
   @override
   State<MobileShellProfessional> createState() => _MobileShellProfessionalState();
@@ -76,6 +82,9 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
         _navigatorKeys.add(GlobalKey<NavigatorState>());
       }
 
+      // Onglet initial demandé via la route
+      _currentIndex = _tabIndexFor(widget.initialTab);
+
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -90,6 +99,32 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
         });
       }
     }
+  }
+
+  /// Traduit une clé sémantique d'onglet en index selon le rôle courant.
+  int _tabIndexFor(String? key) {
+    if (key == null) return 0;
+    final Map<String, int> mapping;
+    switch (_userRole) {
+      case UserRole.partenaire:
+        mapping = {'timesheet': 0, 'missions': 1, 'availability': 2,
+                   'messages': 3, 'profile': 4};
+        break;
+      case UserRole.client:
+        mapping = {'projects': 0, 'missions': 0, 'invoices': 1, 'requests': 2,
+                   'messages': 3, 'profile': 4};
+        break;
+      case UserRole.admin:
+        mapping = {'dashboard': 0, 'missions': 1, 'admin': 2, 'clients': 2,
+                   'requests': 2, 'messages': 3, 'profile': 4};
+        break;
+      case UserRole.associe:
+      default:
+        mapping = {'timesheet': 0, 'missions': 1, 'reporting': 2,
+                   'clients': 3, 'messages': 4};
+        break;
+    }
+    return mapping[key] ?? 0;
   }
 
   int _getTabCount() {

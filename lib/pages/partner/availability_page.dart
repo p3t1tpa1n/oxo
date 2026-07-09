@@ -97,12 +97,14 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
       onRefresh: _loadAvailabilities,
       floatingActionButtons: [
         FloatingActionButton.extended(
+          heroTag: 'fab_availability_1',
           onPressed: _showBulkAvailabilityDialog,
           backgroundColor: const Color(0xFF1784af),
           icon: const Icon(Icons.edit_calendar, color: Colors.white),
           label: const Text('Définir période', style: TextStyle(color: Colors.white)),
         ),
         FloatingActionButton.extended(
+          heroTag: 'fab_availability_2',
           onPressed: _createDefaultAvailabilities,
           backgroundColor: Colors.green,
           icon: const Icon(Icons.auto_fix_high, color: Colors.white),

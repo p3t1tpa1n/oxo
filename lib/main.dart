@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'dart:io' show Platform;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:window_manager/window_manager.dart';
@@ -19,7 +20,6 @@ import 'pages/shared/planning_page.dart';
 import 'pages/shared/projects_page.dart';
 import 'pages/shared/partners_clients_page.dart';
 import 'pages/partner/partners_page.dart';
-import 'pages/partner/ios_partners_page.dart';
 import 'pages/partner/availability_page.dart';
 import 'pages/associate/figures_page.dart';
 import 'pages/shared/calendar_page.dart';
@@ -32,7 +32,6 @@ import 'pages/admin/user_roles_page.dart';
 import 'pages/admin/client_requests_page.dart';
 import 'pages/partner/actions_page.dart';
 import 'pages/messaging/messaging_page.dart' as messaging;
-import 'pages/messaging/ios_messaging_page.dart';
 import 'pages/projects/ios_project_detail_page.dart';
 
 // Pages iOS spécifiques
@@ -42,16 +41,7 @@ import 'pages/auth/ios_login_page.dart';
 import 'app/shells/mobile_shell_professional.dart';
 import 'app/shells/desktop_shell.dart';
 
-// Nouvelles pages iOS UX-Optimisées
-import 'pages/associate/ios_mobile_timesheet_page.dart';
-import 'pages/admin/ios_mobile_admin_clients_page.dart';
-import 'pages/partner/ios_mobile_actions_page.dart';
-import 'pages/admin/ios_mobile_client_requests_page.dart';
-import 'pages/partner/ios_mobile_availability_page.dart';
-
 // Pages système de missions
-import 'pages/partner/ios_mobile_missions_page.dart';
-import 'pages/associate/ios_mobile_mission_management_page.dart';
 import 'pages/partner/proposed_missions_page.dart';
 
 // Pages module OXO TIME SHEETS
@@ -67,7 +57,6 @@ import 'pages/admin/create_client_page.dart';
 import 'pages/partner/ios_partner_questionnaire_page.dart';
 
 // Pages profils partenaires pour associés
-import 'pages/associate/ios_partner_profiles_page.dart';
 import 'pages/associate/partner_profiles_page.dart';
 
 // Configuration
@@ -249,7 +238,14 @@ class _MainAppState extends State<MainApp> {
     return MaterialApp(
       title: 'OXO Time Sheets',
       debugShowCheckedModeBanner: false,
-      theme: _isIOS() ? AppTheme.materialTheme : AppTheme.materialTheme,
+      theme: AppTheme.materialTheme,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('fr', 'FR'), Locale('en', 'US')],
+      locale: const Locale('fr', 'FR'),
       home: _getHomePage(),
       routes: _getRoutes(),
       navigatorObservers: [AuthMiddleware()],
@@ -280,6 +276,13 @@ class _MainAppState extends State<MainApp> {
     );
   }
 
+  /// Sur desktop, toute section vit dans le DesktopShell (sidebar + topbar) ;
+  /// sur iOS le widget est rendu tel quel (le shell mobile gère sa navigation).
+  Widget _wrapDesktop(String route, Widget child) {
+    if (_isIOS()) return child;
+    return DesktopShell(currentRoute: route, child: child);
+  }
+
   Map<String, WidgetBuilder> _getRoutes() {
     final routes = <String, WidgetBuilder>{
       // Routes principales avec support iOS
@@ -301,11 +304,18 @@ class _MainAppState extends State<MainApp> {
         : const ClientDashboardPage(),
       
       // Routes fonctionnelles avec adaptation iOS
-      '/profile': (context) => const ProfilePage(),
-      '/clients': (context) => _isIOS() ? const IOSMobileAdminClientsPage() : const ClientsPage(),
-      '/admin/roles': (context) => const UserRolesPage(),
-      '/admin/client-requests': (context) => _isIOS() ? const IOSMobileClientRequestsPage() : const ClientRequestsPage(),
-      '/messaging': (context) => _isIOS() ? const IOSMessagingPage() : const messaging.MessagingPage(),
+      '/profile': (context) => _wrapDesktop('/profile', const ProfilePage()),
+      '/clients': (context) => _isIOS()
+        ? const MobileShellProfessional(initialTab: 'clients')
+        : _wrapDesktop('/clients', const ClientsPage()),
+      '/admin/roles': (context) =>
+        _wrapDesktop('/admin/roles', const UserRolesPage()),
+      '/admin/client-requests': (context) => _isIOS()
+        ? const MobileShellProfessional(initialTab: 'requests')
+        : _wrapDesktop('/admin/client-requests', const ClientRequestsPage()),
+      '/messaging': (context) => _isIOS()
+        ? const MobileShellProfessional(initialTab: 'messages')
+        : _wrapDesktop('/messaging', const messaging.MessagingPage()),
       '/partner/proposed-missions': (context) => const ProposedMissionsPage(),
       '/settings': (context) => const ProfilePage(),
       '/projects': (context) {
@@ -351,38 +361,58 @@ class _MainAppState extends State<MainApp> {
 
     // Routes complémentaires avec support iOS
     routes.addAll({
-      '/associate': (context) => const DashboardPage(),
-      '/partner': (context) => const PartnerDashboardPage(),
+      '/associate': (context) => _wrapDesktop('/dashboard', const DashboardPage()),
+      '/partner': (context) => _wrapDesktop('/dashboard', const PartnerDashboardPage()),
       '/client': (context) => const ClientDashboardPage(),
-      '/planning': (context) => const PlanningPage(),
-      '/figures': (context) => const FiguresPage(),
-      '/timesheet': (context) => _isIOS() ? const IOSMobileTimesheetPage() : const TimesheetPage(),
-      
+      '/planning': (context) => _wrapDesktop('/planning', const PlanningPage()),
+      '/figures': (context) => _wrapDesktop('/figures', const FiguresPage()),
+      '/timesheet': (context) => _isIOS()
+        ? const MobileShellProfessional(initialTab: 'timesheet')
+        : _wrapDesktop('/timesheet', const TimesheetPage()),
+
       // Routes module OXO TIME SHEETS
-      '/timesheet/entry': (context) => const TimeEntryPage(),
-      '/timesheet/settings': (context) => const TimesheetSettingsPage(),
-      '/timesheet/reporting': (context) => const TimesheetReportingPage(),
+      '/timesheet/entry': (context) =>
+        _wrapDesktop('/timesheet/entry', const TimeEntryPage()),
+      '/timesheet/settings': (context) =>
+        _wrapDesktop('/timesheet/settings', const TimesheetSettingsPage()),
+      '/timesheet/reporting': (context) =>
+        _wrapDesktop('/timesheet/reporting', const TimesheetReportingPage()),
       
-      '/partners': (context) => _isIOS() ? const IOSPartnersPage() : const PartnersPage(),
-      '/availability': (context) => _isIOS() ? const IOSMobileAvailabilityPage() : const AvailabilityPage(),
-      '/actions': (context) => _isIOS() ? const IOSMobileActionsPage() : DesktopShell(
-        currentRoute: '/actions',
-        child: const ActionsPage(),
-      ),
-      '/missions': (context) => _isIOS() ? const IOSMobileMissionsPage() : DesktopShell(
-        currentRoute: '/missions',
-        child: const ProjectsPage(),
-      ),
-      '/mission-management': (context) => _isIOS() ? const IOSMobileMissionManagementPage() : DesktopShell(
-        currentRoute: '/mission-management',
-        child: const ProjectsPage(),
-      ),
-      '/create-client': (context) => _isIOS() ? const IOSMobileCreateClientPage() : const CreateClientPage(),
+      '/partners': (context) => _isIOS()
+        ? const MobileShellProfessional(initialTab: 'clients')
+        : _wrapDesktop('/partners', const PartnersPage()),
+      '/availability': (context) => _isIOS()
+        ? const MobileShellProfessional(initialTab: 'availability')
+        : _wrapDesktop('/availability', const AvailabilityPage()),
+      '/actions': (context) => _isIOS()
+        ? const MobileShellProfessional(initialTab: 'reporting')
+        : DesktopShell(
+            currentRoute: '/actions',
+            child: const ActionsPage(),
+          ),
+      '/missions': (context) => _isIOS()
+        ? const MobileShellProfessional(initialTab: 'missions')
+        : DesktopShell(
+            currentRoute: '/missions',
+            child: const ProjectsPage(),
+          ),
+      '/mission-management': (context) => _isIOS()
+        ? const MobileShellProfessional(initialTab: 'missions')
+        : DesktopShell(
+            currentRoute: '/mission-management',
+            child: const ProjectsPage(),
+          ),
+      '/create-client': (context) => _isIOS()
+        ? const IOSMobileCreateClientPage()
+        : _wrapDesktop('/clients', const CreateClientPage()),
       '/partner-questionnaire': (context) => const IOSPartnerQuestionnairePage(),
-      '/partner-profiles': (context) => _isIOS() ? const IOSPartnerProfilesPage() : const PartnerProfilesPage(),
-      '/partners-clients': (context) => const PartnersClientsPage(),
-      '/add_user': (context) => const UserRolesPage(),
-      '/calendar': (context) => const CalendarPage(),
+      '/partner-profiles': (context) => _isIOS()
+        ? const MobileShellProfessional(initialTab: 'clients')
+        : _wrapDesktop('/partner-profiles', const PartnerProfilesPage()),
+      '/partners-clients': (context) =>
+        _wrapDesktop('/partners-clients', const PartnersClientsPage()),
+      '/add_user': (context) => _wrapDesktop('/admin/roles', const UserRolesPage()),
+      '/calendar': (context) => _wrapDesktop('/planning', const CalendarPage()),
     });
 
     return routes;

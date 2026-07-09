@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/load_error_view.dart';
+import '../../widgets/app_form.dart';
 import '../../models/company.dart';
 import '../../models/user_role.dart';
 import '../../config/app_theme.dart';
@@ -280,6 +281,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                   : _buildMissionDetailView(),
       floatingActionButton: _currentView == 'grid' && SupabaseService.currentUserRole != UserRole.partenaire
           ? FloatingActionButton.extended(
+              heroTag: 'fab_projects',
               onPressed: _showCreateMissionDialog,
               icon: const Icon(Icons.add),
               label: const Text('Nouvelle Mission'),
@@ -1290,6 +1292,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
   }
 
   void _showCreateMissionDialog() {
+    final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
     DateTime? startDate;
@@ -1301,186 +1304,114 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
       context: context,
       // Un clic hors du dialog ne doit pas jeter la saisie en cours
       barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Nouvelle Mission'),
-          content: SingleChildScrollView(
-            child: SizedBox(
-              width: 500,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => Form(
+          key: formKey,
+          child: AppFormDialog(
+            title: 'Nouvelle mission',
+            subtitle: 'Les champs marqués * sont obligatoires.',
+            submitLabel: 'Créer la mission',
+            onSubmit: () async {
+              if (!formKey.currentState!.validate()) return;
+              try {
+                await SupabaseService.createMission({
+                  'title': titleController.text.trim(),
+                  'description': descriptionController.text.trim(),
+                  'company_id': selectedCompanyId,
+                  'start_date': startDate?.toIso8601String(),
+                  'end_date': endDate?.toIso8601String(),
+                  'priority': priority,
+                  'status': 'pending',
+                  'progress_status': 'à_assigner',
+                });
+
+                if (mounted) {
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Mission créée avec succès')),
+                  );
+                  _loadData();
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erreur: $e')),
+                  );
+                }
+              }
+            },
+            children: [
+              AppTextField(
+                controller: titleController,
+                label: 'Titre de la mission',
+                icon: Icons.assignment_outlined,
+                required: true,
+              ),
+              AppDropdown<int>(
+                value: selectedCompanyId,
+                label: 'Société',
+                icon: Icons.business,
+                required: true,
+                items: _companies
+                    .map((company) => DropdownMenuItem<int>(
+                          value: company.id,
+                          child: Text(
+                            company.groupName != null
+                                ? '${company.name} (${company.groupName})'
+                                : company.name,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ))
+                    .toList(),
+                onChanged: (value) =>
+                    setDialogState(() => selectedCompanyId = value),
+              ),
+              AppTextField(
+                controller: descriptionController,
+                label: 'Description',
+                icon: Icons.notes,
+                maxLines: 3,
+              ),
+              Row(
                 children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Titre de la mission',
-                      border: OutlineInputBorder(),
+                  Expanded(
+                    child: AppDateField(
+                      value: startDate,
+                      label: 'Début',
+                      firstDate: DateTime.now(),
+                      onChanged: (d) => setDialogState(() {
+                        startDate = d;
+                        if (endDate != null && endDate!.isBefore(d)) {
+                          endDate = null;
+                        }
+                      }),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<int>(
-                    value: selectedCompanyId,
-                    decoration: const InputDecoration(
-                      labelText: 'Société *',
-                      prefixIcon: Icon(Icons.business),
-                      border: OutlineInputBorder(),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: AppDateField(
+                      value: endDate,
+                      label: 'Fin',
+                      firstDate: startDate ?? DateTime.now(),
+                      onChanged: (d) => setDialogState(() => endDate = d),
                     ),
-                    hint: const Text('Sélectionner une société'),
-                    items: _companies.map((company) {
-                      return DropdownMenuItem<int>(
-                        value: company.id,
-                        child: Text(
-                          company.groupName != null
-                              ? '${company.name} (${company.groupName})'
-                              : company.name,
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedCompanyId = value;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null) {
-                        return 'Veuillez sélectionner une société';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: descriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: DateTime.now(),
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 365)),
-                            );
-                            if (date != null) {
-                              setDialogState(() {
-                                startDate = date;
-                              });
-                            }
-                          },
-                          icon: const Icon(Icons.calendar_today),
-                          label: Text(startDate != null
-                              ? DateFormat('dd/MM/yyyy').format(startDate!)
-                              : 'Date de début'),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: startDate ?? DateTime.now(),
-                              firstDate: startDate ?? DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 365)),
-                            );
-                            if (date != null) {
-                              setDialogState(() {
-                                endDate = date;
-                              });
-                            }
-                          },
-                          icon: const Icon(Icons.calendar_today),
-                          label: Text(endDate != null
-                              ? DateFormat('dd/MM/yyyy').format(endDate!)
-                              : 'Date de fin'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: priority,
-                    decoration: const InputDecoration(
-                      labelText: 'Priorité',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'low', child: Text('Basse')),
-                      DropdownMenuItem(value: 'medium', child: Text('Moyenne')),
-                      DropdownMenuItem(value: 'high', child: Text('Haute')),
-                    ],
-                    onChanged: (value) {
-                      setDialogState(() {
-                        priority = value!;
-                      });
-                    },
                   ),
                 ],
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (titleController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Le titre est requis')),
-                  );
-                  return;
-                }
-
-                if (selectedCompanyId == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Veuillez sélectionner une société')),
-                  );
-                  return;
-                }
-
-                try {
-                  await SupabaseService.createMission({
-                    'title': titleController.text,
-                    'description': descriptionController.text,
-                    'company_id': selectedCompanyId,
-                    'start_date': startDate?.toIso8601String(),
-                    'end_date': endDate?.toIso8601String(),
-                    'priority': priority,
-                    'status': 'pending',
-                    'progress_status': 'à_assigner',
-                  });
-
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Mission créée avec succès')),
-                    );
-                    _loadData();
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erreur: $e')),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2A4B63),
+              AppDropdown<String>(
+                value: priority,
+                label: 'Priorité',
+                icon: Icons.flag_outlined,
+                items: const [
+                  DropdownMenuItem(value: 'low', child: Text('Basse')),
+                  DropdownMenuItem(value: 'medium', child: Text('Moyenne')),
+                  DropdownMenuItem(value: 'high', child: Text('Haute')),
+                ],
+                onChanged: (value) =>
+                    setDialogState(() => priority = value ?? 'medium'),
               ),
-              child: const Text('Créer'),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

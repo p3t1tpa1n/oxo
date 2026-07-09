@@ -153,6 +153,7 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
               ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_client_invoices',
         backgroundColor: const Color(0xFF1E3D54),
         onPressed: () => Navigator.of(context).pushNamed('/messaging'),
         child: const Icon(Icons.chat_bubble_outline, color: Colors.white),

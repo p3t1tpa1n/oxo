@@ -167,10 +167,22 @@ class _DesktopShellState extends State<DesktopShell> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Titre de page
-          Text(
-            _getPageTitle(),
-            style: AppTheme.typography.h3,
+          // Retour + titre de page
+          Row(
+            children: [
+              if (Navigator.of(context).canPop()) ...[
+                IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  tooltip: 'Retour',
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                SizedBox(width: AppTheme.spacing.sm),
+              ],
+              Text(
+                _getPageTitle(),
+                style: AppTheme.typography.h3,
+              ),
+            ],
           ),
           
           // Actions rapides
