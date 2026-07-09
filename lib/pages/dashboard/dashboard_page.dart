@@ -166,6 +166,8 @@ class _DashboardPageState extends State<DashboardPage> {
     try {
       await showDialog(
         context: dialogContext,
+        // Un clic hors du dialog ne doit pas jeter la saisie en cours
+        barrierDismissible: false,
         builder: (BuildContext context) => StatefulBuilder(
           builder: (context, setState) => AlertDialog(
             title: const Text('Nouvelle mission'),

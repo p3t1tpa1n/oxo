@@ -1299,6 +1299,8 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
 
     showDialog(
       context: context,
+      // Un clic hors du dialog ne doit pas jeter la saisie en cours
+      barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: const Text('Nouvelle Mission'),
@@ -1496,6 +1498,8 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
 
     showDialog(
       context: context,
+      // Un clic hors du dialog ne doit pas jeter les modifications en cours
+      barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: const Text('Modifier la Mission'),

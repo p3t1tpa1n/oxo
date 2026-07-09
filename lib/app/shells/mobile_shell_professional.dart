@@ -41,7 +41,8 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
   final List<GlobalKey<NavigatorState>> _navigatorKeys = [];
   UserRole? _userRole;
   bool _isLoading = true;
-  
+  bool _roleLoadError = false;
+
   @override
   void initState() {
     super.initState();
@@ -49,24 +50,32 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
   }
 
   Future<void> _loadUserRole() async {
+    setState(() {
+      _isLoading = true;
+      _roleLoadError = false;
+    });
+
     try {
       // D'abord essayer de récupérer le rôle depuis le cache
       _userRole = SupabaseService.currentUserRole;
-      
+
       // Si pas de rôle en cache, le charger depuis Supabase
-      if (_userRole == null) {
-        _userRole = await SupabaseService.getCurrentUserRole();
-      }
-      
+      _userRole ??= await SupabaseService.getCurrentUserRole();
+
       debugPrint('📱 MobileShellProfessional: Rôle utilisateur = $_userRole');
-      
+
+      if (_userRole == null) {
+        // Rôle introuvable : ne pas deviner une interface, afficher l'erreur.
+        throw Exception('Rôle utilisateur introuvable');
+      }
+
       // Initialiser les clés de navigation
       final tabCount = _getTabCount();
       _navigatorKeys.clear();
       for (int i = 0; i < tabCount; i++) {
         _navigatorKeys.add(GlobalKey<NavigatorState>());
       }
-      
+
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -74,16 +83,10 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
       }
     } catch (e) {
       debugPrint('❌ Erreur chargement rôle: $e');
-      // Fallback sur associe par défaut
-      _userRole = UserRole.associe;
-      final tabCount = _getTabCount();
-      _navigatorKeys.clear();
-      for (int i = 0; i < tabCount; i++) {
-        _navigatorKeys.add(GlobalKey<NavigatorState>());
-      }
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _roleLoadError = true;
         });
       }
     }
@@ -125,6 +128,56 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
                 ),
               ),
             ],
+          ),
+        ),
+      );
+    }
+
+    if (_roleLoadError) {
+      return CupertinoPageScaffold(
+        backgroundColor: AppTheme.colors.background,
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.all(AppTheme.spacing.xl),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.wifi_exclamationmark,
+                  size: 56,
+                  color: AppTheme.colors.textSecondary,
+                ),
+                SizedBox(height: AppTheme.spacing.md),
+                Text(
+                  'Impossible de charger votre profil.',
+                  textAlign: TextAlign.center,
+                  style: AppTheme.typography.bodyLarge,
+                ),
+                SizedBox(height: AppTheme.spacing.sm),
+                Text(
+                  'Vérifiez votre connexion internet puis réessayez.',
+                  textAlign: TextAlign.center,
+                  style: AppTheme.typography.bodyMedium.copyWith(
+                    color: AppTheme.colors.textSecondary,
+                  ),
+                ),
+                SizedBox(height: AppTheme.spacing.lg),
+                CupertinoButton.filled(
+                  onPressed: _loadUserRole,
+                  child: const Text('Réessayer'),
+                ),
+                CupertinoButton(
+                  onPressed: () async {
+                    await SupabaseService.signOut();
+                    if (context.mounted) {
+                      Navigator.of(context, rootNavigator: true)
+                          .pushNamedAndRemoveUntil('/login', (route) => false);
+                    }
+                  },
+                  child: const Text('Se déconnecter'),
+                ),
+              ],
+            ),
           ),
         ),
       );

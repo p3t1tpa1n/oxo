@@ -1085,25 +1085,27 @@ class SupabaseService {
 
 
   // Méthodes pour les missions
+  /// Lève une exception en cas d'échec : les dialogs appelants comptent
+  /// dessus pour rester ouverts et conserver la saisie de l'utilisateur.
   static Future<bool> createMission(Map<String, dynamic> missionData) async {
     try {
       debugPrint('🔍 Création d\'une nouvelle mission...');
       debugPrint('📊 Données mission: $missionData');
-      
+
       // S'assurer que le statut par défaut est défini
       if (!missionData.containsKey('status')) {
         missionData['status'] = 'à_faire';
       }
-      
+
       await client
           .from('missions')
           .insert(missionData);
-      
+
       debugPrint('✅ Mission créée avec succès');
       return true;
     } catch (e) {
       debugPrint('❌ Erreur lors de la création de la mission: $e');
-      return false;
+      rethrow;
     }
   }
 

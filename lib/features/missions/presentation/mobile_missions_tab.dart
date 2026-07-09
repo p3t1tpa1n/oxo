@@ -819,6 +819,8 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
 
     showCupertinoModalPopup(
       context: context,
+      // Un tap hors de la feuille ne doit pas jeter la saisie en cours
+      barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => Material(
           color: Colors.transparent,
