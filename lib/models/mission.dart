@@ -24,6 +24,10 @@ class Mission {
   final String? progressStatus;
   final double? budget;
   final double? dailyRate;
+  final double? monthlyCap;       // Plafond mensuel
+  final double? referralFee;      // Commission apporteur
+  final String? referralFeeType;  // 'fixed' ou 'percentage'
+  final String? currency;         // EUR, USD, GBP, CHF
   final double? estimatedDays;
   final double? workedDays;
   final double? completionPercentage;
@@ -53,6 +57,10 @@ class Mission {
     this.progressStatus,
     this.budget,
     this.dailyRate,
+    this.monthlyCap,
+    this.referralFee,
+    this.referralFeeType,
+    this.currency,
     this.estimatedDays,
     this.workedDays,
     this.completionPercentage,
@@ -90,6 +98,14 @@ class Mission {
       dailyRate: json['daily_rate'] != null 
           ? (json['daily_rate'] as num).toDouble() 
           : null,
+      monthlyCap: json['monthly_cap'] != null 
+          ? (json['monthly_cap'] as num).toDouble() 
+          : null,
+      referralFee: json['referral_fee'] != null 
+          ? (json['referral_fee'] as num).toDouble() 
+          : null,
+      referralFeeType: json['referral_fee_type'] as String?,
+      currency: json['currency'] as String? ?? 'EUR',
       estimatedDays: json['estimated_days'] != null 
           ? (json['estimated_days'] as num).toDouble() 
           : null,
@@ -118,6 +134,10 @@ class Mission {
       'progress_status': progressStatus,
       'budget': budget,
       'daily_rate': dailyRate,
+      'monthly_cap': monthlyCap,
+      'referral_fee': referralFee,
+      'referral_fee_type': referralFeeType,
+      'currency': currency,
       'estimated_days': estimatedDays,
       'worked_days': workedDays,
       'completion_percentage': completionPercentage,
@@ -149,6 +169,10 @@ class Mission {
     String? progressStatus,
     double? budget,
     double? dailyRate,
+    double? monthlyCap,
+    double? referralFee,
+    String? referralFeeType,
+    String? currency,
     double? estimatedDays,
     double? workedDays,
     double? completionPercentage,
@@ -178,6 +202,10 @@ class Mission {
       progressStatus: progressStatus ?? this.progressStatus,
       budget: budget ?? this.budget,
       dailyRate: dailyRate ?? this.dailyRate,
+      monthlyCap: monthlyCap ?? this.monthlyCap,
+      referralFee: referralFee ?? this.referralFee,
+      referralFeeType: referralFeeType ?? this.referralFeeType,
+      currency: currency ?? this.currency,
       estimatedDays: estimatedDays ?? this.estimatedDays,
       workedDays: workedDays ?? this.workedDays,
       completionPercentage: completionPercentage ?? this.completionPercentage,
@@ -235,6 +263,48 @@ class Mission {
       return '$assignedToFirstName $assignedToLastName';
     }
     return null;
+  }
+
+  /// Formater le TJM avec devise
+  String get formattedDailyRate {
+    if (dailyRate == null) return '-';
+    final currencySymbol = _getCurrencySymbol(currency ?? 'EUR');
+    return '${dailyRate!.toStringAsFixed(0)} $currencySymbol/jour';
+  }
+
+  /// Formater le plafond mensuel
+  String get formattedMonthlyCap {
+    if (monthlyCap == null) return '-';
+    final currencySymbol = _getCurrencySymbol(currency ?? 'EUR');
+    return '${monthlyCap!.toStringAsFixed(0)} $currencySymbol/mois';
+  }
+
+  /// Formater la commission apporteur
+  String get formattedReferralFee {
+    if (referralFee == null) return '-';
+    if (referralFeeType == 'percentage') {
+      return '${referralFee!.toStringAsFixed(1)}%';
+    }
+    final currencySymbol = _getCurrencySymbol(currency ?? 'EUR');
+    return '${referralFee!.toStringAsFixed(0)} $currencySymbol';
+  }
+
+  /// Obtenir le symbole de devise
+  static String _getCurrencySymbol(String currency) {
+    switch (currency) {
+      case 'EUR': return '€';
+      case 'USD': return '\$';
+      case 'GBP': return '£';
+      case 'CHF': return 'CHF';
+      default: return '€';
+    }
+  }
+
+  /// Vérifier la cohérence du pricing (TJM vs plafond mensuel)
+  bool get isPricingCoherent {
+    if (dailyRate == null || monthlyCap == null) return true;
+    // Avertissement si TJM > plafond/20 jours ouvrés
+    return dailyRate! <= (monthlyCap! / 20);
   }
 
   @override
