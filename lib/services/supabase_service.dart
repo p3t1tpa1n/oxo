@@ -533,40 +533,39 @@ class SupabaseService {
   }
 
   // Méthode pour créer un nouvel utilisateur
+  /// Crée un utilisateur via l'Edge Function `admin-create-user`.
+  ///
+  /// La création se fait exclusivement côté serveur (service_role) : le
+  /// serveur vérifie que l'appelant est admin/associé, crée le compte auth
+  /// et le profil, puis envoie un email de définition du mot de passe.
+  /// Le mot de passe n'est plus choisi ni transmis par l'admin.
   static Future<void> createUser({
     required String email,
-    required String password,
     required String firstName,
     required String lastName,
     required String phone,
     required UserRole role,
+    int? companyId,
   }) async {
     try {
-      // Créer l'utilisateur dans auth
-      final AuthResponse response = await client.auth.signUp(
-        email: email,
-        password: password,
+      final response = await client.functions.invoke(
+        'admin-create-user',
+        body: {
+          'email': email,
+          'first_name': firstName,
+          'last_name': lastName,
+          'phone': phone,
+          'role': role.toString(),
+          if (companyId != null) 'company_id': companyId,
+        },
       );
 
-      if (response.user == null) {
-        throw Exception('Erreur lors de la création de l\'utilisateur');
+      if (response.status != 200) {
+        final message = (response.data is Map && response.data['error'] != null)
+            ? response.data['error']
+            : 'Erreur serveur (${response.status})';
+        throw Exception(message);
       }
-
-      // Créer le profil de l'utilisateur
-      await client.from('profiles').insert({
-        'user_id': response.user!.id,
-        'email': email,
-        'first_name': firstName,
-        'last_name': lastName,
-        'phone': phone,
-        'role': role.toString(),
-        'status': 'actif',
-      });
-
-      // Envoyer un email de définition du mot de passe.
-      // Sans redirectTo, Supabase utilise la Site URL configurée dans le dashboard.
-      await client.auth.resetPasswordForEmail(email);
-
     } catch (e) {
       debugPrint('Erreur lors de la création de l\'utilisateur: $e');
       rethrow;

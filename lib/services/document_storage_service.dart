@@ -127,9 +127,12 @@ class DocumentStorageService {
     }
   }
 
-  /// Télécharger l'URL publique d'un document
-  static String getDocumentUrl(String filePath) {
-    return _client!.storage.from('documents').getPublicUrl(filePath);
+  /// URL d'accès temporaire à un document (valable 1 heure).
+  ///
+  /// Le bucket `documents` est privé : URL signée plutôt que publique,
+  /// l'accès est contrôlé par les policies Storage.
+  static Future<String> getDocumentUrl(String filePath) {
+    return _client.storage.from('documents').createSignedUrl(filePath, 3600);
   }
 
   /// Télécharger un document depuis le storage

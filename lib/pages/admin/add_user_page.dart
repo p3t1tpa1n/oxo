@@ -12,7 +12,6 @@ class AddUserPage extends StatefulWidget {
 class _AddUserPageState extends State<AddUserPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -23,7 +22,6 @@ class _AddUserPageState extends State<AddUserPage> {
   @override
   void dispose() {
     _emailController.dispose();
-    _passwordController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
     _phoneController.dispose();
@@ -41,7 +39,6 @@ class _AddUserPageState extends State<AddUserPage> {
     try {
       await SupabaseService.createUser(
         email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
         phone: _phoneController.text.trim(),
@@ -105,24 +102,6 @@ class _AddUserPageState extends State<AddUserPage> {
                   final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
                   if (!emailRegex.hasMatch(value)) {
                     return 'Veuillez entrer un email valide';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Mot de passe',
-                  border: OutlineInputBorder(),
-                ),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer un mot de passe';
-                  }
-                  if (value.length < 6) {
-                    return 'Le mot de passe doit contenir au moins 6 caractères';
                   }
                   return null;
                 },
