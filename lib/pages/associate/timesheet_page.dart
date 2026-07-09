@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
 import '../../services/supabase_service.dart';
+import '../../widgets/load_error_view.dart';
 import '../../services/availability_service.dart';
 
 class TimesheetPage extends StatefulWidget {
@@ -18,6 +19,7 @@ class _TimesheetPageState extends State<TimesheetPage> {
   List<Map<String, dynamic>> _partners = [];
   List<Map<String, dynamic>> _availabilities = [];
   bool _isLoading = true;
+  bool _loadError = false;
   DateTime _selectedAvailabilityDate = DateTime.now();
   bool _twoWeeksView = false; // Vue 2 prochaines semaines
   List<Map<String, dynamic>> _topAvailablePartners = [];
@@ -49,8 +51,10 @@ class _TimesheetPageState extends State<TimesheetPage> {
         _loadTimesheetEntries(),
         _loadAvailabilities(),
       ]);
+      _loadError = false;
     } catch (e) {
       debugPrint('Erreur lors du chargement des données: $e');
+      _loadError = true;
     } finally {
       if (mounted) {
         setState(() {
@@ -142,17 +146,11 @@ class _TimesheetPageState extends State<TimesheetPage> {
       debugPrint('Erreur lors du chargement des entrées timesheet: $e');
       if (mounted) {
         setState(() {
-          _isLoading = false;
           _timesheetEntries = [];
           _filteredEntries = [];
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur lors du chargement des données: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
+      rethrow;
     }
   }
 
@@ -256,12 +254,18 @@ class _TimesheetPageState extends State<TimesheetPage> {
                   Expanded(
                     child: _isLoading
                         ? const Center(child: CircularProgressIndicator())
-                        : TabBarView(
-                            children: [
-                              _buildTimesheetContent(),
-                              _buildAvailabilityContent(),
-                            ],
-                          ),
+                        : _loadError
+                            ? LoadErrorView(
+                                message:
+                                    'Impossible de charger les feuilles de temps.',
+                                onRetry: _loadData,
+                              )
+                            : TabBarView(
+                                children: [
+                                  _buildTimesheetContent(),
+                                  _buildAvailabilityContent(),
+                                ],
+                              ),
                   ),
                 ],
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
 import '../../services/invoice_service.dart';
+import '../../widgets/load_error_view.dart';
 import '../../services/company_service.dart';
 
 class ClientInvoicesPage extends StatefulWidget {
@@ -13,6 +14,7 @@ class ClientInvoicesPage extends StatefulWidget {
 
 class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
   bool _isLoading = true;
+  bool _loadError = false;
   String _selectedMenu = 'invoices';
   List<Map<String, dynamic>> _invoices = [];
   Map<String, dynamic>? _clientInfo;
@@ -81,6 +83,7 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
         _pendingAmount = pending;
         _paidAmount = paid;
         _isLoading = false;
+        _loadError = false;
       });
     } catch (e) {
       debugPrint('Erreur lors du chargement des factures: $e');
@@ -88,6 +91,7 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
         setState(() {
           _invoices = [];
           _isLoading = false;
+          _loadError = true;
         });
       }
     }
@@ -119,7 +123,12 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : Row(
+            : _loadError
+                ? LoadErrorView(
+                    message: 'Impossible de charger les factures.',
+                    onRetry: _loadData,
+                  )
+                : Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSidebar(),

@@ -178,9 +178,8 @@ class _MainAppState extends State<MainApp> {
     
     try {
       debugPrint('Vérification de l\'état de l\'authentification...');
-      // Une petite pause pour garantir que l'écran de chargement s'affiche
-      await Future.delayed(const Duration(milliseconds: 500));
-      
+      // La session est déjà restaurée par SupabaseService.initialize() dans main(),
+      // la vérification est donc immédiate — pas de délai artificiel.
       final session = SupabaseService.client.auth.currentSession;
       debugPrint('Session trouvée: ${session != null}');
       

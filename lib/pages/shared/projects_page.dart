@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
+import '../../widgets/load_error_view.dart';
 import '../../models/company.dart';
 import '../../models/user_role.dart';
 import '../../config/app_theme.dart';
@@ -18,6 +19,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
   List<Map<String, dynamic>> _partners = [];
   List<Company> _companies = [];
   bool _isLoading = true;
+  bool _loadError = false;
   String _searchQuery = '';
   String _sortBy = 'name';
   String _filterStatus = 'all';
@@ -48,23 +50,16 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
 
       setState(() {
         _isLoading = false;
+        _loadError = false;
       });
-      
+
       _applyFiltersAndSort();
     } catch (e) {
       debugPrint('Erreur lors du chargement des données: $e');
       setState(() {
         _isLoading = false;
+        _loadError = true;
       });
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur lors du chargement: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 
@@ -274,10 +269,15 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     return Scaffold(
       backgroundColor: AppTheme.colors.background,
       body: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : _currentView == 'grid'
-                          ? _buildMissionsGridView()
-                          : _buildMissionDetailView(),
+          ? const Center(child: CircularProgressIndicator())
+          : _loadError
+              ? LoadErrorView(
+                  message: 'Impossible de charger les missions.',
+                  onRetry: _loadData,
+                )
+              : _currentView == 'grid'
+                  ? _buildMissionsGridView()
+                  : _buildMissionDetailView(),
       floatingActionButton: _currentView == 'grid' && SupabaseService.currentUserRole != UserRole.partenaire
           ? FloatingActionButton.extended(
               onPressed: _showCreateMissionDialog,

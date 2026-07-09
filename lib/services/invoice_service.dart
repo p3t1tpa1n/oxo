@@ -26,7 +26,7 @@ class InvoiceService {
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Erreur lors de la récupération de toutes les factures: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -46,7 +46,7 @@ class InvoiceService {
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Erreur lors de la récupération des factures client: $e');
-      return [];
+      rethrow;
     }
   }
 
