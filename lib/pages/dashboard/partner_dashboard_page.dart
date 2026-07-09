@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../services/supabase_service.dart';
+import '../../services/availability_service.dart';
 import '../../widgets/calendar_widget.dart';
 import '../../widgets/standard_dialogs.dart' as dialogs;
 import 'dart:async';
@@ -1091,7 +1092,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
       final startDate = DateTime(_focusedDay.year, _focusedDay.month, 1);
       final endDate = DateTime(_focusedDay.year, _focusedDay.month + 1, 0);
       
-      final availabilities = await SupabaseService.getPartnerOwnAvailability(
+      final availabilities = await AvailabilityService.getPartnerOwnAvailability(
         startDate: startDate,
         endDate: endDate,
       );
@@ -1510,7 +1511,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
         }
       }
 
-      final result = await SupabaseService.setPartnerAvailability(
+      final result = await AvailabilityService.setPartnerAvailability(
         date: date,
         isAvailable: isAvailable,
         availabilityType: data['availability_type'] ?? 'full_day',
@@ -1612,7 +1613,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
 
       final isAvailable = data['is_available'] == 'true';
       
-      final success = await SupabaseService.setPartnerAvailabilityBulk(
+      final success = await AvailabilityService.setPartnerAvailabilityBulk(
         startDate: startDate,
         endDate: endDate,
         isAvailable: isAvailable,
@@ -1650,7 +1651,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
 
   Future<void> _createDefaultAvailabilities() async {
     try {
-      final success = await SupabaseService.createDefaultAvailabilityForPartner();
+      final success = await AvailabilityService.createDefaultAvailabilityForPartner();
       
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

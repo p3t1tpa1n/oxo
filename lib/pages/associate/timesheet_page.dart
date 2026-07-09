@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../widgets/top_bar.dart';
 import '../../widgets/side_menu.dart';
 import '../../services/supabase_service.dart';
+import '../../services/availability_service.dart';
 
 class TimesheetPage extends StatefulWidget {
   const TimesheetPage({super.key});
@@ -1009,7 +1010,7 @@ class _TimesheetPageState extends State<TimesheetPage> {
       
       debugPrint('Période demandée: ${startDate.toIso8601String().split('T')[0]} - ${endDate.toIso8601String().split('T')[0]}');
       
-      final availabilities = await SupabaseService.getPartnerAvailabilityForPeriod(
+      final availabilities = await AvailabilityService.getPartnerAvailabilityForPeriod(
         startDate: startDate,
         endDate: endDate,
       );
@@ -1037,7 +1038,7 @@ class _TimesheetPageState extends State<TimesheetPage> {
   Future<void> _loadTopAvailablePartners() async {
     setState(() => _loadingAvailablePartners = true);
     try {
-      final partners = await SupabaseService.getPartnersAvailableAtLeast(periodDays: 14, minAvailableDays: 7);
+      final partners = await AvailabilityService.getPartnersAvailableAtLeast(periodDays: 14, minAvailableDays: 7);
       if (mounted) setState(() => _topAvailablePartners = partners);
     } catch (e) {
       debugPrint('Erreur chargement partenaires >=7/14: $e');
@@ -1221,7 +1222,7 @@ class _TimesheetPageState extends State<TimesheetPage> {
             // Bouton pour voir aujourd'hui
             ElevatedButton.icon(
               onPressed: () async {
-                final partners = await SupabaseService.getAvailablePartnersForDate(DateTime.now());
+                final partners = await AvailabilityService.getAvailablePartnersForDate(DateTime.now());
                 _showAvailablePartnersDialog(DateTime.now(), partners);
               },
               icon: const Icon(Icons.today),

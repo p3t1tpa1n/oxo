@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
+import '../../services/availability_service.dart';
 
 class IOSMobileAvailabilityPage extends StatefulWidget {
   final bool showHeader;
@@ -70,7 +71,7 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
         endDate = _weekStart.add(const Duration(days: 6));
       }
       
-      final availabilities = await SupabaseService.getPartnerOwnAvailability(
+      final availabilities = await AvailabilityService.getPartnerOwnAvailability(
         startDate: startDate,
         endDate: endDate,
       );
@@ -1542,7 +1543,7 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
 
   Future<void> _saveAvailability(DateTime day, bool isAvailable, String type, String notes) async {
     try {
-      await SupabaseService.setPartnerAvailability(
+      await AvailabilityService.setPartnerAvailability(
         date: day,
         isAvailable: isAvailable,
         availabilityType: type,
@@ -1584,7 +1585,7 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
 
   Future<void> _saveBulkAvailability(DateTime startDate, DateTime endDate, bool isAvailable) async {
     try {
-      await SupabaseService.setPartnerAvailabilityBulk(
+      await AvailabilityService.setPartnerAvailabilityBulk(
         startDate: startDate,
         endDate: endDate,
         isAvailable: isAvailable,
@@ -1625,7 +1626,7 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
 
   Future<void> _createDefaultAvailabilities() async {
     try {
-      await SupabaseService.createDefaultAvailabilityForPartner();
+      await AvailabilityService.createDefaultAvailabilityForPartner();
       _loadAvailabilities();
       
       if (mounted) {
@@ -1664,7 +1665,7 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
     final endDate = startDate.add(const Duration(days: 30));
     
     try {
-      await SupabaseService.setPartnerAvailabilityBulk(
+      await AvailabilityService.setPartnerAvailabilityBulk(
         startDate: startDate,
         endDate: endDate,
         isAvailable: false,

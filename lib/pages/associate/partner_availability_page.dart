@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
+import '../../services/availability_service.dart';
 
 class PartnerAvailabilityPage extends StatefulWidget {
   final Map<String, dynamic> partner;
@@ -31,7 +32,7 @@ class _PartnerAvailabilityPageState extends State<PartnerAvailabilityPage> {
     });
 
     try {
-      final availability = await SupabaseService.getPartnerAvailability(
+      final availability = await AvailabilityService.getPartnerAvailability(
         widget.partner['user_id'],
         _selectedDate,
         _selectedView,

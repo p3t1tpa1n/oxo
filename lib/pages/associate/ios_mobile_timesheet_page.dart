@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../config/ios_theme.dart';
 import '../../widgets/ios_widgets.dart';
 import '../../services/supabase_service.dart';
+import '../../services/availability_service.dart';
 
 class IOSMobileTimesheetPage extends StatefulWidget {
   const IOSMobileTimesheetPage({Key? key}) : super(key: key);
@@ -71,7 +72,7 @@ class _IOSMobileTimesheetPageState extends State<IOSMobileTimesheetPage> {
 
   Future<void> _loadTodayAvailabilities() async {
     try {
-      final availabilities = await SupabaseService.getAvailablePartnersForDate(DateTime.now());
+      final availabilities = await AvailabilityService.getAvailablePartnersForDate(DateTime.now());
       if (mounted) setState(() => _availabilities = availabilities);
     } catch (e) {
       debugPrint('Erreur disponibilités: $e');
