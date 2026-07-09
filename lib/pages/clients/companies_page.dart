@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 import '../../models/company.dart';
 import '../../models/investor_group.dart';
 import '../../services/supabase_service.dart';
-import '../../widgets/top_bar.dart';
-import '../../widgets/side_menu.dart';
 
 class CompaniesPage extends StatefulWidget {
   final bool embedded;
@@ -157,14 +155,9 @@ class _CompaniesPageState extends State<CompaniesPage> with SingleTickerProvider
     return Scaffold(
       body: Row(
         children: [
-          SideMenu(
-            userRole: SupabaseService.currentUserRole,
-            selectedRoute: '/companies',
-          ),
-          Expanded(
+Expanded(
             child: Column(
               children: [
-                const TopBar(title: 'Sociétés et Groupes'),
                 Expanded(child: _buildContent()),
               ],
             ),

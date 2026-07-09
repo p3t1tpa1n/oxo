@@ -115,7 +115,10 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
   }
 
   Widget _buildAvailabilityContent() {
-    return Padding(
+    // Scrollable : calendrier + détails dépassent la hauteur sur les
+    // petites fenêtres (et RefreshIndicator exige un scrollable).
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

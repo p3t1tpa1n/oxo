@@ -3,7 +3,6 @@
 // ============================================================================
 
 import 'package:flutter/material.dart';
-import '../../widgets/side_menu.dart';
 import '../../services/supabase_service.dart';
 import '../../models/user_role.dart';
 import '../associate/partner_profiles_page.dart';
@@ -59,11 +58,7 @@ class _PartnersClientsPageState extends State<PartnersClientsPage> with SingleTi
       return Scaffold(
         body: Row(
           children: [
-            SideMenu(
-              userRole: _userRole,
-              selectedRoute: '/partners-clients',
-            ),
-            const Expanded(
+const Expanded(
               child: Center(
                 child: CircularProgressIndicator(),
               ),
@@ -76,11 +71,7 @@ class _PartnersClientsPageState extends State<PartnersClientsPage> with SingleTi
     return Scaffold(
       body: Row(
         children: [
-          SideMenu(
-            userRole: _userRole,
-            selectedRoute: '/partners-clients',
-          ),
-          Expanded(
+Expanded(
             child: Column(
               children: [
                 // En-tête

@@ -9,8 +9,6 @@ import 'package:intl/intl.dart';
 import '../../models/timesheet_models.dart';
 import '../../services/timesheet_service.dart';
 import '../../services/supabase_service.dart';
-import '../../widgets/top_bar.dart';
-import '../../widgets/side_menu.dart';
 import '../../services/company_service.dart';
 
 class TimesheetReportingPage extends StatefulWidget {
@@ -99,14 +97,9 @@ class _TimesheetReportingPageState extends State<TimesheetReportingPage> with Si
     return Scaffold(
       body: Row(
         children: [
-          SideMenu(
-            userRole: SupabaseService.currentUserRole,
-            selectedRoute: '/timesheet/reporting',
-          ),
-          Expanded(
+Expanded(
             child: Column(
               children: [
-                const TopBar(title: 'OXO TIME SHEETS - Reporting'),
                 _buildHeader(),
                 TabBar(
                   controller: _tabController,

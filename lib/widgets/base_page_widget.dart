@@ -28,8 +28,10 @@ class BasePageWidget extends StatefulWidget {
     required this.route,
     this.floatingActionButtons,
     this.bottomNavigationBar,
-    this.showSideMenu = true,
-    this.showTopBar = true,
+    // Le DesktopShell fournit sidebar et topbar : les pages n'affichent
+    // plus leur propre chrome (sinon double menu).
+    this.showSideMenu = false,
+    this.showTopBar = false,
     this.showMessaging = true,
     this.isLoading = false,
     this.errorMessage,
@@ -177,16 +179,16 @@ class _BasePageWidgetState extends State<BasePageWidget> {
     if (buttons.isEmpty) return null;
     
     if (buttons.length == 1) return buttons.first;
-    
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 200), // Limiter la hauteur
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: buttons
-            .expand((button) => [button, const SizedBox(height: 16)])
-            .take(buttons.length * 2 - 1)
-            .toList(),
-      ),
+
+    // Empilement propre des FAB, sans contrainte de hauteur qui les fait
+    // se chevaucher avec le contenu.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: buttons
+          .expand((button) => [button, const SizedBox(height: 12)])
+          .take(buttons.length * 2 - 1)
+          .toList(),
     );
   }
 }

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
-import '../../widgets/top_bar.dart';
-import '../../widgets/side_menu.dart';
 
 class ProposedMissionsPage extends StatefulWidget {
   const ProposedMissionsPage({super.key});
@@ -188,14 +186,9 @@ class _ProposedMissionsPageState extends State<ProposedMissionsPage> {
     return Scaffold(
       body: Row(
         children: [
-          SideMenu(
-            userRole: SupabaseService.currentUserRole,
-            selectedRoute: '/partner/proposed-missions',
-          ),
-          Expanded(
+Expanded(
             child: Column(
               children: [
-                const TopBar(title: 'Missions Proposées'),
                 Expanded(
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())

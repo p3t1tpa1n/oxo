@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 import '../../models/timesheet_models.dart';
 import '../../services/timesheet_service.dart';
 import '../../services/supabase_service.dart';
-import '../../widgets/top_bar.dart';
-import '../../widgets/side_menu.dart';
 import '../../services/company_service.dart';
 
 class TimesheetSettingsPage extends StatefulWidget {
@@ -88,14 +86,9 @@ class _TimesheetSettingsPageState extends State<TimesheetSettingsPage> with Sing
     return Scaffold(
       body: Row(
         children: [
-          SideMenu(
-            userRole: SupabaseService.currentUserRole,
-            selectedRoute: '/timesheet/settings',
-          ),
-          Expanded(
+Expanded(
             child: Column(
               children: [
-                const TopBar(title: 'OXO TIME SHEETS - Paramètres'),
                 TabBar(
                   controller: _tabController,
                   labelColor: const Color(0xFF2A4B63),

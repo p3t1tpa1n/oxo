@@ -26,11 +26,15 @@ class SideMenu extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 16),
-          if (isClient)
-            _buildClientMenu(context)
-          else
-            _buildStandardMenu(context, isAssociate, isAdmin, isClient, isPartner),
-          const Spacer(),
+          // Le menu défile si la fenêtre est trop petite (évite l'overflow)
+          Expanded(
+            child: SingleChildScrollView(
+              child: isClient
+                  ? _buildClientMenu(context)
+                  : _buildStandardMenu(
+                      context, isAssociate, isAdmin, isClient, isPartner),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: _buildLogoutButton(context),

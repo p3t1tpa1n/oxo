@@ -9,8 +9,6 @@ import '../../models/mission.dart';
 import '../../services/timesheet_service.dart';
 import '../../services/mission_service.dart';
 import '../../services/supabase_service.dart';
-import '../../widgets/top_bar.dart';
-import '../../widgets/side_menu.dart';
 import '../../services/company_service.dart';
 
 class TimeEntryPage extends StatefulWidget {
@@ -343,14 +341,9 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
     return Scaffold(
       body: Row(
         children: [
-          SideMenu(
-            userRole: SupabaseService.currentUserRole,
-            selectedRoute: '/timesheet/entry',
-          ),
-          Expanded(
+Expanded(
             child: Column(
               children: [
-                const TopBar(title: 'OXO TIME SHEETS - Saisie du temps'),
                 Expanded(
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())

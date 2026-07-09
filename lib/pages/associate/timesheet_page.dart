@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../widgets/top_bar.dart';
-import '../../widgets/side_menu.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/load_error_view.dart';
 import '../../services/availability_service.dart';
@@ -228,14 +226,9 @@ class _TimesheetPageState extends State<TimesheetPage> {
       child: Scaffold(
         body: Row(
           children: [
-            SideMenu(
-              userRole: SupabaseService.currentUserRole,
-              selectedRoute: '/timesheet',
-            ),
-            Expanded(
+Expanded(
               child: Column(
                 children: [
-                  const TopBar(title: 'Timesheet des Partenaires'),
                   const TabBar(
                     labelColor: Color(0xFF1784af),
                     unselectedLabelColor: Colors.grey,

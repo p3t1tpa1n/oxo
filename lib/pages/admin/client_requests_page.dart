@@ -5,8 +5,6 @@ import 'dart:typed_data';
 import 'dart:convert';
 import '../../models/user_role.dart';
 import '../../services/supabase_service.dart';
-import '../../widgets/top_bar.dart';
-import '../../widgets/side_menu.dart';
 import '../../widgets/messaging_button.dart';
 
 import '../../services/project_proposal_service.dart';
@@ -95,7 +93,6 @@ class _ClientRequestsPageState extends State<ClientRequestsPage> with TickerProv
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Expanded(child: TopBar(title: 'Gestion des demandes client')),
                   ],
                 ),
               ),
@@ -104,11 +101,7 @@ class _ClientRequestsPageState extends State<ClientRequestsPage> with TickerProv
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (screenWidth > 700) 
-                      SideMenu(
-                        userRole: UserRole.associe,
-                        selectedRoute: '/admin/client-requests',
-                      ),
-                    Expanded(
+Expanded(
                       child: _isLoading
                           ? const Center(child: CircularProgressIndicator())
                           : _buildTabContent(),
