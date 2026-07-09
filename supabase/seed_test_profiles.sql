@@ -113,5 +113,74 @@ begin
   -- ── Disponibilités par défaut du partenaire (60 jours ouvrés) ──────────
   perform create_default_availability_for_partner(v_partenaire, 60);
 
+  -- ── Données de démo supplémentaires ─────────────────────────────────────
+  -- 2e société + groupe
+  if not exists (select 1 from investor_group where name = 'Capital Nord') then
+    insert into investor_group (name, sector, country, contact_main)
+    values ('Capital Nord', 'Private Equity', 'France', 'contact@capitalnord.fr');
+  end if;
+  if not exists (select 1 from company where name = 'Nordtech SAS') then
+    insert into company (name, group_id, city, sector, country, ownership_share)
+    values ('Nordtech SAS',
+            (select id from investor_group where name = 'Capital Nord'),
+            'Lille', 'Tech', 'France', 40);
+  end if;
+
+  -- 2e mission (à assigner) + tâches supplémentaires
+  if not exists (select 1 from missions where title = 'Audit financier Nordtech') then
+    insert into missions (title, description, company_id, start_date, end_date,
+                          status, progress_status, priority, daily_rate,
+                          estimated_days, currency)
+    values ('Audit financier Nordtech', 'Audit pré-acquisition.',
+            (select id from company where name = 'Nordtech SAS'),
+            current_date, current_date + 30, 'active', 'à_assigner', 'high',
+            950, 15, 'EUR');
+  end if;
+  if not exists (select 1 from tasks where title = 'Préparer le reporting mensuel') then
+    insert into tasks (mission_id, title, status, assigned_to, due_date, priority)
+    values (v_mission_id, 'Préparer le reporting mensuel', 'pending',
+            v_partenaire, current_date + 3, 'medium');
+  end if;
+
+  -- Saisies de temps du partenaire (semaine passée)
+  insert into timesheet_entries (partner_id, mission_id, company_id, entry_date, days, daily_rate, status, comment)
+  select v_partenaire, v_mission_id, v_company_id, d::date, 1, 850, 'draft', 'Journée mission'
+  from generate_series(current_date - 7, current_date - 3, interval '1 day') d
+  where extract(isodow from d) < 6
+    and not exists (select 1 from timesheet_entries
+                    where partner_id = v_partenaire and entry_date = d::date);
+
+  -- Facture pour la cliente
+  if not exists (select 1 from invoices where title = 'Facture test — juin') then
+    insert into invoices (company_id, client_user_id, mission_id, title,
+                          description, amount, tax_rate, due_date, status, created_by)
+    values (v_company_id, v_client, v_mission_id, 'Facture test — juin',
+            'Prestations juin.', 8500, 20, current_date + 30, 'sent', v_associe);
+  end if;
+
+  -- Action commerciale
+  if not exists (select 1 from commercial_actions where title = 'Relance prospect Nordtech') then
+    insert into commercial_actions (title, description, type, status, priority,
+                                    client_name, estimated_value, due_date,
+                                    assigned_to, company_id, created_by)
+    values ('Relance prospect Nordtech', 'Appel de suivi après envoi de la proposition.',
+            'relance', 'planned', 'high', 'Nordtech SAS', 45000,
+            current_date + 7, v_associe, v_company_id, v_associe);
+  end if;
+
+  -- Demande client + proposition de projet
+  if not exists (select 1 from client_requests where title = 'Accès reporting mensuel') then
+    insert into client_requests (client_id, title, description, request_type)
+    values (v_client, 'Accès reporting mensuel',
+            'Souhait de recevoir le reporting consolidé chaque mois.', 'information');
+  end if;
+  if not exists (select 1 from project_proposals where title = 'Refonte du contrôle de gestion') then
+    insert into project_proposals (client_id, company_id, title, description,
+                                   estimated_budget, estimated_days, end_date)
+    values (v_client, v_company_id, 'Refonte du contrôle de gestion',
+            'Mise en place d''indicateurs et tableaux de bord.',
+            30000, 35, current_date + 90);
+  end if;
+
   raise notice 'Seed OK — associé: %, partenaire: %, client: %', v_associe, v_partenaire, v_client;
 end $$;

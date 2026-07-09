@@ -43,8 +43,11 @@ class InvestorGroup {
       notes: json['notes'] as String?,
       logoUrl: json['logo_url'] as String?,
       active: json['active'] as bool? ?? true,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      // Tolérant : la table n'expose pas forcément ces timestamps.
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+          DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 

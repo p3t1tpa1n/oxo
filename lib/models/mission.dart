@@ -116,8 +116,8 @@ class Mission {
           ? (json['completion_percentage'] as num).toDouble() 
           : null,
       notes: json['notes'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
