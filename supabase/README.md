@@ -18,7 +18,7 @@ brew install supabase/tap/supabase
 supabase login
 
 # 2. Lier le projet local au projet Supabase
-supabase link --project-ref dswirxxbzbyhnxsrzyzi
+supabase link --project-ref qinmjjmlkbowcdniuhre
 
 # 3. Capturer le schéma live comme migration baseline
 supabase db pull          # crée supabase/migrations/<ts>_remote_schema.sql
@@ -75,13 +75,22 @@ Si le nombre d'opérations serveur dépasse ~10 endpoints ou nécessite des jobs
 longs/planifiés, réévaluer avec une petite API dédiée (ou les Database
 Functions + pg_cron).
 
-## Dette connue à réconcilier avec le schéma live
+## Dette connue — traitée par la migration `20260709100000_initial_schema.sql`
 
-- `company` vs `companies` : le code lisait les deux ; la table réelle semble
-  être `company` (utilisée sans fallback par `timesheet_service.dart`).
-  `CompanyService.getAllCompanies` garde un fallback à supprimer après
-  vérification ; `createCompany`/`updateCompany` écrivent dans `companies` —
-  **à vérifier en priorité** avec le schéma capturé par `db pull`.
-- `timesheet_entries` : deux conventions coexistent dans le code
-  (`date`+`hours` dans les pages, `entry_date`+`days` dans
-  `timesheet_service.dart`). Trancher après `db pull` et migrer.
+- `company` vs `companies` : une seule table physique `company` ;
+  `companies` est une **vue updatable** dessus, donc les deux noms utilisés
+  par le code fonctionnent. À terme, unifier le code sur `company`.
+- `timesheet_entries` : les deux conventions (`date`+`hours` et
+  `entry_date`+`days`) coexistent en colonnes ; un trigger
+  (`timesheet_entries_normalize`) synchronise `date` ↔ `entry_date` et
+  calcule `is_weekend`. Le reporting utilise `entry_date`+`days`.
+  À terme, unifier le code sur `entry_date`+`days`.
+
+## Mise en place sur un projet vide (base sans tables)
+
+Le schéma complet est versionné — pas besoin de `db pull` :
+
+```bash
+supabase link --project-ref qinmjjmlkbowcdniuhre
+supabase db push   # applique 100000 (schéma), 120000 (RLS), 130000 (RLS restante)
+```

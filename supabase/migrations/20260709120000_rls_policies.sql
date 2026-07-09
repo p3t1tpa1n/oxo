@@ -102,8 +102,8 @@ drop policy if exists missions_select on public.missions;
 create policy missions_select on public.missions
   for select using (
     public.is_staff()
-    or partner_id = auth.uid()::text
-    or assigned_to = auth.uid()::text
+    or partner_id = auth.uid()
+    or assigned_to = auth.uid()
     or company_id = public.current_user_company_id()
   );
 
@@ -116,8 +116,8 @@ create policy missions_update on public.missions
   for update using (
     public.is_staff()
     -- un partenaire peut mettre à jour l'avancement de SES missions
-    or partner_id = auth.uid()::text
-    or assigned_to = auth.uid()::text
+    or partner_id = auth.uid()
+    or assigned_to = auth.uid()
   );
 
 drop policy if exists missions_delete_staff on public.missions;
@@ -135,7 +135,7 @@ drop policy if exists invoices_select on public.invoices;
 create policy invoices_select on public.invoices
   for select using (
     public.is_staff()
-    or client_user_id = auth.uid()::text
+    or client_user_id = auth.uid()
   );
 
 drop policy if exists invoices_write_staff on public.invoices;
@@ -152,23 +152,23 @@ drop policy if exists timesheet_select on public.timesheet_entries;
 create policy timesheet_select on public.timesheet_entries
   for select using (
     public.is_staff()
-    or partner_id = auth.uid()::text
-    or user_id = auth.uid()::text
+    or partner_id = auth.uid()
+    or user_id = auth.uid()
   );
 
 drop policy if exists timesheet_insert_own on public.timesheet_entries;
 create policy timesheet_insert_own on public.timesheet_entries
   for insert with check (
     public.is_staff()
-    or partner_id = auth.uid()::text
-    or user_id = auth.uid()::text
+    or partner_id = auth.uid()
+    or user_id = auth.uid()
   );
 
 drop policy if exists timesheet_update_own on public.timesheet_entries;
 create policy timesheet_update_own on public.timesheet_entries
   for update using (
     public.is_staff()
-    or ((partner_id = auth.uid()::text or user_id = auth.uid()::text)
+    or ((partner_id = auth.uid() or user_id = auth.uid())
         and status = 'draft')  -- une saisie soumise n'est plus modifiable
   );
 
@@ -176,7 +176,7 @@ drop policy if exists timesheet_delete_own on public.timesheet_entries;
 create policy timesheet_delete_own on public.timesheet_entries
   for delete using (
     public.is_staff()
-    or ((partner_id = auth.uid()::text or user_id = auth.uid()::text)
+    or ((partner_id = auth.uid() or user_id = auth.uid())
         and status = 'draft')
   );
 
@@ -187,7 +187,7 @@ alter table public.partner_rates enable row level security;
 
 drop policy if exists rates_select on public.partner_rates;
 create policy rates_select on public.partner_rates
-  for select using (public.is_staff() or partner_id = auth.uid()::text);
+  for select using (public.is_staff() or partner_id = auth.uid());
 
 drop policy if exists rates_write_staff on public.partner_rates;
 create policy rates_write_staff on public.partner_rates
@@ -200,7 +200,7 @@ alter table public.partner_client_permissions enable row level security;
 
 drop policy if exists pcp_select on public.partner_client_permissions;
 create policy pcp_select on public.partner_client_permissions
-  for select using (public.is_staff() or partner_id = auth.uid()::text);
+  for select using (public.is_staff() or partner_id = auth.uid());
 
 drop policy if exists pcp_write_staff on public.partner_client_permissions;
 create policy pcp_write_staff on public.partner_client_permissions
@@ -215,12 +215,12 @@ drop policy if exists proposals_select on public.project_proposals;
 create policy proposals_select on public.project_proposals
   for select using (
     public.is_staff()
-    or client_id = auth.uid()::text
+    or client_id = auth.uid()
   );
 
 drop policy if exists proposals_insert_client on public.project_proposals;
 create policy proposals_insert_client on public.project_proposals
-  for insert with check (client_id = auth.uid()::text or public.is_staff());
+  for insert with check (client_id = auth.uid() or public.is_staff());
 
 drop policy if exists proposals_update_staff on public.project_proposals;
 create policy proposals_update_staff on public.project_proposals
@@ -234,7 +234,7 @@ create policy proposal_docs_select on public.project_proposal_documents
     public.is_staff()
     or exists (
       select 1 from public.project_proposals p
-      where p.id = proposal_id and p.client_id = auth.uid()::text
+      where p.id = proposal_id and p.client_id = auth.uid()
     )
   );
 
@@ -244,7 +244,7 @@ create policy proposal_docs_insert on public.project_proposal_documents
     public.is_staff()
     or exists (
       select 1 from public.project_proposals p
-      where p.id = proposal_id and p.client_id = auth.uid()::text
+      where p.id = proposal_id and p.client_id = auth.uid()
     )
   );
 
@@ -255,11 +255,11 @@ alter table public.time_extension_requests enable row level security;
 
 drop policy if exists ter_select on public.time_extension_requests;
 create policy ter_select on public.time_extension_requests
-  for select using (public.is_staff() or client_id = auth.uid()::text);
+  for select using (public.is_staff() or client_id = auth.uid());
 
 drop policy if exists ter_insert_client on public.time_extension_requests;
 create policy ter_insert_client on public.time_extension_requests
-  for insert with check (client_id = auth.uid()::text or public.is_staff());
+  for insert with check (client_id = auth.uid() or public.is_staff());
 
 drop policy if exists ter_update_staff on public.time_extension_requests;
 create policy ter_update_staff on public.time_extension_requests
@@ -274,39 +274,38 @@ drop policy if exists ca_select on public.commercial_actions;
 create policy ca_select on public.commercial_actions
   for select using (
     public.is_staff()
-    or created_by = auth.uid()::text
-    or assigned_to = auth.uid()::text
-    or partner_id = auth.uid()::text
+    or created_by = auth.uid()
+    or assigned_to = auth.uid()
+    or partner_id = auth.uid()
   );
 
 drop policy if exists ca_insert on public.commercial_actions;
 create policy ca_insert on public.commercial_actions
-  for insert with check (public.is_staff() or created_by = auth.uid()::text);
+  for insert with check (public.is_staff() or created_by = auth.uid());
 
 drop policy if exists ca_update on public.commercial_actions;
 create policy ca_update on public.commercial_actions
   for update using (
     public.is_staff()
-    or created_by = auth.uid()::text
-    or assigned_to = auth.uid()::text
-    or partner_id = auth.uid()::text
+    or created_by = auth.uid()
+    or assigned_to = auth.uid()
+    or partner_id = auth.uid()
   );
 
 drop policy if exists ca_delete on public.commercial_actions;
 create policy ca_delete on public.commercial_actions
-  for delete using (public.is_staff() or created_by = auth.uid()::text);
+  for delete using (public.is_staff() or created_by = auth.uid());
 
 -- ============================================================================
 -- NOTES D'APPLICATION
 --
--- 1. Types des colonnes : les comparaisons utilisent auth.uid()::text car le
---    code client mélange uuid et text selon les tables. Si une colonne est
---    de type uuid, retirer le ::text correspondant (sinon l'index ne sert pas).
--- 2. Tables restantes à couvrir après db pull : mission_proposals,
---    mission_assignments, notifications/user_notifications, partner_profiles,
---    partner_availability, tasks, calendar_events, messages, mission_criteria.
---    Appliquer le même modèle : staff = tout, sinon restriction par
---    auth.uid() / company_id.
+-- 1. Types des colonnes : toutes les colonnes d'identifiant utilisateur sont
+--    des uuid (cf. 20260709100000_initial_schema.sql) — comparaison directe
+--    avec auth.uid(), les index sont utilisables.
+-- 2. Les tables restantes (mission_proposals, mission_assignments,
+--    notifications, partner_profiles, partner_availability, tasks,
+--    calendar_events, messages, mission_criteria…) sont couvertes par
+--    20260709130000_rls_remaining.sql.
 -- 3. Vues (user_company_info, invoice_details, company_with_group,
 --    timesheet_entries_detailed) : les recréer avec `security_invoker = true`
 --    pour qu'elles respectent la RLS des tables sous-jacentes :
