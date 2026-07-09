@@ -113,7 +113,7 @@ class _ActionsPageState extends State<ActionsPage> {
         FloatingActionButton.extended(
           heroTag: 'fab_actions',
           onPressed: _showCreateActionDialog,
-          backgroundColor: const Color(0xFF1784af),
+          backgroundColor: const Color(0xFF3E5C76),
           icon: const Icon(Icons.add, color: Colors.white),
           label: const Text('Nouvelle Action', style: TextStyle(color: Colors.white)),
         ),
@@ -232,7 +232,7 @@ class _ActionsPageState extends State<ActionsPage> {
               },
               icon: Icon(
                 _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                color: const Color(0xFF1784af),
+                color: const Color(0xFF3E5C76),
               ),
             ),
           ],
@@ -249,16 +249,16 @@ class _ActionsPageState extends State<ActionsPage> {
 
     return Row(
       children: [
-        Expanded(child: _buildStatCard('Planifiées', plannedCount, Colors.orange, Icons.schedule)),
+        Expanded(child: _buildStatCard('Planifiées', plannedCount, const Color(0xFFB07B2E), Icons.schedule)),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard('En cours', inProgressCount, Colors.blue, Icons.trending_up)),
+        Expanded(child: _buildStatCard('En cours', inProgressCount, const Color(0xFF3E5C76), Icons.trending_up)),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard('Terminées', completedCount, Colors.green, Icons.check_circle)),
+        Expanded(child: _buildStatCard('Terminées', completedCount, const Color(0xFF2E7D5B), Icons.check_circle)),
         const SizedBox(width: 16),
         Expanded(child: _buildStatCard(
           'Valeur totale',
           '${NumberFormat.currency(locale: 'fr', symbol: '€').format(totalValue)}',
-          const Color(0xFF1784af),
+          const Color(0xFF3E5C76),
           Icons.euro,
         )),
       ],
@@ -330,7 +330,7 @@ class _ActionsPageState extends State<ActionsPage> {
           children: [
             Row(
               children: [
-                Icon(typeIcon, color: const Color(0xFF1784af), size: 20),
+                Icon(typeIcon, color: const Color(0xFF3E5C76), size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -338,7 +338,7 @@ class _ActionsPageState extends State<ActionsPage> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E3D54),
+                      color: Color(0xFF16283C),
                     ),
                   ),
                 ),
@@ -397,14 +397,14 @@ class _ActionsPageState extends State<ActionsPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1784af).withOpacity(0.1),
+                      color: const Color(0xFF3E5C76).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       NumberFormat.currency(locale: 'fr', symbol: '€').format(action['estimated_value']),
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF1784af),
+                        color: Color(0xFF3E5C76),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -437,7 +437,7 @@ class _ActionsPageState extends State<ActionsPage> {
                 action['client_name'],
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E3D54),
+                  color: Color(0xFF16283C),
                 ),
               ),
             ],
@@ -864,9 +864,9 @@ class _ActionsPageState extends State<ActionsPage> {
   // Méthodes utilitaires
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'planned': return Colors.orange;
-      case 'in_progress': return Colors.blue;
-      case 'completed': return Colors.green;
+      case 'planned': return const Color(0xFFB07B2E);
+      case 'in_progress': return const Color(0xFF3E5C76);
+      case 'completed': return const Color(0xFF2E7D5B);
       case 'cancelled': return Colors.red;
       default: return Colors.grey;
     }
@@ -875,9 +875,9 @@ class _ActionsPageState extends State<ActionsPage> {
   Color _getPriorityColor(String priority) {
     switch (priority) {
       case 'urgent': return Colors.red;
-      case 'high': return Colors.orange;
-      case 'medium': return Colors.blue;
-      case 'low': return Colors.green;
+      case 'high': return const Color(0xFFB07B2E);
+      case 'medium': return const Color(0xFF3E5C76);
+      case 'low': return const Color(0xFF2E7D5B);
       default: return Colors.grey;
     }
   }

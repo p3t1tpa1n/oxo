@@ -263,15 +263,15 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
       child: Container(
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF1E3D54).withOpacity(0.8)
+              ? const Color(0xFF16283C).withOpacity(0.8)
               : isToday
-                  ? const Color(0xFF1E3D54).withOpacity(0.1)
+                  ? const Color(0xFF16283C).withOpacity(0.1)
                   : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
           border: isCurrentMonth && !isSelected
               ? Border.all(
                   color: isToday
-                      ? const Color(0xFF1E3D54).withOpacity(0.5)
+                      ? const Color(0xFF16283C).withOpacity(0.5)
                       : Colors.transparent,
                   width: 0.5,
                 )
@@ -333,7 +333,7 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
                     borderRadius: BorderRadius.circular(15),
                     child: const Padding(
                       padding: EdgeInsets.all(4.0),
-                      child: Icon(Icons.chevron_left, size: 16, color: Color(0xFF1E3D54)),
+                      child: Icon(Icons.chevron_left, size: 16, color: Color(0xFF16283C)),
                     ),
                   ),
                   Text(
@@ -349,7 +349,7 @@ class _CalendarWidgetState extends State<CalendarWidget> with SingleTickerProvid
                     borderRadius: BorderRadius.circular(15),
                     child: const Padding(
                       padding: EdgeInsets.all(4.0),
-                      child: Icon(Icons.chevron_right, size: 16, color: Color(0xFF1E3D54)),
+                      child: Icon(Icons.chevron_right, size: 16, color: Color(0xFF16283C)),
                     ),
                   ),
                 ],

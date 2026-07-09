@@ -11,7 +11,7 @@ class DownloadHelper {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Téléchargement non supporté sur cette plateforme'),
-        backgroundColor: Colors.orange,
+        backgroundColor: const Color(0xFFB07B2E),
       ),
     );
   }

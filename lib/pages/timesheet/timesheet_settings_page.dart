@@ -91,9 +91,9 @@ Expanded(
               children: [
                 TabBar(
                   controller: _tabController,
-                  labelColor: const Color(0xFF2A4B63),
+                  labelColor: const Color(0xFF16283C),
                   unselectedLabelColor: Colors.grey,
-                  indicatorColor: const Color(0xFF2A4B63),
+                  indicatorColor: const Color(0xFF16283C),
                   tabs: const [
                     Tab(text: 'Tarifs journaliers', icon: Icon(Icons.euro)),
                     Tab(text: 'Permissions clients', icon: Icon(Icons.lock)),
@@ -126,7 +126,7 @@ Expanded(
         },
         icon: const Icon(Icons.add),
         label: Text(_tabController.index == 0 ? 'Nouveau tarif' : 'Nouvelle permission'),
-        backgroundColor: const Color(0xFF2A4B63),
+        backgroundColor: const Color(0xFF16283C),
       ),
     );
   }
@@ -146,7 +146,7 @@ Expanded(
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF2A4B63),
+              color: Color(0xFF16283C),
             ),
           ),
           const SizedBox(height: 8),
@@ -189,7 +189,7 @@ Expanded(
       child: SingleChildScrollView(
         child: DataTable(
           columnSpacing: 16,
-          headingRowColor: MaterialStateProperty.all(const Color(0xFF2A4B63).withOpacity(0.1)),
+          headingRowColor: MaterialStateProperty.all(const Color(0xFF16283C).withOpacity(0.1)),
           columns: const [
             DataColumn(label: Text('Partenaire', style: TextStyle(fontWeight: FontWeight.w600))),
             DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.w600))),
@@ -208,7 +208,7 @@ Expanded(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                      icon: const Icon(Icons.edit, color: const Color(0xFF3E5C76), size: 20),
                       onPressed: () => _showEditRateDialog(rate),
                       tooltip: 'Modifier',
                     ),
@@ -328,7 +328,7 @@ Expanded(
                   if (mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('✅ Tarif créé'), backgroundColor: Colors.green),
+                      const SnackBar(content: Text('✅ Tarif créé'), backgroundColor: const Color(0xFF2E7D5B)),
                     );
                     _loadData();
                   }
@@ -340,7 +340,7 @@ Expanded(
                   }
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2A4B63)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16283C)),
               child: const Text('Créer'),
             ),
           ],
@@ -416,7 +416,7 @@ Expanded(
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('✅ Tarif modifié'), backgroundColor: Colors.green),
+                    const SnackBar(content: Text('✅ Tarif modifié'), backgroundColor: const Color(0xFF2E7D5B)),
                   );
                   _loadData();
                 }
@@ -428,7 +428,7 @@ Expanded(
                 }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2A4B63)),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16283C)),
             child: const Text('Enregistrer'),
           ),
         ],
@@ -463,7 +463,7 @@ Expanded(
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Tarif supprimé'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('✅ Tarif supprimé'), backgroundColor: const Color(0xFF2E7D5B)),
         );
         _loadData();
       }
@@ -491,7 +491,7 @@ Expanded(
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF2A4B63),
+              color: Color(0xFF16283C),
             ),
           ),
           const SizedBox(height: 8),
@@ -534,7 +534,7 @@ Expanded(
       child: SingleChildScrollView(
         child: DataTable(
           columnSpacing: 16,
-          headingRowColor: MaterialStateProperty.all(const Color(0xFF2A4B63).withOpacity(0.1)),
+          headingRowColor: MaterialStateProperty.all(const Color(0xFF16283C).withOpacity(0.1)),
           columns: const [
             DataColumn(label: Text('Partenaire', style: TextStyle(fontWeight: FontWeight.w600))),
             DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.w600))),
@@ -551,17 +551,17 @@ Expanded(
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: perm.allowed ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                    color: perm.allowed ? const Color(0xFF2E7D5B).withOpacity(0.1) : Colors.red.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
-                      color: perm.allowed ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3),
+                      color: perm.allowed ? const Color(0xFF2E7D5B).withOpacity(0.3) : Colors.red.withOpacity(0.3),
                     ),
                   ),
                   child: Text(
                     perm.allowed ? '✅ OUI' : '⛔ NON',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: perm.allowed ? Colors.green : Colors.red,
+                      color: perm.allowed ? const Color(0xFF2E7D5B) : Colors.red,
                     ),
                   ),
                 ),
@@ -571,7 +571,7 @@ Expanded(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                      icon: const Icon(Icons.edit, color: const Color(0xFF3E5C76), size: 20),
                       onPressed: () => _showEditPermissionDialog(perm),
                       tooltip: 'Modifier',
                     ),
@@ -651,7 +651,7 @@ Expanded(
                       allowed = value;
                     });
                   },
-                  activeColor: const Color(0xFF2A4B63),
+                  activeColor: const Color(0xFF16283C),
                 ),
               ],
             ),
@@ -680,7 +680,7 @@ Expanded(
                   if (mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('✅ Permission créée'), backgroundColor: Colors.green),
+                      const SnackBar(content: Text('✅ Permission créée'), backgroundColor: const Color(0xFF2E7D5B)),
                     );
                     _loadData();
                   }
@@ -692,7 +692,7 @@ Expanded(
                   }
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2A4B63)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16283C)),
               child: const Text('Créer'),
             ),
           ],
@@ -740,7 +740,7 @@ Expanded(
                       allowed = value;
                     });
                   },
-                  activeColor: const Color(0xFF2A4B63),
+                  activeColor: const Color(0xFF16283C),
                 ),
               ],
             ),
@@ -762,7 +762,7 @@ Expanded(
                   if (mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('✅ Permission modifiée'), backgroundColor: Colors.green),
+                      const SnackBar(content: Text('✅ Permission modifiée'), backgroundColor: const Color(0xFF2E7D5B)),
                     );
                     _loadData();
                   }
@@ -774,7 +774,7 @@ Expanded(
                   }
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2A4B63)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16283C)),
               child: const Text('Enregistrer'),
             ),
           ],
@@ -810,7 +810,7 @@ Expanded(
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Permission supprimée'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('✅ Permission supprimée'), backgroundColor: const Color(0xFF2E7D5B)),
         );
         _loadData();
       }

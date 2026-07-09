@@ -102,11 +102,11 @@ class _UserRolesPageState extends State<UserRolesPage> {
       case 'admin':
         return Colors.red;
       case 'associe':
-        return Colors.blue;
+        return const Color(0xFF3E5C76);
       case 'partenaire':
-        return Colors.green;
+        return const Color(0xFF2E7D5B);
       case 'client':
-        return Colors.orange;
+        return const Color(0xFFB07B2E);
       default:
         return Colors.grey;
     }

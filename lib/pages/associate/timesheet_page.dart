@@ -230,9 +230,9 @@ Expanded(
               child: Column(
                 children: [
                   const TabBar(
-                    labelColor: Color(0xFF1784af),
+                    labelColor: Color(0xFF3E5C76),
                     unselectedLabelColor: Colors.grey,
-                    indicatorColor: Color(0xFF1784af),
+                    indicatorColor: Color(0xFF3E5C76),
                     tabs: [
                       Tab(
                         icon: Icon(Icons.schedule),
@@ -286,7 +286,7 @@ Expanded(
                       'Total Entrées',
                       '${_filteredEntries.length}',
                       Icons.assignment,
-                      Colors.blue,
+                      const Color(0xFF3E5C76),
                     ),
                   ),
                   Expanded(
@@ -294,7 +294,7 @@ Expanded(
                       'Total Heures',
                       '${_getTotalHours().toStringAsFixed(1)}h',
                       Icons.timer,
-                      Colors.green,
+                      const Color(0xFF2E7D5B),
                     ),
                   ),
                   Expanded(
@@ -302,7 +302,7 @@ Expanded(
                       'Partenaires Actifs',
                       '${_filteredEntries.map((e) => e['user_id']).toSet().length}',
                       Icons.people,
-                      Colors.orange,
+                      const Color(0xFFB07B2E),
                     ),
                   ),
                   Expanded(
@@ -312,7 +312,7 @@ Expanded(
                           ? '${(_getTotalHours() / _filteredEntries.length).toStringAsFixed(1)}h'
                           : '0h',
                       Icons.analytics,
-                      Colors.purple,
+                      const Color(0xFF5B5F97),
                     ),
                   ),
                 ],
@@ -423,7 +423,7 @@ Expanded(
                                   },
                                   icon: Icon(
                                     _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                                    color: const Color(0xFF1784af),
+                                    color: const Color(0xFF3E5C76),
                                   ),
                                   tooltip: _sortAscending ? 'Croissant' : 'Décroissant',
                                 ),
@@ -513,7 +513,7 @@ Expanded(
                               },
                               icon: Icon(
                                 _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                                color: const Color(0xFF1784af),
+                                color: const Color(0xFF3E5C76),
                               ),
                               tooltip: _sortAscending ? 'Tri croissant' : 'Tri décroissant',
                             ),
@@ -817,7 +817,7 @@ Expanded(
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E3D54),
+                          color: Color(0xFF16283C),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -854,7 +854,7 @@ Expanded(
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1784af),
+                        color: Color(0xFF3E5C76),
                       ),
                     ),
                   ],
@@ -897,7 +897,7 @@ Expanded(
                   const Spacer(),
                   TextButton(
                     onPressed: () => _updateEntryStatus(entry['id'], 'approved'),
-                    child: const Text('Approuver', style: TextStyle(color: Colors.green)),
+                    child: const Text('Approuver', style: TextStyle(color: const Color(0xFF2E7D5B))),
                   ),
                   TextButton(
                     onPressed: () => _updateEntryStatus(entry['id'], 'rejected'),
@@ -915,11 +915,11 @@ Expanded(
   Color _getStatusColor(String status) {
     switch (status) {
       case 'approved':
-        return Colors.green;
+        return const Color(0xFF2E7D5B);
       case 'rejected':
         return Colors.red;
       case 'pending':
-        return Colors.orange;
+        return const Color(0xFFB07B2E);
       default:
         return Colors.grey;
     }
@@ -951,7 +951,7 @@ Expanded(
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Statut mis à jour: ${_getStatusLabel(newStatus)}'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
       }
@@ -1073,7 +1073,7 @@ Expanded(
               children: [
                 const Icon(
                   Icons.calendar_today,
-                  color: Color(0xFF1784af),
+                  color: Color(0xFF3E5C76),
                   size: 24,
                 ),
                 const SizedBox(width: 8),
@@ -1082,7 +1082,7 @@ Expanded(
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1784af),
+                    color: Color(0xFF3E5C76),
                   ),
                 ),
                 const Spacer(),
@@ -1091,7 +1091,7 @@ Expanded(
                   icon: const Icon(Icons.refresh),
                   label: const Text('Actualiser'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1784af),
+                    backgroundColor: const Color(0xFF3E5C76),
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -1193,7 +1193,7 @@ Expanded(
               icon: const Icon(Icons.view_week),
               label: Text(_twoWeeksView ? 'Vue mois' : '2 prochaines semaines'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _twoWeeksView ? const Color(0xFF1784af) : Colors.blueGrey,
+                backgroundColor: _twoWeeksView ? const Color(0xFF3E5C76) : Colors.blueGrey,
                 foregroundColor: Colors.white,
               ),
             ),
@@ -1211,7 +1211,7 @@ Expanded(
               icon: const Icon(Icons.filter_alt),
               label: Text(_loadingAvailablePartners ? 'Chargement...' : 'Dispo ≥ 7/14'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: const Color(0xFF2E7D5B),
                 foregroundColor: Colors.white,
               ),
             ),
@@ -1225,7 +1225,7 @@ Expanded(
               icon: const Icon(Icons.today),
               label: const Text('Disponibles aujourd\'hui'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: const Color(0xFF2E7D5B),
                 foregroundColor: Colors.white,
               ),
             ),
@@ -1308,7 +1308,7 @@ Expanded(
                 '✅ Partenaires disponibles',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: Colors.green,
+                  color: const Color(0xFF2E7D5B),
                 ),
               ),
               const SizedBox(height: 8),
@@ -1353,7 +1353,7 @@ Expanded(
 
     return Chip(
       avatar: CircleAvatar(
-        backgroundColor: isAvailable ? Colors.green : Colors.red,
+        backgroundColor: isAvailable ? const Color(0xFF2E7D5B) : Colors.red,
         child: Text(
           name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase(),
           style: const TextStyle(
@@ -1409,7 +1409,7 @@ Expanded(
             icon: const Icon(Icons.refresh),
             label: const Text('Actualiser'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1784af),
+              backgroundColor: const Color(0xFF3E5C76),
               foregroundColor: Colors.white,
             ),
           ),
@@ -1424,11 +1424,11 @@ Expanded(
     final targetDate = DateTime(date.year, date.month, date.day);
     
     if (targetDate.isAtSameMomentAs(today)) {
-      return const Color(0xFF1784af); // Aujourd'hui
+      return const Color(0xFF3E5C76); // Aujourd'hui
     } else if (targetDate.isBefore(today)) {
       return Colors.grey; // Passé
     } else {
-      return Colors.blue; // Futur
+      return const Color(0xFF3E5C76); // Futur
     }
   }
 
@@ -1450,7 +1450,7 @@ Expanded(
                     final partner = partners[index];
                     return ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: Colors.green,
+                        backgroundColor: const Color(0xFF2E7D5B),
                         child: Text(
                           (partner['partner_name'] ?? '')
                               .split(' ')
@@ -1476,11 +1476,11 @@ Expanded(
                       trailing: partner['availability_type'] == 'partial_day'
                           ? const Chip(
                               label: Text('Partiel'),
-                              backgroundColor: Colors.orange,
+                              backgroundColor: const Color(0xFFB07B2E),
                             )
                           : const Chip(
                               label: Text('Complet'),
-                              backgroundColor: Colors.green,
+                              backgroundColor: const Color(0xFF2E7D5B),
                             ),
                     );
                   },
@@ -1515,7 +1515,7 @@ Expanded(
                     final available = (p['available_days'] ?? 0) as int;
                     return ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: Colors.green,
+                        backgroundColor: const Color(0xFF2E7D5B),
                         child: Text(
                           name
                               .split(' ')

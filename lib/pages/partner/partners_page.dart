@@ -66,7 +66,7 @@ class _PartnersPageState extends State<PartnersPage> {
                       child: ListTile(
                         contentPadding: const EdgeInsets.all(16),
                         leading: CircleAvatar(
-                          backgroundColor: const Color(0xFF1784af),
+                          backgroundColor: const Color(0xFF3E5C76),
                           child: Text(
                             '${partner['first_name']?[0] ?? ''}${partner['last_name']?[0] ?? ''}'.toUpperCase(),
                             style: const TextStyle(color: Colors.white),

@@ -60,8 +60,12 @@ class Company {
       contactPhone: json['contact_phone'] as String?,
       active: (json['active'] ?? json['company_active']) as bool? ?? true,
       notes: json['notes'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      // Tolérant : certaines vues (company_with_group) n'exposent pas ces
+      // colonnes — ne jamais faire planter le chargement pour des timestamps.
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+          DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 

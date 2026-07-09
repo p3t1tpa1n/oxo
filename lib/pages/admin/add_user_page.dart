@@ -49,7 +49,7 @@ class _AddUserPageState extends State<AddUserPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Utilisateur créé avec succès'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
         Navigator.pop(context);

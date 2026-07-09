@@ -103,7 +103,7 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Proposer mission - ${widget.partner['first_name']} ${widget.partner['last_name']}'),
-        backgroundColor: const Color(0xFF1E3D54),
+        backgroundColor: const Color(0xFF16283C),
         foregroundColor: Colors.white,
       ),
       body: _isLoading
@@ -145,7 +145,7 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1E3D54),
+                color: Color(0xFF16283C),
               ),
             ),
             const SizedBox(height: 12),
@@ -153,11 +153,11 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
               children: [
                 CircleAvatar(
                   radius: 25,
-                  backgroundColor: const Color(0xFF1E3D54).withOpacity(0.1),
+                  backgroundColor: const Color(0xFF16283C).withOpacity(0.1),
                   child: Text(
                     '${widget.partner['first_name']?[0] ?? ''}${widget.partner['last_name']?[0] ?? ''}',
                     style: const TextStyle(
-                      color: Color(0xFF1E3D54),
+                      color: Color(0xFF16283C),
                       fontWeight: FontWeight.w700,
                       fontSize: 18,
                     ),
@@ -215,7 +215,7 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1E3D54),
+                color: Color(0xFF16283C),
               ),
             ),
             const SizedBox(height: 16),
@@ -274,8 +274,8 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
           child: OutlinedButton(
             onPressed: () => Navigator.pop(context),
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF1E3D54),
-              side: const BorderSide(color: Color(0xFF1E3D54)),
+              foregroundColor: const Color(0xFF16283C),
+              side: const BorderSide(color: Color(0xFF16283C)),
               padding: const EdgeInsets.symmetric(vertical: 12),
             ),
             child: const Text('Annuler'),
@@ -286,7 +286,7 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
           child: ElevatedButton(
             onPressed: _isLoading ? null : _assignMission,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E3D54),
+              backgroundColor: const Color(0xFF16283C),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
             ),
@@ -350,7 +350,7 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Mission proposée avec succès !'),
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF2E7D5B),
             ),
           );
           Navigator.pop(context, true);
@@ -499,11 +499,11 @@ class _MissionAssignmentPageState extends State<MissionAssignmentPage> {
       case 'critique':
         return Colors.red;
       case 'élevée':
-        return Colors.orange;
+        return const Color(0xFFB07B2E);
       case 'moyenne':
-        return Colors.blue;
+        return const Color(0xFF3E5C76);
       case 'faible':
-        return Colors.green;
+        return const Color(0xFF2E7D5B);
       default:
         return Colors.grey;
     }

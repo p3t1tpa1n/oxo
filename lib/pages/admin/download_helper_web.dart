@@ -34,7 +34,7 @@ class DownloadHelper {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('📥 $fileName téléchargé dans votre dossier Téléchargements'),
-          backgroundColor: Colors.green,
+          backgroundColor: const Color(0xFF2E7D5B),
           duration: const Duration(seconds: 3),
         ),
       );
@@ -51,7 +51,7 @@ class DownloadHelper {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('📂 $fileName ouvert dans un nouvel onglet\nClic droit > "Enregistrer sous..." pour télécharger'),
-            backgroundColor: Colors.blue,
+            backgroundColor: const Color(0xFF3E5C76),
             duration: const Duration(seconds: 6),
           ),
         );

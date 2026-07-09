@@ -124,9 +124,9 @@ Expanded(
           color: Colors.white,
           child: TabBar(
             controller: _tabController,
-            labelColor: const Color(0xFF1E3D54),
+            labelColor: const Color(0xFF16283C),
             unselectedLabelColor: Colors.grey[600],
-            indicatorColor: const Color(0xFF1E3D54),
+            indicatorColor: const Color(0xFF16283C),
             tabs: [
               Tab(
                 child: Row(
@@ -179,7 +179,7 @@ Expanded(
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1E3D54),
+                color: Color(0xFF16283C),
               ),
             ),
             const SizedBox(height: 16),
@@ -193,7 +193,7 @@ Expanded(
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1E3D54),
+                color: Color(0xFF16283C),
               ),
             ),
             const SizedBox(height: 16),
@@ -234,7 +234,7 @@ Expanded(
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1E3D54),
+                color: Color(0xFF16283C),
               ),
             ),
             const SizedBox(height: 16),
@@ -248,7 +248,7 @@ Expanded(
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1E3D54),
+                color: Color(0xFF16283C),
               ),
             ),
             const SizedBox(height: 16),
@@ -296,7 +296,7 @@ Expanded(
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E3D54),
+                      color: Color(0xFF16283C),
                     ),
                   ),
                 ),
@@ -329,27 +329,27 @@ Expanded(
             Row(
               children: [
                 if (proposal['estimated_budget'] != null) ...[
-                  const Icon(Icons.euro, size: 16, color: Colors.green),
+                  const Icon(Icons.euro, size: 16, color: const Color(0xFF2E7D5B)),
                   const SizedBox(width: 4),
                   Text(
                     '${proposal['estimated_budget']}€',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                      color: const Color(0xFF2E7D5B),
                     ),
                   ),
                   const SizedBox(width: 16),
                 ],
                 if (proposal['estimated_days'] != null) ...[
-                  const Icon(Icons.access_time, size: 16, color: Colors.blue),
+                  const Icon(Icons.access_time, size: 16, color: const Color(0xFF3E5C76)),
                   const SizedBox(width: 4),
                   Text(
                     '${proposal['estimated_days']}j',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: const Color(0xFF3E5C76),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -402,7 +402,7 @@ Expanded(
                       icon: const Icon(Icons.check),
                       label: const Text('Approuver'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: const Color(0xFF2E7D5B),
                         foregroundColor: Colors.white,
                       ),
                     ),
@@ -450,7 +450,7 @@ Expanded(
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E3D54),
+                      color: Color(0xFF16283C),
                     ),
                   ),
                 ),
@@ -477,14 +477,14 @@ Expanded(
             const SizedBox(height: 12),
                           Row(
                 children: [
-                  const Icon(Icons.schedule, size: 16, color: Colors.orange),
+                  const Icon(Icons.schedule, size: 16, color: const Color(0xFFB07B2E)),
                   const SizedBox(width: 4),
                   Text(
                     '${extension['days_requested']}j supplémentaires demandés',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.orange,
+                      color: const Color(0xFFB07B2E),
                     ),
                   ),
                 ],
@@ -550,7 +550,7 @@ Expanded(
                       icon: const Icon(Icons.check),
                       label: const Text('Approuver'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: const Color(0xFF2E7D5B),
                         foregroundColor: Colors.white,
                       ),
                     ),
@@ -610,7 +610,7 @@ Expanded(
                 await _updateProposalStatus(proposal['id'], action, messageController.text);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: action == 'approved' ? Colors.green : Colors.red,
+                backgroundColor: action == 'approved' ? const Color(0xFF2E7D5B) : Colors.red,
                 foregroundColor: Colors.white,
               ),
               child: Text(action == 'approved' ? 'Approuver' : 'Rejeter'),
@@ -655,7 +655,7 @@ Expanded(
                 await _updateExtensionStatus(extension['id'], action, messageController.text);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: action == 'approved' ? Colors.green : Colors.red,
+                backgroundColor: action == 'approved' ? const Color(0xFF2E7D5B) : Colors.red,
                 foregroundColor: Colors.white,
               ),
               child: Text(action == 'approved' ? 'Approuver' : 'Rejeter'),
@@ -726,14 +726,14 @@ Expanded(
             children: [
               Row(
                 children: [
-                  const Icon(Icons.attach_file, size: 16, color: Colors.blue),
+                  const Icon(Icons.attach_file, size: 16, color: const Color(0xFF3E5C76)),
                   const SizedBox(width: 8),
                   Text(
                     '${documents.length} document(s) joint(s)',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: const Color(0xFF3E5C76),
                     ),
                   ),
                 ],
@@ -864,7 +864,7 @@ Expanded(
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$fileName téléchargé avec succès!'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
             duration: const Duration(seconds: 3),
           ),
         );
@@ -903,7 +903,7 @@ Expanded(
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Proposition approuvée et projet créé avec succès ! ID: $projectId'),
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF2E7D5B),
             ),
           );
         }
@@ -917,7 +917,7 @@ Expanded(
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Proposition rejetée avec succès'),
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF2E7D5B),
             ),
           );
         }
@@ -952,7 +952,7 @@ Expanded(
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Extension approuvée et temps ajouté au projet avec succès'),
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF2E7D5B),
             ),
           );
         }
@@ -966,7 +966,7 @@ Expanded(
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Demande d\'extension rejetée avec succès'),
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF2E7D5B),
             ),
           );
         }
@@ -990,13 +990,13 @@ Expanded(
   Color _getStatusColor(String? status) {
     switch (status) {
       case 'pending':
-        return Colors.orange;
+        return const Color(0xFFB07B2E);
       case 'approved':
-        return Colors.green;
+        return const Color(0xFF2E7D5B);
       case 'rejected':
         return Colors.red;
       case 'in_review':
-        return Colors.blue;
+        return const Color(0xFF3E5C76);
       default:
         return Colors.grey;
     }

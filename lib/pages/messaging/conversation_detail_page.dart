@@ -142,7 +142,7 @@ class _ConversationDetailPageState extends State<ConversationDetailPage> {
         title: Row(
           children: [
             CircleAvatar(
-              backgroundColor: const Color(0xFF1E3D54),
+              backgroundColor: const Color(0xFF16283C),
               child: widget.isGroup
                   ? const Icon(Icons.group, color: Colors.white)
                   : const Icon(Icons.person, color: Colors.white),
@@ -171,7 +171,7 @@ class _ConversationDetailPageState extends State<ConversationDetailPage> {
             ),
           ],
         ),
-        backgroundColor: const Color(0xFF1E3D54),
+        backgroundColor: const Color(0xFF16283C),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -288,7 +288,7 @@ class _ConversationDetailPageState extends State<ConversationDetailPage> {
                 const SizedBox(width: 8),
                 Container(
                   decoration: const BoxDecoration(
-                    color: Color(0xFF1E3D54),
+                    color: Color(0xFF16283C),
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
@@ -335,7 +335,7 @@ class _ConversationDetailPageState extends State<ConversationDetailPage> {
             // Avatar pour les autres utilisateurs
             CircleAvatar(
               radius: 16,
-              backgroundColor: const Color(0xFF1E3D54).withOpacity(0.7),
+              backgroundColor: const Color(0xFF16283C).withOpacity(0.7),
               child: const Icon(
                 Icons.person,
                 size: 16,
@@ -354,7 +354,7 @@ class _ConversationDetailPageState extends State<ConversationDetailPage> {
               ),
               decoration: BoxDecoration(
                 color: isCurrentUser
-                    ? const Color(0xFF1E3D54)
+                    ? const Color(0xFF16283C)
                     : Colors.grey[200],
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -387,7 +387,7 @@ class _ConversationDetailPageState extends State<ConversationDetailPage> {
             // Avatar pour l'utilisateur courant
             CircleAvatar(
               radius: 16,
-              backgroundColor: Colors.blue,
+              backgroundColor: const Color(0xFF3E5C76),
               child: const Icon(
                 Icons.person,
                 size: 16,

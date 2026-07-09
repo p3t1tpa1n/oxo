@@ -20,7 +20,7 @@ class StandardDialogs {
         title: Row(
           children: [
             if (icon != null) ...[
-              Icon(icon, color: confirmColor ?? const Color(0xFF1784af)),
+              Icon(icon, color: confirmColor ?? const Color(0xFF3E5C76)),
               const SizedBox(width: 12),
             ],
             Expanded(child: Text(title)),
@@ -35,7 +35,7 @@ class StandardDialogs {
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: confirmColor ?? const Color(0xFF1784af),
+              backgroundColor: confirmColor ?? const Color(0xFF3E5C76),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -73,7 +73,7 @@ class StandardDialogs {
     required String message,
     String buttonText = 'OK',
     IconData icon = Icons.info_outline,
-    Color iconColor = const Color(0xFF1784af),
+    Color iconColor = const Color(0xFF3E5C76),
   }) {
     return showDialog<void>(
       context: context,
@@ -132,7 +132,7 @@ class StandardDialogs {
                     tempSelected = value;
                   });
                 },
-                activeColor: const Color(0xFF1784af),
+                activeColor: const Color(0xFF3E5C76),
               )).toList(),
             ),
           ),
@@ -144,7 +144,7 @@ class StandardDialogs {
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(tempSelected),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1784af),
+                backgroundColor: const Color(0xFF3E5C76),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
@@ -233,7 +233,7 @@ class StandardDialogs {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1784af),
+                backgroundColor: const Color(0xFF3E5C76),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
@@ -352,7 +352,7 @@ class StandardMessages {
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: const Color(0xFF2E7D5B),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
@@ -390,7 +390,7 @@ class StandardMessages {
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: const Color(0xFF1784af),
+        backgroundColor: const Color(0xFF3E5C76),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
@@ -409,7 +409,7 @@ class StandardMessages {
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: Colors.orange,
+        backgroundColor: const Color(0xFFB07B2E),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),

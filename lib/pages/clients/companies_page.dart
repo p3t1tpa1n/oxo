@@ -144,7 +144,7 @@ class _CompaniesPageState extends State<CompaniesPage> with SingleTickerProvider
                   _showGroupForm();
                 }
               },
-              backgroundColor: const Color(0xFF2A4B63),
+              backgroundColor: const Color(0xFF16283C),
               child: const Icon(Icons.add),
             ),
           ),
@@ -173,7 +173,7 @@ Expanded(
             _showGroupForm();
           }
         },
-        backgroundColor: const Color(0xFF2A4B63),
+        backgroundColor: const Color(0xFF16283C),
         tooltip: _selectedTab == 0 ? 'Ajouter une société' : 'Ajouter un groupe',
         child: const Icon(Icons.add),
       ),
@@ -188,9 +188,9 @@ Expanded(
           color: Colors.white,
           child: TabBar(
             controller: _tabController,
-            labelColor: const Color(0xFF2A4B63),
+            labelColor: const Color(0xFF16283C),
             unselectedLabelColor: Colors.grey,
-            indicatorColor: const Color(0xFF2A4B63),
+            indicatorColor: const Color(0xFF16283C),
             tabs: const [
               Tab(text: 'Sociétés', icon: Icon(Icons.business)),
               Tab(text: 'Groupes d\'investissement', icon: Icon(Icons.account_balance)),
@@ -264,7 +264,7 @@ Expanded(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: const Color(0xFF2A4B63),
+          backgroundColor: const Color(0xFF16283C),
           child: Text(
             company.name.substring(0, 1).toUpperCase(),
             style: const TextStyle(color: Colors.white),
@@ -300,7 +300,7 @@ Expanded(
               child: Text(
                 company.active ? 'Actif' : 'Inactif',
                 style: TextStyle(
-                  color: company.active ? Colors.green : Colors.grey,
+                  color: company.active ? const Color(0xFF2E7D5B) : Colors.grey,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
@@ -357,7 +357,7 @@ Expanded(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: const Color(0xFF2A4B63),
+          backgroundColor: const Color(0xFF16283C),
           child: const Icon(Icons.account_balance, color: Colors.white, size: 20),
         ),
         title: Text(
@@ -386,7 +386,7 @@ Expanded(
               child: Text(
                 group.active ? 'Actif' : 'Inactif',
                 style: TextStyle(
-                  color: group.active ? Colors.green : Colors.grey,
+                  color: group.active ? const Color(0xFF2E7D5B) : Colors.grey,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
@@ -537,7 +537,7 @@ Expanded(
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2A4B63),
+                backgroundColor: const Color(0xFF16283C),
               ),
               child: Text(company == null ? 'Ajouter' : 'Modifier'),
             ),
@@ -625,7 +625,7 @@ Expanded(
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2A4B63),
+              backgroundColor: const Color(0xFF16283C),
             ),
             child: Text(group == null ? 'Ajouter' : 'Modifier'),
           ),
@@ -670,7 +670,7 @@ Expanded(
       await _loadData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Société enregistrée'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('✅ Société enregistrée'), backgroundColor: const Color(0xFF2E7D5B)),
         );
       }
     } catch (e) {
@@ -711,7 +711,7 @@ Expanded(
       await _loadData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Groupe enregistré'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('✅ Groupe enregistré'), backgroundColor: const Color(0xFF2E7D5B)),
         );
       }
     } catch (e) {
@@ -749,7 +749,7 @@ Expanded(
         await _loadData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('✅ Société supprimée'), backgroundColor: Colors.green),
+            const SnackBar(content: Text('✅ Société supprimée'), backgroundColor: const Color(0xFF2E7D5B)),
           );
         }
       } catch (e) {
@@ -793,7 +793,7 @@ Expanded(
         await _loadData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('✅ Groupe supprimé'), backgroundColor: Colors.green),
+            const SnackBar(content: Text('✅ Groupe supprimé'), backgroundColor: const Color(0xFF2E7D5B)),
           );
         }
       } catch (e) {

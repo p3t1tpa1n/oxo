@@ -16,7 +16,7 @@ class PartnerDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profil Partenaire'),
-        backgroundColor: const Color(0xFF1E3D54),
+        backgroundColor: const Color(0xFF16283C),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -80,7 +80,7 @@ class PartnerDetailPage extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF1E3D54).withOpacity(0.05),
+            const Color(0xFF16283C).withOpacity(0.05),
             Colors.white,
           ],
         ),
@@ -93,11 +93,11 @@ class PartnerDetailPage extends StatelessWidget {
           // Avatar
           CircleAvatar(
             radius: 50,
-            backgroundColor: const Color(0xFF1E3D54).withOpacity(0.1),
+            backgroundColor: const Color(0xFF16283C).withOpacity(0.1),
             child: Text(
               '${firstName.isNotEmpty ? firstName[0] : ''}${lastName.isNotEmpty ? lastName[0] : ''}',
               style: const TextStyle(
-                color: Color(0xFF1E3D54),
+                color: Color(0xFF16283C),
                 fontWeight: FontWeight.w700,
                 fontSize: 32,
               ),
@@ -161,7 +161,7 @@ class PartnerDetailPage extends StatelessWidget {
       children: [
         Icon(
           icon,
-          color: const Color(0xFF1E3D54),
+          color: const Color(0xFF16283C),
           size: 24,
         ),
         const SizedBox(height: 8),
@@ -331,7 +331,7 @@ class PartnerDetailPage extends StatelessWidget {
                 icon: const Icon(Icons.assignment),
                 label: const Text('Assigner une mission'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E3D54),
+                  backgroundColor: const Color(0xFF16283C),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
@@ -344,8 +344,8 @@ class PartnerDetailPage extends StatelessWidget {
                 icon: const Icon(Icons.message),
                 label: const Text('Envoyer un message'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF1E3D54),
-                  side: const BorderSide(color: Color(0xFF1E3D54)),
+                  foregroundColor: const Color(0xFF16283C),
+                  side: const BorderSide(color: Color(0xFF16283C)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -360,8 +360,8 @@ class PartnerDetailPage extends StatelessWidget {
             icon: const Icon(Icons.calendar_today),
             label: const Text('Voir les disponibilités'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF1E3D54),
-              side: const BorderSide(color: Color(0xFF1E3D54)),
+              foregroundColor: const Color(0xFF16283C),
+              side: const BorderSide(color: Color(0xFF16283C)),
               padding: const EdgeInsets.symmetric(vertical: 12),
             ),
           ),
@@ -381,7 +381,7 @@ class PartnerDetailPage extends StatelessWidget {
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF1E3D54),
+              color: Color(0xFF16283C),
             ),
           ),
           const SizedBox(height: 12),
@@ -435,16 +435,16 @@ class PartnerDetailPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E3D54).withOpacity(0.1),
+        color: const Color(0xFF16283C).withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF1E3D54).withOpacity(0.3),
+          color: const Color(0xFF16283C).withOpacity(0.3),
         ),
       ),
       child: Text(
         text,
         style: const TextStyle(
-          color: Color(0xFF1E3D54),
+          color: Color(0xFF16283C),
           fontWeight: FontWeight.w500,
           fontSize: 12,
         ),
@@ -461,7 +461,7 @@ class PartnerDetailPage extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: const BoxDecoration(
-              color: Color(0xFF1E3D54),
+              color: Color(0xFF16283C),
               shape: BoxShape.circle,
             ),
           ),
@@ -507,7 +507,7 @@ class PartnerDetailPage extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Mission assignée avec succès !'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
       }

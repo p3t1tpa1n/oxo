@@ -285,7 +285,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
               onPressed: _showCreateMissionDialog,
               icon: const Icon(Icons.add),
               label: const Text('Nouvelle Mission'),
-              backgroundColor: const Color(0xFF2A4B63),
+              backgroundColor: const Color(0xFF16283C),
             )
           : null,
     );
@@ -324,7 +324,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                   child: TextField(
                     decoration: InputDecoration(
                       hintText: 'Rechercher une mission...',
-                      prefixIcon: const Icon(Icons.search, color: Color(0xFF2A4B63)),
+                      prefixIcon: const Icon(Icons.search, color: Color(0xFF16283C)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(color: Colors.grey[300]!),
@@ -335,7 +335,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF2A4B63)),
+                        borderSide: const BorderSide(color: Color(0xFF16283C)),
                       ),
                     ),
                     onChanged: (value) {
@@ -531,7 +531,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF2A4B63),
+                            color: Color(0xFF16283C),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -710,7 +710,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF2A4B63),
+                color: Color(0xFF16283C),
               ),
             ),
             const SizedBox(height: 8),
@@ -749,7 +749,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                   icon: const Icon(Icons.check),
                   label: const Text('Accepter'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: const Color(0xFF2E7D5B),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   ),
@@ -788,7 +788,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ Mission acceptée avec succès'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
         _loadData();
@@ -861,7 +861,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Mission refusée'),
-            backgroundColor: Colors.orange,
+            backgroundColor: const Color(0xFFB07B2E),
           ),
         );
         _loadData();
@@ -894,7 +894,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
           children: [
             IconButton(
               onPressed: _backToGrid,
-              icon: const Icon(Icons.arrow_back, color: Color(0xFF2A4B63)),
+              icon: const Icon(Icons.arrow_back, color: Color(0xFF16283C)),
               tooltip: 'Retour aux missions',
             ),
             const SizedBox(width: 16),
@@ -907,7 +907,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2A4B63),
+                      color: Color(0xFF16283C),
                     ),
                   ),
                   if (mission['description'] != null) ...[
@@ -943,7 +943,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
             const SizedBox(width: 16),
             PopupMenuButton<String>(
               onSelected: (value) => _handleMissionAction(mission, value),
-              icon: const Icon(Icons.more_vert, color: Color(0xFF2A4B63)),
+              icon: const Icon(Icons.more_vert, color: Color(0xFF16283C)),
               itemBuilder: (context) => [
                 const PopupMenuItem(value: 'edit', child: Text('Modifier la mission')),
                 const PopupMenuItem(value: 'delete', child: Text('Supprimer la mission')),
@@ -1017,7 +1017,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
         // Nom du partenaire en plus grand et visible
         Row(
           children: [
-            Icon(Icons.person, size: 18, color: const Color(0xFF2A4B63)),
+            Icon(Icons.person, size: 18, color: const Color(0xFF16283C)),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -1025,7 +1025,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF2A4B63),
+                  color: Color(0xFF16283C),
                 ),
               ),
             ),
@@ -1052,14 +1052,14 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: const Color(0xFF2A4B63)),
+              Icon(icon, size: 18, color: const Color(0xFF16283C)),
               const SizedBox(width: 8),
               Text(
                 title,
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF2A4B63),
+                  color: Color(0xFF16283C),
                 ),
               ),
             ],
@@ -1155,7 +1155,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     
     final Color barColor = isLate 
         ? const Color(0xFFD32F2F)
-        : const Color(0xFF2A4B63);
+        : const Color(0xFF16283C);
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1177,7 +1177,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isLate ? const Color(0xFFD32F2F) : const Color(0xFF2A4B63),
+                color: isLate ? const Color(0xFFD32F2F) : const Color(0xFF16283C),
               ),
             ),
           ],
@@ -1269,7 +1269,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF2A4B63),
+              color: Color(0xFF16283C),
             ),
             textAlign: TextAlign.right,
           ),
@@ -1594,7 +1594,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2A4B63),
+                backgroundColor: const Color(0xFF16283C),
               ),
               child: const Text('Enregistrer'),
             ),

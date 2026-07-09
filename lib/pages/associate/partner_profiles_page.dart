@@ -111,7 +111,7 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profils Partenaires'),
-        backgroundColor: const Color(0xFF1E3D54),
+        backgroundColor: const Color(0xFF16283C),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -126,7 +126,7 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
         onPressed: () {
           // Action pour ajouter un nouveau partenaire
         },
-        backgroundColor: const Color(0xFF1E3D54),
+        backgroundColor: const Color(0xFF16283C),
         child: const Icon(Icons.add),
       ),
     );
@@ -178,8 +178,8 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
                       });
                       _filterPartners();
                     },
-                    selectedColor: const Color(0xFF1E3D54).withOpacity(0.2),
-                    checkmarkColor: const Color(0xFF1E3D54),
+                    selectedColor: const Color(0xFF16283C).withOpacity(0.2),
+                    checkmarkColor: const Color(0xFF16283C),
                   ),
                 );
               }).toList(),
@@ -261,11 +261,11 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
                   // Avatar
                   CircleAvatar(
                     radius: 25,
-                    backgroundColor: const Color(0xFF1E3D54).withOpacity(0.1),
+                    backgroundColor: const Color(0xFF16283C).withOpacity(0.1),
                     child: Text(
                       '${firstName.isNotEmpty ? firstName[0] : ''}${lastName.isNotEmpty ? lastName[0] : ''}',
                       style: const TextStyle(
-                        color: Color(0xFF1E3D54),
+                        color: Color(0xFF16283C),
                         fontWeight: FontWeight.w600,
                         fontSize: 18,
                       ),
@@ -305,13 +305,13 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: partner['questionnaire_completed'] == true 
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.orange.withOpacity(0.1),
+                          ? const Color(0xFF2E7D5B).withOpacity(0.1)
+                          : const Color(0xFFB07B2E).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: partner['questionnaire_completed'] == true 
-                            ? Colors.green
-                            : Colors.orange,
+                            ? const Color(0xFF2E7D5B)
+                            : const Color(0xFFB07B2E),
                         width: 1,
                       ),
                     ),
@@ -365,7 +365,7 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
                     icon: const Icon(Icons.assignment, size: 16),
                     label: const Text('Proposer mission'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E3D54),
+                      backgroundColor: const Color(0xFF16283C),
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -398,16 +398,16 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E3D54).withOpacity(0.1),
+                color: const Color(0xFF16283C).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: const Color(0xFF1E3D54).withOpacity(0.3),
+                  color: const Color(0xFF16283C).withOpacity(0.3),
                 ),
               ),
               child: Text(
                 tag.toString(),
                 style: const TextStyle(
-                  color: Color(0xFF1E3D54),
+                  color: Color(0xFF16283C),
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
@@ -447,7 +447,7 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Aucune mission à proposer disponible'),
-            backgroundColor: Colors.orange,
+            backgroundColor: const Color(0xFFB07B2E),
           ),
         );
       }
@@ -562,7 +562,7 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
                       }
                     },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1E3D54),
+                backgroundColor: const Color(0xFF16283C),
                 foregroundColor: Colors.white,
               ),
               child: const Text('Proposer'),
@@ -577,7 +577,7 @@ class _PartnerProfilesPageState extends State<PartnerProfilesPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: const Color(0xFF2E7D5B),
       ),
     );
   }

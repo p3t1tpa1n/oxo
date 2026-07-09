@@ -64,7 +64,7 @@ class _PartnerAvailabilityPageState extends State<PartnerAvailabilityPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Disponibilités - ${widget.partner['first_name']} ${widget.partner['last_name']}'),
-        backgroundColor: const Color(0xFF1E3D54),
+        backgroundColor: const Color(0xFF16283C),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -199,7 +199,7 @@ class _PartnerAvailabilityPageState extends State<PartnerAvailabilityPage> {
             icon: const Icon(Icons.send),
             label: const Text('Demander les disponibilités'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E3D54),
+              backgroundColor: const Color(0xFF16283C),
               foregroundColor: Colors.white,
             ),
           ),
@@ -235,7 +235,7 @@ class _PartnerAvailabilityPageState extends State<PartnerAvailabilityPage> {
               width: 12,
               height: 12,
               decoration: BoxDecoration(
-                color: isAvailable ? Colors.green : Colors.red,
+                color: isAvailable ? const Color(0xFF2E7D5B) : Colors.red,
                 shape: BoxShape.circle,
               ),
             ),
@@ -280,10 +280,10 @@ class _PartnerAvailabilityPageState extends State<PartnerAvailabilityPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: isAvailable ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                color: isAvailable ? const Color(0xFF2E7D5B).withOpacity(0.1) : Colors.red.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isAvailable ? Colors.green : Colors.red,
+                  color: isAvailable ? const Color(0xFF2E7D5B) : Colors.red,
                   width: 1,
                 ),
               ),
@@ -346,7 +346,7 @@ class _PartnerAvailabilityPageState extends State<PartnerAvailabilityPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Demande envoyée au partenaire'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
       }

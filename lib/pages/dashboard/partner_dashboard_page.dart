@@ -287,7 +287,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
             extended: true,
             minWidth: 200,
             minExtendedWidth: 200,
-            backgroundColor: const Color(0xFF1E3D54),
+            backgroundColor: const Color(0xFF16283C),
             selectedIndex: _selectedIndex,
             onDestinationSelected: (int index) {
               if (index == 1) {
@@ -430,7 +430,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
           FloatingActionButton(
             heroTag: 'partner_dashboard_fab',
             onPressed: _showCreateTaskDialog,
-            backgroundColor: const Color(0xFF1E3D54),
+            backgroundColor: const Color(0xFF16283C),
             child: const Icon(Icons.add),
           ),
         ],
@@ -477,7 +477,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                 child: _buildStatCard(
                   'Tâches en cours',
                   '${_tasks.where((t) => t['status'] == 'in_progress').length}',
-                  Colors.blue,
+                  const Color(0xFF3E5C76),
                   Icons.trending_up,
                 ),
               ),
@@ -486,7 +486,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                 child: _buildStatCard(
                   'Tâches terminées',
                   '${_tasks.where((t) => t['status'] == 'done').length}',
-                  Colors.green,
+                  const Color(0xFF2E7D5B),
                   Icons.check_circle_outline,
                 ),
               ),
@@ -495,7 +495,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                 child: _buildStatCard(
                   'Taux d\'achèvement',
                   '${(_statistics['completion_rate'] ?? 0).toStringAsFixed(1)}%',
-                  Colors.orange,
+                  const Color(0xFFB07B2E),
                   Icons.pie_chart_outline,
                 ),
               ),
@@ -742,7 +742,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                       icon: const Icon(Icons.pause),
                       label: const Text('Pause'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
+                        backgroundColor: const Color(0xFFB07B2E),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                     ),
@@ -752,7 +752,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                       icon: const Icon(Icons.play_arrow),
                       label: const Text('Reprendre'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: const Color(0xFF2E7D5B),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                     ),
@@ -762,7 +762,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                   ElevatedButton(
                     onPressed: () => _startTask(taskId),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E3D54),
+                      backgroundColor: const Color(0xFF16283C),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                     child: const Text('Commencer'),
@@ -792,9 +792,9 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'done':
-        return Colors.green;
+        return const Color(0xFF2E7D5B);
       case 'in_progress':
-        return Colors.blue;
+        return const Color(0xFF3E5C76);
       case 'todo':
         return Colors.grey;
       default:
@@ -836,7 +836,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Tâche démarrée'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
       }
@@ -907,7 +907,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Tâche terminée et temps enregistré'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
       }
@@ -950,7 +950,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Tâche créée avec succès'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
       }
@@ -1073,7 +1073,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
               Navigator.of(context).pop();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E3D54),
+              backgroundColor: const Color(0xFF16283C),
             ),
             child: const Text('Créer'),
           ),
@@ -1184,7 +1184,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.calendar_month, color: Color(0xFF1784af)),
+                const Icon(Icons.calendar_month, color: Color(0xFF3E5C76)),
                 const SizedBox(width: 8),
                 const Text(
                   'Calendrier des disponibilités',
@@ -1223,7 +1223,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                         color: _getColorForDate(day),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: _isAvailableOnDate(day) ? Colors.green : Colors.red,
+                          color: _isAvailableOnDate(day) ? const Color(0xFF2E7D5B) : Colors.red,
                           width: 1,
                         ),
                       ),
@@ -1245,7 +1245,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                         color: _getColorForDate(day),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: const Color(0xFF1784af),
+                          color: const Color(0xFF3E5C76),
                           width: 3,
                         ),
                       ),
@@ -1253,7 +1253,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
                         child: Text(
                           '${day.day}',
                           style: const TextStyle(
-                            color: Color(0xFF1784af),
+                            color: Color(0xFF3E5C76),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -1301,7 +1301,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
               children: [
                 Icon(
                   isAvailable ? Icons.check_circle : Icons.cancel,
-                  color: isAvailable ? Colors.green : Colors.red,
+                  color: isAvailable ? const Color(0xFF2E7D5B) : Colors.red,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -1321,7 +1321,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
               icon: const Icon(Icons.edit),
               label: const Text('Modifier'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1784af),
+                backgroundColor: const Color(0xFF3E5C76),
                 foregroundColor: Colors.white,
               ),
             ),
@@ -1526,7 +1526,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Disponibilité mise à jour avec succès'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
         _loadAvailabilities();
@@ -1626,7 +1626,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Période définie avec succès'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
         _loadAvailabilities();
@@ -1658,7 +1658,7 @@ class _PartnerDashboardPageState extends State<PartnerDashboardPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Disponibilités par défaut créées'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
         _loadAvailabilities();

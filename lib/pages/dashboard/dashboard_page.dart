@@ -122,7 +122,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Statut mis à jour vers: ${_getStatusDisplayName(newProgressStatus)}'),
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF2E7D5B),
             ),
           );
         }
@@ -220,7 +220,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       IconButton(
                         icon: Icon(
                           isCreatingNewProject ? Icons.close : Icons.add_circle,
-                          color: const Color(0xFF1784af),
+                          color: const Color(0xFF3E5C76),
                         ),
                         onPressed: () {
                           setState(() {
@@ -414,7 +414,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1784af),
+                  backgroundColor: const Color(0xFF3E5C76),
                 ),
                 child: const Text(
                   'Ajouter',
@@ -449,13 +449,13 @@ class _DashboardPageState extends State<DashboardPage> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             MessagingFloatingButton(
-              backgroundColor: const Color(0xFF1784af),
+              backgroundColor: const Color(0xFF3E5C76),
             ),
             const SizedBox(height: 16),
             FloatingActionButton(
               heroTag: 'dashboard_fab',
               onPressed: _showAddMissionDialog,
-              backgroundColor: const Color(0xFF1784af),
+              backgroundColor: const Color(0xFF3E5C76),
               child: const Icon(Icons.add),
             ),
           ],
@@ -497,7 +497,7 @@ class _DashboardPageState extends State<DashboardPage> {
       case 'fait':
         return const Color(0xFF4CAF50);
       default:
-        return const Color(0xFF1784af);
+        return const Color(0xFF3E5C76);
     }
   }
 
@@ -550,7 +550,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF122b35),
+                    color: Color(0xFF1A2530),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -611,7 +611,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   sortAscending: _sortAscending,
                   headingTextStyle: const TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF122b35),
+                    color: Color(0xFF1A2530),
                     fontSize: 13,
                   ),
                   columns: [
@@ -775,7 +775,7 @@ class CalendarMiniWidgetState extends State<CalendarMiniWidget> {
                     minWidth: 36,
                     maxWidth: 36,
                   ),
-                  icon: const Icon(Icons.calendar_month, color: Color(0xFF122b35), size: 20),
+                  icon: const Icon(Icons.calendar_month, color: Color(0xFF1A2530), size: 20),
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -791,7 +791,7 @@ class CalendarMiniWidgetState extends State<CalendarMiniWidget> {
                     style: TextStyle(
                         fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF122b35),
+                      color: Color(0xFF1A2530),
                       ),
                     ),
                   ),
@@ -1102,7 +1102,7 @@ class _TimesheetDialogState extends State<TimesheetDialog> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1784af),
+                backgroundColor: const Color(0xFF3E5C76),
               ),
               child: const Text(
                 'Enregistrer',

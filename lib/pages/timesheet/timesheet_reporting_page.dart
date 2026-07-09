@@ -103,9 +103,9 @@ Expanded(
                 _buildHeader(),
                 TabBar(
                   controller: _tabController,
-                  labelColor: const Color(0xFF2A4B63),
+                  labelColor: const Color(0xFF16283C),
                   unselectedLabelColor: Colors.grey,
-                  indicatorColor: const Color(0xFF2A4B63),
+                  indicatorColor: const Color(0xFF16283C),
                   tabs: const [
                     Tab(text: 'Par client', icon: Icon(Icons.business)),
                     Tab(text: 'Par partenaire', icon: Icon(Icons.person)),
@@ -142,14 +142,14 @@ Expanded(
 
     return Container(
       padding: const EdgeInsets.all(24),
-      color: const Color(0xFF2A4B63).withOpacity(0.05),
+      color: const Color(0xFF16283C).withOpacity(0.05),
       child: Column(
         children: [
           Row(
             children: [
               IconButton(
                 onPressed: () => _changeMonth(-1),
-                icon: const Icon(Icons.chevron_left, color: Color(0xFF2A4B63)),
+                icon: const Icon(Icons.chevron_left, color: Color(0xFF16283C)),
                 tooltip: 'Mois précédent',
               ),
               const SizedBox(width: 16),
@@ -159,7 +159,7 @@ Expanded(
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF2A4B63),
+                    color: Color(0xFF16283C),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -167,7 +167,7 @@ Expanded(
               const SizedBox(width: 16),
               IconButton(
                 onPressed: () => _changeMonth(1),
-                icon: const Icon(Icons.chevron_right, color: Color(0xFF2A4B63)),
+                icon: const Icon(Icons.chevron_right, color: Color(0xFF16283C)),
                 tooltip: 'Mois suivant',
               ),
               const SizedBox(width: 32),
@@ -186,7 +186,7 @@ Expanded(
                 icon: const Icon(Icons.table_chart),
                 label: const Text('Export Excel'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: const Color(0xFF2E7D5B),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
               ),
@@ -195,13 +195,13 @@ Expanded(
           const SizedBox(height: 24),
           Row(
             children: [
-              Expanded(child: _buildSummaryCard('Total jours', TimesheetService.formatDays(totalDays), Icons.access_time, Colors.blue)),
+              Expanded(child: _buildSummaryCard('Total jours', TimesheetService.formatDays(totalDays), Icons.access_time, const Color(0xFF3E5C76))),
               const SizedBox(width: 16),
-              Expanded(child: _buildSummaryCard('Total montant', TimesheetService.formatAmount(totalAmount), Icons.euro, Colors.green)),
+              Expanded(child: _buildSummaryCard('Total montant', TimesheetService.formatAmount(totalAmount), Icons.euro, const Color(0xFF2E7D5B))),
               const SizedBox(width: 16),
-              Expanded(child: _buildSummaryCard('Clients actifs', '${_clientReports.length}', Icons.business, Colors.orange)),
+              Expanded(child: _buildSummaryCard('Clients actifs', '${_clientReports.length}', Icons.business, const Color(0xFFB07B2E))),
               const SizedBox(width: 16),
-              Expanded(child: _buildSummaryCard('Partenaires actifs', '${_operatorReports.length}', Icons.person, Colors.purple)),
+              Expanded(child: _buildSummaryCard('Partenaires actifs', '${_operatorReports.length}', Icons.person, const Color(0xFF5B5F97))),
             ],
           ),
         ],
@@ -393,7 +393,7 @@ Expanded(
             scrollDirection: Axis.vertical,
             child: DataTable(
               columnSpacing: 16,
-              headingRowColor: MaterialStateProperty.all(const Color(0xFF2A4B63).withOpacity(0.1)),
+              headingRowColor: MaterialStateProperty.all(const Color(0xFF16283C).withOpacity(0.1)),
               columns: columns,
               rows: rows,
             ),
@@ -421,9 +421,9 @@ Expanded(
       case 'draft':
         return Colors.grey;
       case 'submitted':
-        return Colors.blue;
+        return const Color(0xFF3E5C76);
       case 'approved':
-        return Colors.green;
+        return const Color(0xFF2E7D5B);
       case 'rejected':
         return Colors.red;
       default:
@@ -450,7 +450,7 @@ Expanded(
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('🚧 Export PDF en cours de développement...'),
-        backgroundColor: Colors.orange,
+        backgroundColor: const Color(0xFFB07B2E),
       ),
     );
   }
@@ -459,7 +459,7 @@ Expanded(
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('🚧 Export Excel en cours de développement...'),
-        backgroundColor: Colors.orange,
+        backgroundColor: const Color(0xFFB07B2E),
       ),
     );
   }

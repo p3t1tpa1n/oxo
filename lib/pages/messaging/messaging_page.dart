@@ -142,7 +142,7 @@ class _MessagingPageState extends State<MessagingPage> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Messagerie'),
-          backgroundColor: const Color(0xFF1E3D54),
+          backgroundColor: const Color(0xFF16283C),
           foregroundColor: Colors.white,
         ),
         body: const Center(
@@ -162,7 +162,7 @@ class _MessagingPageState extends State<MessagingPage> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Messagerie'),
-          backgroundColor: const Color(0xFF1E3D54),
+          backgroundColor: const Color(0xFF16283C),
           foregroundColor: Colors.white,
         ),
         body: Center(
@@ -186,7 +186,7 @@ class _MessagingPageState extends State<MessagingPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Messagerie'),
-        backgroundColor: const Color(0xFF1E3D54),
+        backgroundColor: const Color(0xFF16283C),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -220,7 +220,7 @@ class _MessagingPageState extends State<MessagingPage> {
                         .where((u) => u['user_id'] != SupabaseService.currentUser?.id)
                         .map((user) => ListTile(
                               leading: CircleAvatar(
-                                backgroundColor: const Color(0xFF1E3D54),
+                                backgroundColor: const Color(0xFF16283C),
                                 child: Text(
                                   (user['first_name']?.toString().isNotEmpty == true 
                                       ? user['first_name'][0] 
@@ -253,7 +253,7 @@ class _MessagingPageState extends State<MessagingPage> {
                                     : user['email'] ?? 'Utilisateur',
                               ),
                               selected: selectedUserId == user['user_id'],
-                              selectedTileColor: Colors.blue.withOpacity(0.1),
+                              selectedTileColor: const Color(0xFF3E5C76).withOpacity(0.1),
                             ))
                         .toList(),
                   ),
@@ -294,7 +294,7 @@ class _MessagingPageState extends State<MessagingPage> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.error_outline, size: 48, color: Colors.orange),
+                                const Icon(Icons.error_outline, size: 48, color: const Color(0xFFB07B2E)),
                                 const SizedBox(height: 16),
                                 Text(
                                   'Impossible de créer une conversation avec $selectedUserName',

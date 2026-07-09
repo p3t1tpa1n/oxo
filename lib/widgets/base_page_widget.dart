@@ -103,7 +103,7 @@ class _BasePageWidgetState extends State<BasePageWidget> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1784af)),
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3E5C76)),
           ),
           SizedBox(height: 16),
           Text(
@@ -154,7 +154,7 @@ class _BasePageWidgetState extends State<BasePageWidget> {
               icon: const Icon(Icons.refresh),
               label: const Text('Réessayer'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1784af),
+                backgroundColor: const Color(0xFF3E5C76),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
@@ -249,7 +249,7 @@ class StandardEmptyState extends StatelessWidget {
                 icon: const Icon(Icons.add),
                 label: Text(actionLabel!),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1784af),
+                  backgroundColor: const Color(0xFF3E5C76),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),

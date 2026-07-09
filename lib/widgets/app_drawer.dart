@@ -11,7 +11,7 @@ class AppDrawer extends StatelessWidget {
         padding: EdgeInsets.zero,
         children: [
           DrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF1784af)),
+            decoration: const BoxDecoration(color: Color(0xFF3E5C76)),
             child: Center(
               child: Text(
                 'Menu',
@@ -23,16 +23,16 @@ class AppDrawer extends StatelessWidget {
           ),
           // Exemple de boutons du menu
           ListTile(
-            leading: const Icon(Icons.person, color: Color(0xFF122b35)),
-            title: const Text("Fiche Associé", style: TextStyle(color: Color(0xFF122b35))),
+            leading: const Icon(Icons.person, color: Color(0xFF1A2530)),
+            title: const Text("Fiche Associé", style: TextStyle(color: Color(0xFF1A2530))),
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/associate');
             },
           ),
           ListTile(
-            leading: const Icon(Icons.dashboard, color: Color(0xFF122b35)),
-            title: const Text("Dashboard", style: TextStyle(color: Color(0xFF122b35))),
+            leading: const Icon(Icons.dashboard, color: Color(0xFF1A2530)),
+            title: const Text("Dashboard", style: TextStyle(color: Color(0xFF1A2530))),
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/missions');

@@ -22,7 +22,7 @@ class SideMenu extends StatelessWidget {
 
     return Container(
       width: 250,
-      color: const Color(0xFF2A4B63),
+      color: const Color(0xFF16283C),
       child: Column(
         children: [
           const SizedBox(height: 16),

@@ -139,7 +139,7 @@ class _LoginPageState extends State<LoginPage> {
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E3D54),
+                        color: const Color(0xFF16283C),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Center(
@@ -160,7 +160,7 @@ class _LoginPageState extends State<LoginPage> {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E3D54),
+                      color: Color(0xFF16283C),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -184,7 +184,7 @@ class _LoginPageState extends State<LoginPage> {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                          color: Color(0xFF1E3D54),
+                          color: Color(0xFF16283C),
                           width: 2,
                         ),
                       ),
@@ -211,7 +211,7 @@ class _LoginPageState extends State<LoginPage> {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                          color: Color(0xFF1E3D54),
+                          color: Color(0xFF16283C),
                           width: 2,
                         ),
                       ),
@@ -241,7 +241,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E3D54),
+                        backgroundColor: const Color(0xFF16283C),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -276,7 +276,7 @@ class _LoginPageState extends State<LoginPage> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Veuillez saisir votre adresse email avant de demander une réinitialisation'),
-                            backgroundColor: Colors.orange,
+                            backgroundColor: const Color(0xFFB07B2E),
                           ),
                         );
                         return;
@@ -304,7 +304,7 @@ class _LoginPageState extends State<LoginPage> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text('Email de réinitialisation envoyé. Vérifiez votre boîte de réception.'),
-                                        backgroundColor: Colors.green,
+                                        backgroundColor: const Color(0xFF2E7D5B),
                                       ),
                                     );
                                   }
@@ -328,7 +328,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: const Text(
                       'Mot de passe oublié ?',
                       style: TextStyle(
-                        color: Color(0xFF1E3D54),
+                        color: Color(0xFF16283C),
                         fontWeight: FontWeight.w500,
                       ),
                     ),

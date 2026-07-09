@@ -18,7 +18,7 @@ class ProfilePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mon Profil'),
-        backgroundColor: const Color(0xFF1E3D54),
+        backgroundColor: const Color(0xFF16283C),
         foregroundColor: Colors.white,
       ),
       body: Center(
@@ -31,14 +31,14 @@ class ProfilePage extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.account_circle, size: 80, color: Color(0xFF1E3D54)),
+                const Icon(Icons.account_circle, size: 80, color: Color(0xFF16283C)),
                 const SizedBox(height: 16),
                 Text(
                   user.email?.split('@').first ?? 'Utilisateur',
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E3D54),
+                    color: Color(0xFF16283C),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -66,8 +66,8 @@ class ProfilePage extends StatelessWidget {
                     icon: const Icon(Icons.admin_panel_settings),
                     label: const Text('Gérer les rôles utilisateurs'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF1E3D54),
-                      side: const BorderSide(color: Color(0xFF1E3D54)),
+                      foregroundColor: const Color(0xFF16283C),
+                      side: const BorderSide(color: Color(0xFF16283C)),
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
                   ),
@@ -118,7 +118,7 @@ class ProfilePage extends StatelessWidget {
                   icon: const Icon(Icons.logout),
                   label: const Text('Déconnexion'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E3D54),
+                    backgroundColor: const Color(0xFF16283C),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   ),

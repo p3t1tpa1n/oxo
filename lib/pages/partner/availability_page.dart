@@ -99,14 +99,14 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
         FloatingActionButton.extended(
           heroTag: 'fab_availability_1',
           onPressed: _showBulkAvailabilityDialog,
-          backgroundColor: const Color(0xFF1784af),
+          backgroundColor: const Color(0xFF3E5C76),
           icon: const Icon(Icons.edit_calendar, color: Colors.white),
           label: const Text('Définir période', style: TextStyle(color: Colors.white)),
         ),
         FloatingActionButton.extended(
           heroTag: 'fab_availability_2',
           onPressed: _createDefaultAvailabilities,
-          backgroundColor: Colors.green,
+          backgroundColor: const Color(0xFF2E7D5B),
           icon: const Icon(Icons.auto_fix_high, color: Colors.white),
           label: const Text('Défaut', style: TextStyle(color: Colors.white)),
         ),
@@ -141,7 +141,7 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.calendar_month, color: Color(0xFF1784af)),
+                const Icon(Icons.calendar_month, color: Color(0xFF3E5C76)),
                 const SizedBox(width: 8),
                 const Text(
                   'Calendrier des disponibilités',
@@ -174,7 +174,7 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
                       color: _getColorForDate(day),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: _isAvailableOnDate(day) ? Colors.green : Colors.red,
+                        color: _isAvailableOnDate(day) ? const Color(0xFF2E7D5B) : Colors.red,
                         width: 1,
                       ),
                     ),
@@ -196,7 +196,7 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
                       color: _getColorForDate(day),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: const Color(0xFF1784af),
+                        color: const Color(0xFF3E5C76),
                         width: 3,
                       ),
                     ),
@@ -204,7 +204,7 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
                       child: Text(
                         '${day.day}',
                         style: const TextStyle(
-                          color: Color(0xFF1784af),
+                          color: Color(0xFF3E5C76),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -251,7 +251,7 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
               children: [
                 Icon(
                   isAvailable ? Icons.check_circle : Icons.cancel,
-                  color: isAvailable ? Colors.green : Colors.red,
+                  color: isAvailable ? const Color(0xFF2E7D5B) : Colors.red,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -267,7 +267,7 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
                   icon: const Icon(Icons.edit),
                   label: const Text('Modifier'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1784af),
+                    backgroundColor: const Color(0xFF3E5C76),
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -519,7 +519,7 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Disponibilité mise à jour avec succès'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
         _loadAvailabilities();
@@ -619,7 +619,7 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Période définie avec succès'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
         _loadAvailabilities();
@@ -651,7 +651,7 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Disponibilités par défaut créées'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D5B),
           ),
         );
         _loadAvailabilities();

@@ -140,12 +140,12 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
 
     // Validation
     if (days == null) {
-      _showQuickSnackBar('Sélectionnez une durée', Colors.orange);
+      _showQuickSnackBar('Sélectionnez une durée', const Color(0xFFB07B2E));
       return;
     }
 
     if (missionId == null || missionId.isEmpty) {
-      _showQuickSnackBar('Sélectionnez une mission', Colors.orange);
+      _showQuickSnackBar('Sélectionnez une mission', const Color(0xFFB07B2E));
       return;
     }
 
@@ -201,7 +201,7 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
       });
 
       // Micro snackbar
-      _showQuickSnackBar('${DateFormat('dd/MM').format(day.date)} enregistré ✓', Colors.green);
+      _showQuickSnackBar('${DateFormat('dd/MM').format(day.date)} enregistré ✓', const Color(0xFF2E7D5B));
 
       // Supprimer l'animation après 2 secondes
       Future.delayed(const Duration(seconds: 2), () {
@@ -271,7 +271,7 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Saisie supprimée'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('✅ Saisie supprimée'), backgroundColor: const Color(0xFF2E7D5B)),
         );
       }
 
@@ -301,7 +301,7 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2A4B63)),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16283C)),
             child: const Text('Soumettre'),
           ),
         ],
@@ -322,7 +322,7 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Mois soumis avec succès'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('✅ Mois soumis avec succès'), backgroundColor: const Color(0xFF2E7D5B)),
         );
       }
 
@@ -390,7 +390,7 @@ Expanded(
               children: [
                 IconButton(
                   onPressed: () => _changeMonth(-1),
-                  icon: const Icon(Icons.chevron_left, color: Color(0xFF2A4B63)),
+                  icon: const Icon(Icons.chevron_left, color: Color(0xFF16283C)),
                   tooltip: 'Mois précédent',
                 ),
                 const SizedBox(width: 16),
@@ -400,7 +400,7 @@ Expanded(
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2A4B63),
+                      color: Color(0xFF16283C),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -408,7 +408,7 @@ Expanded(
                 const SizedBox(width: 16),
                 IconButton(
                   onPressed: () => _changeMonth(1),
-                  icon: const Icon(Icons.chevron_right, color: Color(0xFF2A4B63)),
+                  icon: const Icon(Icons.chevron_right, color: Color(0xFF16283C)),
                   tooltip: 'Mois suivant',
                 ),
                 const SizedBox(width: 32),
@@ -417,7 +417,7 @@ Expanded(
                   icon: const Icon(Icons.send),
                   label: const Text('Soumettre le mois'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2A4B63),
+                    backgroundColor: const Color(0xFF16283C),
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   ),
                 ),
@@ -428,7 +428,7 @@ Expanded(
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF2A4B63).withOpacity(0.05),
+                color: const Color(0xFF16283C).withOpacity(0.05),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -441,7 +441,7 @@ Expanded(
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF2A4B63),
+                          color: Color(0xFF16283C),
                         ),
                       ),
                       Text(
@@ -449,7 +449,7 @@ Expanded(
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF2A4B63),
+                          color: Color(0xFF16283C),
                         ),
                       ),
                     ],
@@ -463,10 +463,10 @@ Expanded(
                       backgroundColor: Colors.grey[300],
                       valueColor: AlwaysStoppedAnimation<Color>(
                         progressPercentage < 50
-                            ? Colors.orange
+                            ? const Color(0xFFB07B2E)
                             : progressPercentage < 80
-                                ? Colors.blue
-                                : Colors.green,
+                                ? const Color(0xFF3E5C76)
+                                : const Color(0xFF2E7D5B),
                       ),
                     ),
                   ),
@@ -482,13 +482,13 @@ Expanded(
   Widget _buildStats() {
     return Row(
       children: [
-        Expanded(child: _buildStatCard('Jours totaux', TimesheetService.formatDays(_stats.totalDays), Icons.access_time, Colors.blue)),
+        Expanded(child: _buildStatCard('Jours totaux', TimesheetService.formatDays(_stats.totalDays), Icons.access_time, const Color(0xFF3E5C76))),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard('Montant total', TimesheetService.formatAmount(_stats.totalAmount), Icons.euro, Colors.green)),
+        Expanded(child: _buildStatCard('Montant total', TimesheetService.formatAmount(_stats.totalAmount), Icons.euro, const Color(0xFF2E7D5B))),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard('Jours saisis', '${_stats.totalDays}', Icons.calendar_today, Colors.orange)),
+        Expanded(child: _buildStatCard('Jours saisis', '${_stats.totalDays}', Icons.calendar_today, const Color(0xFFB07B2E))),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard('Moyenne/entrée', TimesheetService.formatDays(_stats.avgDaysPerEntry), Icons.trending_up, Colors.purple)),
+        Expanded(child: _buildStatCard('Moyenne/entrée', TimesheetService.formatDays(_stats.avgDaysPerEntry), Icons.trending_up, const Color(0xFF5B5F97))),
       ],
     );
   }
@@ -541,7 +541,7 @@ Expanded(
               dataRowMinHeight: 48,
               dataRowMaxHeight: 64,
               headingRowHeight: 48,
-              headingRowColor: MaterialStateProperty.all(const Color(0xFF2A4B63).withOpacity(0.1)),
+              headingRowColor: MaterialStateProperty.all(const Color(0xFF16283C).withOpacity(0.1)),
               columns: const [
                 DataColumn(label: _HeaderCell('Date', 80)),
                 DataColumn(label: _HeaderCell('Jour', 70)),
@@ -595,7 +595,7 @@ Expanded(
     } else if (isModified) {
       rowColor = Colors.blue[50];
     } else if (isToday) {
-      rowColor = const Color(0xFF2A4B63).withOpacity(0.08);
+      rowColor = const Color(0xFF16283C).withOpacity(0.08);
     } else if (day.isWeekend) {
       rowColor = Colors.grey[200];
     }
@@ -790,9 +790,9 @@ Expanded(
                         duration: const Duration(milliseconds: 200),
                         decoration: BoxDecoration(
                           color: isSaved
-                              ? Colors.green.withOpacity(0.1)
+                              ? const Color(0xFF2E7D5B).withOpacity(0.1)
                               : isModified
-                                  ? Colors.blue.withOpacity(0.1)
+                                  ? const Color(0xFF3E5C76).withOpacity(0.1)
                                   : null,
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -816,9 +816,9 @@ Expanded(
                                       ? 'Enregistrer (modifié)'
                                       : 'Enregistrer',
                           color: isSaved
-                              ? Colors.green
+                              ? const Color(0xFF2E7D5B)
                               : isModified
-                                  ? Colors.blue
+                                  ? const Color(0xFF3E5C76)
                                   : Colors.grey,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -865,9 +865,9 @@ Expanded(
       case 'draft':
         return Colors.grey;
       case 'submitted':
-        return Colors.blue;
+        return const Color(0xFF3E5C76);
       case 'approved':
-        return Colors.green;
+        return const Color(0xFF2E7D5B);
       case 'rejected':
         return Colors.red;
       default:

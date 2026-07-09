@@ -92,7 +92,7 @@ Expanded(
                     children: [
                       const Icon(
                         Icons.people,
-                        color: Color(0xFF2A4B63),
+                        color: Color(0xFF16283C),
                         size: 28,
                       ),
                       const SizedBox(width: 12),
@@ -101,7 +101,7 @@ Expanded(
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2A4B63),
+                          color: Color(0xFF16283C),
                         ),
                       ),
                     ],
@@ -112,9 +112,9 @@ Expanded(
                   color: Colors.white,
                   child: TabBar(
                     controller: _tabController,
-                    labelColor: const Color(0xFF2A4B63),
+                    labelColor: const Color(0xFF16283C),
                     unselectedLabelColor: Colors.grey,
-                    indicatorColor: const Color(0xFF2A4B63),
+                    indicatorColor: const Color(0xFF16283C),
                     indicatorWeight: 3,
                     tabs: const [
                       Tab(

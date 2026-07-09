@@ -7,7 +7,7 @@ class MessagingFloatingButton extends StatelessWidget {
 
   const MessagingFloatingButton({
     super.key,
-    this.backgroundColor = const Color(0xFF1E3D54),
+    this.backgroundColor = const Color(0xFF16283C),
     this.iconColor = Colors.white,
   });
 

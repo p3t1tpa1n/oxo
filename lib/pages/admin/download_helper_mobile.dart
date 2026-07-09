@@ -29,7 +29,7 @@ class DownloadHelper {
               ),
             ],
           ),
-          backgroundColor: Colors.green,
+          backgroundColor: const Color(0xFF2E7D5B),
           duration: const Duration(seconds: 5),
           action: SnackBarAction(
             label: 'OK',

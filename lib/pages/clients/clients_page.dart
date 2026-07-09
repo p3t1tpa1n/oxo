@@ -199,13 +199,13 @@ class _ClientsPageState extends State<ClientsPage> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Fonctionnalité en cours de développement'),
-                    backgroundColor: Colors.orange,
+                    backgroundColor: const Color(0xFFB07B2E),
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E3D54),
+              backgroundColor: const Color(0xFF16283C),
               foregroundColor: Colors.white,
             ),
             child: Text(client == null ? 'Ajouter' : 'Modifier'),
@@ -233,7 +233,7 @@ class _ClientsPageState extends State<ClientsPage> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Suppression non autorisée - contactez l\'administrateur'),
-                  backgroundColor: Colors.orange,
+                  backgroundColor: const Color(0xFFB07B2E),
                 ),
               );
             },
@@ -275,7 +275,7 @@ class _ClientsPageState extends State<ClientsPage> {
               _showInvoiceForm(client);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E3D54),
+              backgroundColor: const Color(0xFF16283C),
               foregroundColor: Colors.white,
             ),
             child: const Text('Créer une facture'),
@@ -545,7 +545,7 @@ class _ClientsPageState extends State<ClientsPage> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Facture créée avec succès !'),
-                            backgroundColor: Colors.green,
+                            backgroundColor: const Color(0xFF2E7D5B),
                           ),
                         );
                       }
@@ -563,7 +563,7 @@ class _ClientsPageState extends State<ClientsPage> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1E3D54),
+                backgroundColor: const Color(0xFF16283C),
                 foregroundColor: Colors.white,
               ),
               child: const Text('Créer la facture'),
@@ -604,7 +604,7 @@ class _ClientsPageState extends State<ClientsPage> {
             child: FloatingActionButton(
               heroTag: 'clients_embedded_fab',
               onPressed: () => _showClientForm(),
-              backgroundColor: const Color(0xFF1E3D54),
+              backgroundColor: const Color(0xFF16283C),
               tooltip: 'Ajouter un client',
               child: const Icon(Icons.add, color: Colors.white),
             ),
@@ -631,7 +631,7 @@ class _ClientsPageState extends State<ClientsPage> {
       floatingActionButton: FloatingActionButton(
         heroTag: 'clients_standalone_fab',
         onPressed: () => _showClientForm(),
-        backgroundColor: const Color(0xFF1E3D54),
+        backgroundColor: const Color(0xFF16283C),
         tooltip: 'Ajouter un client',
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -701,15 +701,15 @@ class _ClientsPageState extends State<ClientsPage> {
         });
       },
       backgroundColor: Colors.white,
-      selectedColor: const Color(0xFF1E3D54).withOpacity(0.2),
-      checkmarkColor: const Color(0xFF1E3D54),
+      selectedColor: const Color(0xFF16283C).withOpacity(0.2),
+      checkmarkColor: const Color(0xFF16283C),
       side: BorderSide(
         color: isSelected 
-          ? const Color(0xFF1E3D54)
+          ? const Color(0xFF16283C)
           : Colors.grey.shade300,
       ),
       labelStyle: TextStyle(
-        color: isSelected ? const Color(0xFF1E3D54) : Colors.black87,
+        color: isSelected ? const Color(0xFF16283C) : Colors.black87,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
     );
@@ -728,9 +728,9 @@ class _ClientsPageState extends State<ClientsPage> {
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
               color: (client['status'] == 'actif' || client['status'] == null)
-                  ? Colors.green.withOpacity(0.3)
+                  ? const Color(0xFF2E7D5B).withOpacity(0.3)
                   : client['status'] == 'prospect'
-                      ? Colors.blue.withOpacity(0.3)
+                      ? const Color(0xFF3E5C76).withOpacity(0.3)
                       : Colors.grey.withOpacity(0.3),
               width: 1,
             ),
@@ -754,7 +754,7 @@ class _ClientsPageState extends State<ClientsPage> {
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF1E3D54),
+                                color: Color(0xFF16283C),
                               ),
                             ),
                             if (client['company_name'] != null && client['company_name'].isNotEmpty)
@@ -792,14 +792,14 @@ class _ClientsPageState extends State<ClientsPage> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit, color: Color(0xFF1E3D54)),
+                        icon: const Icon(Icons.edit, color: Color(0xFF16283C)),
                         onPressed: () => _showClientForm(client: client),
                         tooltip: 'Modifier',
                         constraints: const BoxConstraints(),
                         padding: const EdgeInsets.all(8),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.receipt, color: Color(0xFF1E3D54)),
+                        icon: const Icon(Icons.receipt, color: Color(0xFF16283C)),
                         onPressed: () => _showInvoiceForm(client),
                         tooltip: 'Créer une facture',
                         constraints: const BoxConstraints(),
@@ -829,7 +829,7 @@ class _ClientsPageState extends State<ClientsPage> {
     
     switch (status) {
       case 'actif':
-        color = Colors.green;
+        color = const Color(0xFF2E7D5B);
         label = 'Actif';
         break;
       case 'inactif':
@@ -837,11 +837,11 @@ class _ClientsPageState extends State<ClientsPage> {
         label = 'Inactif';
         break;
       case 'prospect':
-        color = Colors.blue;
+        color = const Color(0xFF3E5C76);
         label = 'Prospect';
         break;
       default:
-        color = Colors.green;
+        color = const Color(0xFF2E7D5B);
         label = 'Actif';
     }
     

@@ -116,34 +116,34 @@ class AppColors {
   const AppColors();
   
   // Couleurs primaires (bleu OXO)
-  final Color primary = const Color(0xFF2A4B63);
-  final Color primaryLight = const Color(0xFF3D5F78);
-  final Color primaryDark = const Color(0xFF1E3D54);
+  final Color primary = const Color(0xFF16283C);
+  final Color primaryLight = const Color(0xFF2C4258);
+  final Color primaryDark = const Color(0xFF0E1B2A);
   
   // Couleurs secondaires (cyan)
-  final Color secondary = const Color(0xFF1784af);
-  final Color secondaryLight = const Color(0xFF4BA3C3);
-  final Color secondaryDark = const Color(0xFF0D6691);
+  final Color secondary = const Color(0xFF3E5C76);
+  final Color secondaryLight = const Color(0xFF5C7A94);
+  final Color secondaryDark = const Color(0xFF2B4256);
   
   // Couleurs d'état
-  final Color success = const Color(0xFF4CAF50);
-  final Color warning = const Color(0xFFFF9800);
-  final Color error = const Color(0xFFF44336);
-  final Color info = const Color(0xFF2196F3);
+  final Color success = const Color(0xFF2E7D5B);
+  final Color warning = const Color(0xFFB07B2E);
+  final Color error = const Color(0xFFB0413E);
+  final Color info = const Color(0xFF3E5C76);
   
   // Couleurs de fond
-  final Color background = const Color(0xFFF5F5F5);
+  final Color background = const Color(0xFFF6F7F9);
   final Color surface = const Color(0xFFFFFFFF);
-  final Color surfaceVariant = const Color(0xFFF9F9F9);
+  final Color surfaceVariant = const Color(0xFFFBFCFD);
   
   // Couleurs de texte
-  final Color textPrimary = const Color(0xFF212121);
-  final Color textSecondary = const Color(0xFF757575);
+  final Color textPrimary = const Color(0xFF1A2530);
+  final Color textSecondary = const Color(0xFF64748B);
   final Color textDisabled = const Color(0xFFBDBDBD);
   final Color textOnPrimary = const Color(0xFFFFFFFF);
   
   // Couleurs de bordure
-  final Color border = const Color(0xFFE0E0E0);
+  final Color border = const Color(0xFFDCE1E8);
   final Color borderLight = const Color(0xFFF0F0F0);
   final Color borderDark = const Color(0xFFBDBDBD);
   
@@ -151,23 +151,23 @@ class AppColors {
   final Color rowModified = const Color(0xFFE3F2FD); // Bleu clair
   final Color rowSaved = const Color(0xFFE8F5E9); // Vert clair
   final Color rowToday = const Color(0xFFFFF9E6); // Jaune très clair
-  final Color rowWeekend = const Color(0xFFF5F5F5); // Gris clair
+  final Color rowWeekend = const Color(0xFFF6F7F9); // Gris clair
   
   // Couleurs de statut de mission
-  final Color statusPending = const Color(0xFFFF9800); // Orange
-  final Color statusInProgress = const Color(0xFF2196F3); // Bleu
-  final Color statusCompleted = const Color(0xFF4CAF50); // Vert
+  final Color statusPending = const Color(0xFFB07B2E); // Orange
+  final Color statusInProgress = const Color(0xFF3E5C76); // Bleu
+  final Color statusCompleted = const Color(0xFF2E7D5B); // Vert
   final Color statusCancelled = const Color(0xFF9E9E9E); // Gris
   
   // Couleurs de progression
-  final Color progressLow = const Color(0xFFFF9800); // < 50%
-  final Color progressMedium = const Color(0xFF2196F3); // 50-79%
-  final Color progressHigh = const Color(0xFF4CAF50); // >= 80%
+  final Color progressLow = const Color(0xFFB07B2E); // < 50%
+  final Color progressMedium = const Color(0xFF3E5C76); // 50-79%
+  final Color progressHigh = const Color(0xFF2E7D5B); // >= 80%
   
   // Couleurs d'input
   final Color inputBackground = const Color(0xFFFAFAFA);
-  final Color inputBorder = const Color(0xFFE0E0E0);
-  final Color inputFocused = const Color(0xFF2A4B63);
+  final Color inputBorder = const Color(0xFFDCE1E8);
+  final Color inputFocused = const Color(0xFF16283C);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -181,48 +181,48 @@ class AppTypography {
   TextStyle get h1 => const TextStyle(
     fontSize: 32,
     fontWeight: FontWeight.bold,
-    color: Color(0xFF212121),
+    color: Color(0xFF1A2530),
     letterSpacing: -0.5,
   );
   
   TextStyle get h2 => const TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.bold,
-    color: Color(0xFF212121),
+    color: Color(0xFF1A2530),
     letterSpacing: -0.25,
   );
   
   TextStyle get h3 => const TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.w600,
-    color: Color(0xFF212121),
+    color: Color(0xFF1A2530),
   );
   
   TextStyle get h4 => const TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w600,
-    color: Color(0xFF212121),
+    color: Color(0xFF1A2530),
   );
   
   // Corps de texte
   TextStyle get bodyLarge => const TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.normal,
-    color: Color(0xFF212121),
+    color: Color(0xFF1A2530),
     height: 1.5,
   );
   
   TextStyle get bodyMedium => const TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.normal,
-    color: Color(0xFF212121),
+    color: Color(0xFF1A2530),
     height: 1.5,
   );
   
   TextStyle get bodySmall => const TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.normal,
-    color: Color(0xFF757575),
+    color: Color(0xFF64748B),
     height: 1.4,
   );
   
@@ -230,21 +230,21 @@ class AppTypography {
   TextStyle get labelLarge => const TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w600,
-    color: Color(0xFF212121),
+    color: Color(0xFF1A2530),
     letterSpacing: 0.1,
   );
   
   TextStyle get labelMedium => const TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w600,
-    color: Color(0xFF757575),
+    color: Color(0xFF64748B),
     letterSpacing: 0.5,
   );
   
   TextStyle get labelSmall => const TextStyle(
     fontSize: 11,
     fontWeight: FontWeight.w500,
-    color: Color(0xFF757575),
+    color: Color(0xFF64748B),
     letterSpacing: 0.5,
   );
   
@@ -259,7 +259,7 @@ class AppTypography {
   TextStyle get caption => const TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.normal,
-    color: Color(0xFF757575),
+    color: Color(0xFF64748B),
   );
 }
 

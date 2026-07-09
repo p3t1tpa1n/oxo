@@ -72,7 +72,7 @@ class _ProposedMissionsPageState extends State<ProposedMissionsPage> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF2E7D5B),
             ),
             child: const Text('Accepter'),
           ),
@@ -90,7 +90,7 @@ class _ProposedMissionsPageState extends State<ProposedMissionsPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Mission acceptée avec succès'),
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF2E7D5B),
             ),
           );
         }
@@ -163,7 +163,7 @@ class _ProposedMissionsPageState extends State<ProposedMissionsPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Mission refusée'),
-              backgroundColor: Colors.orange,
+              backgroundColor: const Color(0xFFB07B2E),
             ),
           );
         }
@@ -338,7 +338,7 @@ Expanded(
                   icon: const Icon(Icons.check),
                   label: const Text('Accepter'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: const Color(0xFF2E7D5B),
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -361,11 +361,11 @@ Expanded(
         label = 'Urgent';
         break;
       case 'medium':
-        color = Colors.orange;
+        color = const Color(0xFFB07B2E);
         label = 'Normal';
         break;
       case 'low':
-        color = Colors.blue;
+        color = const Color(0xFF3E5C76);
         label = 'Faible';
         break;
       default:

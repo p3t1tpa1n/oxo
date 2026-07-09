@@ -131,7 +131,7 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'fab_client_dashboard',
-        backgroundColor: const Color(0xFF1E3D54),
+        backgroundColor: const Color(0xFF16283C),
         onPressed: () => Navigator.of(context).pushNamed('/messaging'),
         child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
       ),
@@ -141,7 +141,7 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
   Widget _buildSidebar() {
     return Container(
       width: 240,
-      color: const Color(0xFF1E3D54),
+      color: const Color(0xFF16283C),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -289,7 +289,7 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
                   width: 64,
                   height: 64,
                   decoration: const BoxDecoration(
-                    color: Color(0xFF1E3D54),
+                    color: Color(0xFF16283C),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -313,7 +313,7 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E3D54),
+                          color: Color(0xFF16283C),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -335,15 +335,15 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
         // Icônes en haut à droite (en dehors de la carte)
         IconButton(
           onPressed: () => Navigator.of(context).pushNamed('/dashboard'),
-          icon: const Icon(Icons.home_outlined, color: Color(0xFF1E3D54)),
+          icon: const Icon(Icons.home_outlined, color: Color(0xFF16283C)),
         ),
         IconButton(
           onPressed: () => Navigator.of(context).pushNamed('/profile'),
-          icon: const Icon(Icons.settings_outlined, color: Color(0xFF1E3D54)),
+          icon: const Icon(Icons.settings_outlined, color: Color(0xFF16283C)),
         ),
         IconButton(
           onPressed: () => Navigator.of(context).pushNamed('/profile'),
-          icon: const Icon(Icons.person_outline, color: Color(0xFF1E3D54)),
+          icon: const Icon(Icons.person_outline, color: Color(0xFF16283C)),
         ),
       ],
     );
@@ -358,7 +358,7 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1E3D54),
+            color: Color(0xFF16283C),
           ),
         ),
         const SizedBox(height: 16),
@@ -437,14 +437,14 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1E3D54),
+                color: Color(0xFF16283C),
               ),
             ),
             Row(
               children: [
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E3D54),
+                    backgroundColor: const Color(0xFF16283C),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     elevation: 2,
@@ -460,9 +460,9 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
                 const SizedBox(width: 12),
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1E3D54),
+                    foregroundColor: const Color(0xFF16283C),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    side: const BorderSide(color: Color(0xFF1E3D54)),
+                    side: const BorderSide(color: Color(0xFF16283C)),
                   ),
                   onPressed: () => Navigator.of(context).pushNamed('/projects'),
                   icon: const Icon(Icons.remove_red_eye_outlined, size: 18),
@@ -540,7 +540,7 @@ class _ClientDashboardPageState extends State<ClientDashboardPage> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E3D54),
+                        color: Color(0xFF16283C),
                       ),
                     ),
                     if (mission['description'] != null) ...[

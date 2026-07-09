@@ -18,7 +18,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 2,
       leading: showBackButton
           ? IconButton(
-              icon: const Icon(Icons.arrow_back, color: Color(0xFF122b35)),
+              icon: const Icon(Icons.arrow_back, color: Color(0xFF1A2530)),
               onPressed: () => AuthMiddleware.handleBackNavigation(context),
             )
           : null,
@@ -30,16 +30,16 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFF1784af),
+                color: const Color(0xFF3E5C76),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.home, color: Color(0xFF122b35)),
+              child: const Icon(Icons.home, color: Color(0xFF1A2530)),
             ),
             const SizedBox(width: 8),
             Text(
               title,
               style: const TextStyle(
-                color: Color(0xFF122b35),
+                color: Color(0xFF1A2530),
                 fontWeight: FontWeight.bold,
               ),
             ),

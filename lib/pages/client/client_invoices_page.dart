@@ -154,7 +154,7 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'fab_client_invoices',
-        backgroundColor: const Color(0xFF1E3D54),
+        backgroundColor: const Color(0xFF16283C),
         onPressed: () => Navigator.of(context).pushNamed('/messaging'),
         child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
       ),
@@ -164,7 +164,7 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
   Widget _buildSidebar() {
     return Container(
       width: 240,
-      color: const Color(0xFF1E3D54),
+      color: const Color(0xFF16283C),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -293,7 +293,7 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
           width: 64,
           height: 64,
           decoration: const BoxDecoration(
-            color: Color(0xFF1E3D54),
+            color: Color(0xFF16283C),
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -317,7 +317,7 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
                 style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E3D54),
+                  color: Color(0xFF16283C),
                 ),
               ),
               const SizedBox(height: 4),
@@ -334,15 +334,15 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
         // Icônes en haut à droite
         IconButton(
           onPressed: () => Navigator.of(context).pushNamed('/dashboard'),
-          icon: const Icon(Icons.home_outlined, color: Color(0xFF1E3D54)),
+          icon: const Icon(Icons.home_outlined, color: Color(0xFF16283C)),
         ),
         IconButton(
           onPressed: () => Navigator.of(context).pushNamed('/profile'),
-          icon: const Icon(Icons.settings_outlined, color: Color(0xFF1E3D54)),
+          icon: const Icon(Icons.settings_outlined, color: Color(0xFF16283C)),
         ),
         IconButton(
           onPressed: () => Navigator.of(context).pushNamed('/profile'),
-          icon: const Icon(Icons.person_outline, color: Color(0xFF1E3D54)),
+          icon: const Icon(Icons.person_outline, color: Color(0xFF16283C)),
         ),
       ],
     );
@@ -357,7 +357,7 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1E3D54),
+            color: Color(0xFF16283C),
           ),
         ),
         const SizedBox(height: 16),
@@ -425,7 +425,7 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
             label,
             style: const TextStyle(
               fontSize: 14,
-              color: Color(0xFF1E3D54),
+              color: Color(0xFF16283C),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -446,12 +446,12 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1E3D54),
+                color: Color(0xFF16283C),
               ),
             ),
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF1E3D54),
+                foregroundColor: const Color(0xFF16283C),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               onPressed: _downloadAllInvoices,
@@ -525,7 +525,7 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E3D54),
+                    color: Color(0xFF16283C),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -555,7 +555,7 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E3D54),
+                  color: Color(0xFF16283C),
                 ),
               ),
               const SizedBox(height: 4),
@@ -611,7 +611,7 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Téléchargement de toutes les factures en cours...'),
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFF3E5C76),
       ),
     );
   }
