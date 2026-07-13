@@ -127,6 +127,7 @@ class TimesheetEntry {
   final String id;
   final String partnerId;
   final String clientId;
+  final String? missionId;
   final DateTime entryDate;
   final double days; // 0.5 = demi-journée, 1.0 = journée complète
   final String? comment;
@@ -148,6 +149,7 @@ class TimesheetEntry {
     required this.id,
     required this.partnerId,
     required this.clientId,
+    this.missionId,
     required this.entryDate,
     required this.days,
     this.comment,
@@ -169,6 +171,7 @@ class TimesheetEntry {
       id: json['id']?.toString() ?? '',
       partnerId: json['partner_id']?.toString() ?? '',
       clientId: json['client_id']?.toString() ?? '',
+      missionId: json['mission_id']?.toString(),
       entryDate: DateTime.tryParse(json['entry_date']?.toString() ?? '') ?? DateTime.now(),
       days: (json['days'] as num?)?.toDouble() ?? 0.0,
       comment: json['comment']?.toString(),
@@ -345,12 +348,14 @@ class ClientReport {
   });
 
   factory ClientReport.fromJson(Map<String, dynamic> json) {
+    // client_id peut être un bigint (id de société) ou un uuid : toujours
+    // convertir en String plutôt que caster.
     return ClientReport(
-      clientId: json['client_id'] as String,
-      clientName: json['client_name'] as String,
-      totalDays: (json['total_days'] as num).toDouble(),
-      totalAmount: (json['total_amount'] as num).toDouble(),
-      partnerCount: json['partner_count'] as int,
+      clientId: json['client_id']?.toString() ?? '',
+      clientName: json['client_name']?.toString() ?? 'Client inconnu',
+      totalDays: (json['total_days'] as num?)?.toDouble() ?? 0.0,
+      totalAmount: (json['total_amount'] as num?)?.toDouble() ?? 0.0,
+      partnerCount: (json['partner_count'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -375,12 +380,12 @@ class PartnerReport {
 
   factory PartnerReport.fromJson(Map<String, dynamic> json) {
     return PartnerReport(
-      partnerId: json['partner_id'] as String,
-      partnerName: json['partner_name'] as String,
-      partnerEmail: json['partner_email'] as String,
-      totalDays: (json['total_days'] as num).toDouble(),
-      totalAmount: (json['total_amount'] as num).toDouble(),
-      clientCount: json['client_count'] as int,
+      partnerId: json['partner_id']?.toString() ?? '',
+      partnerName: json['partner_name']?.toString() ?? 'Partenaire inconnu',
+      partnerEmail: json['partner_email']?.toString() ?? '',
+      totalDays: (json['total_days'] as num?)?.toDouble() ?? 0.0,
+      totalAmount: (json['total_amount'] as num?)?.toDouble() ?? 0.0,
+      clientCount: (json['client_count'] as num?)?.toInt() ?? 0,
     );
   }
 }

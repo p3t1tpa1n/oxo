@@ -4,14 +4,12 @@
 // Utilise STRICTEMENT AppTheme (pas IOSTheme)
 // ============================================================================
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
 import '../../../services/notification_service.dart';
-import '../../../utils/device_detector.dart';
 import '../../../services/company_service.dart';
 
 class MobileClientInvoicesTab extends StatefulWidget {
@@ -106,45 +104,40 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
+    return Scaffold(
       backgroundColor: AppTheme.colors.background,
-      child: DefaultTextStyle(
-        style: TextStyle(
-          decoration: TextDecoration.none,
-          color: AppTheme.colors.textPrimary,
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildStatsCards(),
-              _buildFilterButtons(),
-              Expanded(
-                child: _isLoading
-                    ? Center(
-                        child: CupertinoActivityIndicator(
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            _buildStatsCards(),
+            _buildFilterButtons(),
+            Expanded(
+              child: _isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.colors.primary,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : _filteredInvoices.isEmpty
+                      ? _buildEmptyState()
+                      : RefreshIndicator(
+                          onRefresh: _loadData,
                           color: AppTheme.colors.primary,
-                        ),
-                      )
-                    : _filteredInvoices.isEmpty
-                        ? _buildEmptyState()
-                        : RefreshIndicator(
-                            onRefresh: _loadData,
-                            color: AppTheme.colors.primary,
-                            child: ListView.builder(
-                              padding: EdgeInsets.all(AppTheme.spacing.md),
-                              itemCount: _filteredInvoices.length,
-                              itemBuilder: (context, index) {
-                                return Padding(
-                                  padding: EdgeInsets.only(bottom: AppTheme.spacing.sm),
-                                  child: _buildInvoiceCard(_filteredInvoices[index]),
-                                );
-                              },
-                            ),
+                          child: ListView.builder(
+                            padding: EdgeInsets.all(AppTheme.spacing.md),
+                            itemCount: _filteredInvoices.length,
+                            itemBuilder: (context, index) {
+                              return Padding(
+                                padding: EdgeInsets.only(bottom: AppTheme.spacing.sm),
+                                child: _buildInvoiceCard(_filteredInvoices[index]),
+                              );
+                            },
                           ),
-              ),
-            ],
-          ),
+                        ),
+            ),
+          ],
         ),
       ),
     );
@@ -168,50 +161,36 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
             ),
           ),
           const Spacer(),
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/messaging');
             },
-            child: Stack(
+            icon: Stack(
               children: [
-                Icon(
-                  _getIconForPlatform(AppIcons.notifications, AppIcons.notificationsIOS),
-                  color: AppTheme.colors.textPrimary,
-                  size: 24,
-                ),
+                Icon(AppIcons.notifications, color: AppTheme.colors.textPrimary, size: 24),
                 if (_unreadCount > 0)
                   Positioned(
                     right: 0,
                     top: 0,
                     child: Container(
                       padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: AppTheme.colors.error,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 12,
-                        minHeight: 12,
-                      ),
+                      decoration: BoxDecoration(color: AppTheme.colors.error, shape: BoxShape.circle),
+                      constraints: const BoxConstraints(minWidth: 12, minHeight: 12),
                     ),
                   ),
               ],
             ),
           ),
           SizedBox(width: AppTheme.spacing.sm),
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/profile');
             },
-            child: Icon(
-              _getIconForPlatform(AppIcons.settings, AppIcons.settingsIOS),
-              color: AppTheme.colors.textPrimary,
-              size: 24,
-            ),
+            icon: Icon(AppIcons.settings, color: AppTheme.colors.textPrimary, size: 24),
           ),
         ],
       ),
@@ -231,7 +210,7 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
               formatter.format(_totalPending),
               '$_pendingCount factures',
               AppTheme.colors.warning,
-              CupertinoIcons.clock,
+              Icons.access_time,
             ),
           ),
           SizedBox(width: AppTheme.spacing.sm),
@@ -241,7 +220,7 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
               formatter.format(_totalPaid),
               '${_invoices.length - _pendingCount} factures',
               AppTheme.colors.success,
-              CupertinoIcons.checkmark_circle,
+              Icons.check_circle,
             ),
           ),
         ],
@@ -350,7 +329,7 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            CupertinoIcons.doc_text,
+            Icons.description,
             size: 64,
             color: AppTheme.colors.textSecondary,
           ),
@@ -434,7 +413,7 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
                         borderRadius: BorderRadius.circular(AppTheme.radius.small),
                       ),
                       child: Icon(
-                        isPaid ? CupertinoIcons.checkmark_circle : CupertinoIcons.clock,
+                        isPaid ? Icons.check_circle : Icons.access_time,
                         color: isPaid ? AppTheme.colors.success : AppTheme.colors.warning,
                         size: 24,
                       ),
@@ -501,11 +480,7 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
                 Row(
                   children: [
                     if (dateStr.isNotEmpty) ...[
-                      Icon(
-                        CupertinoIcons.calendar,
-                        size: 14,
-                        color: AppTheme.colors.textSecondary,
-                      ),
+                      Icon(Icons.calendar_today, size: 14, color: AppTheme.colors.textSecondary),
                       SizedBox(width: 4),
                       Text(
                         'Émise le $dateStr',
@@ -517,11 +492,7 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
                     ],
                     if (dueDate.isNotEmpty && !isPaid) ...[
                       SizedBox(width: AppTheme.spacing.md),
-                      Icon(
-                        CupertinoIcons.clock,
-                        size: 14,
-                        color: AppTheme.colors.warning,
-                      ),
+                      Icon(Icons.access_time, size: 14, color: AppTheme.colors.warning),
                       SizedBox(width: 4),
                       Text(
                         'Échéance $dueDate',
@@ -544,46 +515,43 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
   void _showInvoiceDetails(Map<String, dynamic> invoice) {
     final formatter = NumberFormat.currency(locale: 'fr_FR', symbol: '€');
     final amount = (invoice['amount'] ?? 0).toDouble();
-    
-    showCupertinoModalPopup(
+
+    showModalBottomSheet(
       context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: Text(invoice['invoice_number'] ?? 'Facture'),
-        message: Text('Montant: ${formatter.format(amount)}'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _downloadInvoice(invoice);
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(CupertinoIcons.arrow_down_doc),
-                SizedBox(width: 8),
-                Text('Télécharger'),
-              ],
-            ),
-          ),
-          if (invoice['status'] != 'paid')
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                _markAsPaid(invoice);
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(CupertinoIcons.checkmark_circle),
-                  SizedBox(width: 8),
-                  Text('Signaler comme payée'),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Text(invoice['invoice_number'] ?? 'Facture', style: AppTheme.typography.h4),
+                  Text('Montant: ${formatter.format(amount)}', style: AppTheme.typography.bodySmall.copyWith(color: AppTheme.colors.textSecondary)),
                 ],
               ),
             ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Fermer'),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.download),
+              title: const Text('Télécharger'),
+              onTap: () {
+                Navigator.pop(context);
+                _downloadInvoice(invoice);
+              },
+            ),
+            if (invoice['status'] != 'paid')
+              ListTile(
+                leading: const Icon(Icons.check_circle),
+                title: const Text('Signaler comme payée'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _markAsPaid(invoice);
+                },
+              ),
+            ListTile(title: const Text('Fermer'), onTap: () => Navigator.pop(context)),
+          ],
         ),
       ),
     );
@@ -603,9 +571,9 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
       _showMessage('Téléchargement de la facture en cours...');
       
       // Afficher les détails de la facture dans une boîte de dialogue pour l'instant
-      showCupertinoDialog(
+      showDialog(
         context: context,
-        builder: (context) => CupertinoAlertDialog(
+        builder: (context) => AlertDialog(
           title: Text(invoice['invoice_number'] ?? 'Facture'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -622,7 +590,7 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
             ],
           ),
           actions: [
-            CupertinoDialogAction(
+            TextButton(
               child: const Text('Fermer'),
               onPressed: () => Navigator.pop(context),
             ),
@@ -638,19 +606,17 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
   Future<void> _markAsPaid(Map<String, dynamic> invoice) async {
     try {
       // Confirmation avant de marquer comme payée
-      final confirmed = await showCupertinoDialog<bool>(
+      final confirmed = await showDialog<bool>(
         context: context,
-        builder: (context) => CupertinoAlertDialog(
+        builder: (context) => AlertDialog(
           title: const Text('Confirmer le paiement'),
           content: Text('Voulez-vous signaler la facture ${invoice['invoice_number'] ?? ''} comme payée ?'),
           actions: [
-            CupertinoDialogAction(
-              isDestructiveAction: true,
+            TextButton(
               child: const Text('Annuler'),
               onPressed: () => Navigator.pop(context, false),
             ),
-            CupertinoDialogAction(
-              isDefaultAction: true,
+            TextButton(
               child: const Text('Confirmer'),
               onPressed: () => Navigator.pop(context, true),
             ),
@@ -683,23 +649,15 @@ class _MobileClientInvoicesTabState extends State<MobileClientInvoicesTab> {
   }
 
   void _showMessage(String message, {bool isError = false}) {
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: Text(isError ? 'Erreur' : 'Information'),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
         content: Text(message),
-        actions: [
-          CupertinoDialogAction(
-            child: const Text('OK'),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
+        backgroundColor: isError ? AppTheme.colors.error : AppTheme.colors.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(20),
       ),
     );
-  }
-
-  IconData _getIconForPlatform(IconData material, IconData cupertino) {
-    return DeviceDetector.shouldUseIOSInterface() ? cupertino : material;
   }
 }
 

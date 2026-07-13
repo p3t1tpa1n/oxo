@@ -4,14 +4,12 @@
 // Utilise STRICTEMENT AppTheme (pas IOSTheme)
 // ============================================================================
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../models/user_role.dart';
-import '../../../utils/device_detector.dart';
 import '../../../utils/progress_utils.dart';
 import '../../../widgets/oxo_card.dart';
 
@@ -172,9 +170,9 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
+    return Scaffold(
       backgroundColor: AppTheme.colors.background,
-      child: SafeArea(
+      body: SafeArea(
         child: Column(
           children: [
             // Header personnalisé
@@ -184,8 +182,9 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
             Expanded(
               child: _isLoading
                 ? Center(
-                    child: CupertinoActivityIndicator(
+                    child: CircularProgressIndicator(
                       color: AppTheme.colors.primary,
+                      strokeWidth: 2,
                     ),
                   )
                 : RefreshIndicator(
@@ -234,16 +233,16 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
           ),
           Spacer(),
           // Icône cloche (notifications)
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/messaging');
             },
-            child: Stack(
+            icon: Stack(
               children: [
                 Icon(
-                  _getIconForPlatform(AppIcons.notifications, AppIcons.notificationsIOS),
+                  AppIcons.notifications,
                   color: AppTheme.colors.textPrimary,
                   size: 24,
                 ),
@@ -268,14 +267,14 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
           ),
           SizedBox(width: AppTheme.spacing.sm),
           // Icône engrenage (paramètres)
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/profile');
             },
-            child: Icon(
-              _getIconForPlatform(AppIcons.settings, AppIcons.settingsIOS),
+            icon: Icon(
+              AppIcons.settings,
               color: AppTheme.colors.textPrimary,
               size: 24,
             ),
@@ -313,10 +312,11 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
             ),
           ),
           // Icône de notifications
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            child: Icon(
-              _getIconForPlatform(AppIcons.notifications, AppIcons.notificationsIOS),
+            constraints: const BoxConstraints(),
+            icon: Icon(
+              AppIcons.notifications,
               color: AppTheme.colors.textSecondary,
               size: 24,
             ),
@@ -370,7 +370,7 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
                 value: '${_stats['total_missions'] ?? 0}',
                 subtitle: 'Total',
                 color: AppTheme.colors.primary,
-                icon: _getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS),
+                icon: AppIcons.missions,
               ),
             ),
             SizedBox(width: AppTheme.spacing.sm),
@@ -380,7 +380,7 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
                 value: '${_stats['completed_missions'] ?? 0}',
                 subtitle: 'Complétées',
                 color: AppTheme.colors.success,
-                icon: _getIconForPlatform(AppIcons.done, AppIcons.doneIOS),
+                icon: AppIcons.done,
               ),
             ),
           ],
@@ -395,7 +395,7 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
                 value: '${_stats['in_progress_missions'] ?? 0}',
                 subtitle: 'Missions actives',
                 color: AppTheme.colors.warning,
-                icon: _getIconForPlatform(AppIcons.inProgress, AppIcons.inProgressIOS),
+                icon: AppIcons.inProgress,
               ),
             ),
             SizedBox(width: AppTheme.spacing.sm),
@@ -405,7 +405,7 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
                 value: '${_stats['urgent_missions'] ?? 0}',
                 subtitle: 'À traiter',
                 color: AppTheme.colors.error,
-                icon: _getIconForPlatform(AppIcons.warning, AppIcons.warningIOS),
+                icon: AppIcons.warning,
               ),
             ),
           ],
@@ -420,7 +420,7 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
                 value: '${_stats['completion_rate'] ?? 0}%',
                 subtitle: 'Complétion',
                 color: AppTheme.colors.secondary,
-                icon: _getIconForPlatform(AppIcons.reporting, AppIcons.reportingIOS),
+                icon: AppIcons.reporting,
               ),
             ),
             SizedBox(width: AppTheme.spacing.sm),
@@ -432,7 +432,7 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
                 color: (_stats['time_progress'] ?? 0) > 80 
                   ? AppTheme.colors.warning 
                   : AppTheme.colors.primary,
-                icon: _getIconForPlatform(AppIcons.timesheet, AppIcons.timesheetIOS),
+                icon: AppIcons.timesheet,
               ),
             ),
           ],
@@ -450,8 +450,8 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
                   ? AppTheme.colors.error 
                   : AppTheme.colors.success,
                 icon: (_stats['overdue_missions'] ?? 0) > 0
-                  ? _getIconForPlatform(AppIcons.warning, AppIcons.warningIOS)
-                  : _getIconForPlatform(AppIcons.done, AppIcons.doneIOS),
+                  ? AppIcons.warning
+                  : AppIcons.done,
               ),
             ),
             SizedBox(width: AppTheme.spacing.sm),
@@ -546,17 +546,17 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
           actions: [
             QuickAction(
               label: 'Nouvelle mission',
-              icon: _getIconForPlatform(AppIcons.add, AppIcons.addIOS),
+              icon: AppIcons.add,
               onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/missions'),
             ),
             QuickAction(
               label: 'Gestion missions',
-              icon: _getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS),
+              icon: AppIcons.missions,
               onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/mission-management'),
             ),
             QuickAction(
               label: 'Disponibilités',
-              icon: _getIconForPlatform(AppIcons.availability, AppIcons.availabilityIOS),
+              icon: AppIcons.availability,
               onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/availability'),
             ),
           ],
@@ -568,17 +568,17 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
           actions: [
             QuickAction(
               label: 'Partenaires',
-              icon: _getIconForPlatform(AppIcons.partners, AppIcons.partnersIOS),
+              icon: AppIcons.partners,
               onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/partner-profiles'),
             ),
             QuickAction(
               label: 'Demandes clients',
-              icon: _getIconForPlatform(AppIcons.requests, AppIcons.requestsIOS),
+              icon: AppIcons.requests,
               onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/admin/client-requests'),
             ),
             QuickAction(
               label: 'Inviter utilisateur',
-              icon: _getIconForPlatform(AppIcons.add, AppIcons.addIOS),
+              icon: AppIcons.add,
               onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/add_user'),
             ),
           ],
@@ -590,17 +590,17 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
           actions: [
             QuickAction(
               label: 'Timesheet',
-              icon: _getIconForPlatform(AppIcons.timesheet, AppIcons.timesheetIOS),
+              icon: AppIcons.timesheet,
               onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/timesheet'),
             ),
             QuickAction(
               label: 'Actions commerciales',
-              icon: _getIconForPlatform(AppIcons.actions, AppIcons.actionsIOS),
+              icon: AppIcons.actions,
               onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/actions'),
             ),
             QuickAction(
               label: 'Planifier réunion',
-              icon: _getIconForPlatform(AppIcons.planning, AppIcons.planningIOS),
+              icon: AppIcons.planning,
               onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/calendar'),
             ),
           ],
@@ -633,47 +633,47 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
       actions.addAll([
         QuickAction(
           label: 'Nouvelle mission',
-          icon: _getIconForPlatform(AppIcons.add, AppIcons.addIOS),
+          icon: AppIcons.add,
           onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/missions'),
         ),
         QuickAction(
           label: 'Inviter utilisateur',
-          icon: _getIconForPlatform(AppIcons.add, AppIcons.addIOS),
+          icon: AppIcons.add,
           onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/add_user'),
         ),
         QuickAction(
           label: 'Timesheet',
-          icon: _getIconForPlatform(AppIcons.timesheet, AppIcons.timesheetIOS),
+          icon: AppIcons.timesheet,
           onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/timesheet'),
         ),
         QuickAction(
           label: 'Disponibilités',
-          icon: _getIconForPlatform(AppIcons.availability, AppIcons.availabilityIOS),
+          icon: AppIcons.availability,
           onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/availability'),
         ),
         QuickAction(
           label: 'Partenaires',
-          icon: _getIconForPlatform(AppIcons.partners, AppIcons.partnersIOS),
+          icon: AppIcons.partners,
           onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/partner-profiles'),
         ),
         QuickAction(
           label: 'Demandes clients',
-          icon: _getIconForPlatform(AppIcons.requests, AppIcons.requestsIOS),
+          icon: AppIcons.requests,
           onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/admin/client-requests'),
         ),
         QuickAction(
           label: 'Actions commerciales',
-          icon: _getIconForPlatform(AppIcons.actions, AppIcons.actionsIOS),
+          icon: AppIcons.actions,
           onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/actions'),
         ),
         QuickAction(
           label: 'Gestion missions',
-          icon: _getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS),
+          icon: AppIcons.missions,
           onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/mission-management'),
         ),
         QuickAction(
           label: 'Planifier réunion',
-          icon: _getIconForPlatform(AppIcons.planning, AppIcons.planningIOS),
+          icon: AppIcons.planning,
           onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/calendar'),
         ),
       ]);
@@ -681,12 +681,12 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
       actions.addAll([
         QuickAction(
           label: 'Mes missions',
-          icon: _getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS),
+          icon: AppIcons.missions,
           onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/missions'),
         ),
         QuickAction(
           label: 'Disponibilités',
-          icon: _getIconForPlatform(AppIcons.availability, AppIcons.availabilityIOS),
+          icon: AppIcons.availability,
           onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/availability'),
         ),
       ]);
@@ -694,12 +694,12 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
       actions.addAll([
         QuickAction(
           label: 'Nouvelle demande',
-          icon: _getIconForPlatform(AppIcons.add, AppIcons.addIOS),
+          icon: AppIcons.add,
           onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/admin/client-requests'),
         ),
         QuickAction(
           label: 'Messagerie',
-          icon: _getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS),
+          icon: AppIcons.messaging,
           onTap: () => Navigator.of(context, rootNavigator: true).pushNamed('/messaging'),
         ),
       ]);
@@ -779,8 +779,8 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
               style: AppTheme.typography.h4,
             ),
             if (_recentMissions.isNotEmpty)
-              CupertinoButton(
-                padding: EdgeInsets.zero,
+              TextButton(
+                style: TextButton.styleFrom(padding: EdgeInsets.zero),
                 child: Text(
                   'Voir tout',
                   style: AppTheme.typography.bodySmall.copyWith(
@@ -838,7 +838,7 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
         children: [
           // Icône de mission
           Icon(
-            _getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS),
+            AppIcons.missions,
             color: statusColor,
             size: 20,
           ),
@@ -889,7 +889,7 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
             ),
           ),
           Icon(
-            _getIconForPlatform(AppIcons.next, AppIcons.nextIOS),
+            AppIcons.next,
             color: AppTheme.colors.textSecondary,
             size: 16,
           ),
@@ -937,9 +937,6 @@ class _MobileDashboardTabState extends State<MobileDashboardTab> {
     return "Bonsoir";
   }
 
-  IconData _getIconForPlatform(IconData material, IconData cupertino) {
-    return DeviceDetector.shouldUseIOSInterface() ? cupertino : material;
-  }
 }
 
 class QuickAction {

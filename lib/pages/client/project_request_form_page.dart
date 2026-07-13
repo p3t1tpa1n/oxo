@@ -1,9 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
-import '../../config/ios_theme.dart';
-import '../../widgets/ios_widgets.dart';
+import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/project_proposal_service.dart';
 import '../../services/document_storage_service.dart';
@@ -19,7 +17,7 @@ class _ProjectRequestFormPageState extends State<ProjectRequestFormPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _budgetController = TextEditingController();
-  
+
   DateTime? _selectedEndDate;
   List<PlatformFile> _selectedFiles = [];
   bool _isSubmitting = false;
@@ -33,52 +31,15 @@ class _ProjectRequestFormPageState extends State<ProjectRequestFormPage> {
   }
 
   Future<void> _selectEndDate() async {
-    // Créer une date de référence unique pour éviter les race conditions
     final DateTime now = DateTime.now();
-    final DateTime minimumDate = now.subtract(const Duration(minutes: 1));
     final DateTime initialDate = _selectedEndDate ?? now.add(const Duration(days: 30));
     final DateTime maximumDate = now.add(const Duration(days: 365));
-    
-    DateTime? tempSelectedDate = initialDate;
-    
-    final DateTime? picked = await showCupertinoModalPopup<DateTime>(
+
+    final picked = await showDatePicker(
       context: context,
-      builder: (BuildContext context) => Container(
-        height: 250,
-        color: IOSTheme.systemBackground,
-        child: Column(
-          children: [
-            Container(
-              height: 50,
-              color: IOSTheme.systemGray6,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CupertinoButton(
-                    child: const Text('Annuler'),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  CupertinoButton(
-                    child: const Text('Confirmer'),
-                    onPressed: () => Navigator.of(context).pop(tempSelectedDate),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: CupertinoDatePicker(
-                mode: CupertinoDatePickerMode.date,
-                initialDateTime: initialDate,
-                minimumDate: minimumDate,
-                maximumDate: maximumDate,
-                onDateTimeChanged: (DateTime dateTime) {
-                  tempSelectedDate = dateTime;
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
+      initialDate: initialDate,
+      firstDate: now,
+      lastDate: maximumDate,
     );
 
     if (picked != null && picked != _selectedEndDate) {
@@ -103,16 +64,13 @@ class _ProjectRequestFormPageState extends State<ProjectRequestFormPage> {
       }
     } catch (e) {
       if (mounted) {
-        showCupertinoDialog(
+        showDialog(
           context: context,
-          builder: (context) => CupertinoAlertDialog(
+          builder: (c) => AlertDialog(
             title: const Text('Erreur'),
             content: Text('Impossible de sélectionner les fichiers: $e'),
             actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
+              TextButton(onPressed: () => Navigator.of(c).pop(), child: const Text('OK')),
             ],
           ),
         );
@@ -162,16 +120,13 @@ class _ProjectRequestFormPageState extends State<ProjectRequestFormPage> {
 
       if (proposalId != null && mounted) {
         Navigator.of(context).pop();
-        showCupertinoDialog(
+        showDialog(
           context: context,
-          builder: (context) => CupertinoAlertDialog(
+          builder: (c) => AlertDialog(
             title: const Text('Succès'),
             content: const Text('Votre demande de projet a été envoyée avec succès.\n\nVotre équipe vous contactera bientôt.'),
             actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
+              TextButton(onPressed: () => Navigator.of(c).pop(), child: const Text('OK')),
             ],
           ),
         );
@@ -189,16 +144,13 @@ class _ProjectRequestFormPageState extends State<ProjectRequestFormPage> {
 
   void _showError(String message) {
     if (mounted) {
-      showCupertinoDialog(
+      showDialog(
         context: context,
-        builder: (context) => CupertinoAlertDialog(
+        builder: (c) => AlertDialog(
           title: const Text('Erreur'),
           content: Text(message),
           actions: [
-            CupertinoDialogAction(
-              child: const Text('OK'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
+            TextButton(onPressed: () => Navigator.of(c).pop(), child: const Text('OK')),
           ],
         ),
       );
@@ -207,24 +159,24 @@ class _ProjectRequestFormPageState extends State<ProjectRequestFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    return IOSScaffold(
-      navigationBar: IOSNavigationBar(
-        title: "Nouvelle Demande",
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
+    return Scaffold(
+      backgroundColor: AppTheme.colors.background,
+      appBar: AppBar(
+        backgroundColor: AppTheme.colors.surface,
+        elevation: 0,
+        iconTheme: IconThemeData(color: AppTheme.colors.textPrimary),
+        titleTextStyle: AppTheme.typography.h4.copyWith(color: AppTheme.colors.textPrimary),
+        title: const Text('Nouvelle Demande'),
+        leading: TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Annuler'),
         ),
         actions: [
-          CupertinoButton(
-            padding: EdgeInsets.zero,
+          TextButton(
             onPressed: _isSubmitting ? null : _submitRequest,
             child: _isSubmitting
-                ? const CupertinoActivityIndicator()
-                : const Text(
-                    'Envoyer',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Envoyer', style: TextStyle(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -237,33 +189,29 @@ class _ProjectRequestFormPageState extends State<ProjectRequestFormPage> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
-              decoration: IOSTheme.cardDecoration.copyWith(
+              decoration: BoxDecoration(
+                color: AppTheme.colors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.colors.border),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    IOSTheme.primaryBlue.withOpacity(0.05),
-                    IOSTheme.systemBackground,
+                    AppTheme.colors.primary.withOpacity(0.05),
+                    AppTheme.colors.surface,
                   ],
                 ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    CupertinoIcons.doc_text_fill,
-                    size: 40,
-                    color: IOSTheme.primaryBlue,
-                  ),
+                  Icon(Icons.description, size: 40, color: AppTheme.colors.primary),
                   const SizedBox(height: 12),
-                  Text(
-                    'Nouvelle demande de projet',
-                    style: IOSTheme.title2,
-                  ),
+                  Text('Nouvelle demande de projet', style: AppTheme.typography.h3),
                   const SizedBox(height: 8),
                   Text(
                     'Décrivez votre projet en détail pour que notre équipe puisse vous proposer la meilleure solution.',
-                    style: IOSTheme.body.copyWith(color: IOSTheme.labelSecondary),
+                    style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary),
                   ),
                 ],
               ),
@@ -272,185 +220,206 @@ class _ProjectRequestFormPageState extends State<ProjectRequestFormPage> {
             const SizedBox(height: 24),
 
             // Formulaire
-            IOSListSection(
-              title: "Informations du projet",
-              children: [
-                IOSListTile(
-                  title: const Text('Titre du projet *', style: IOSTheme.body),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: CupertinoTextField(
-                      controller: _titleController,
-                      placeholder: 'Ex: Site web vitrine pour mon entreprise',
-                      style: IOSTheme.body,
-                      decoration: const BoxDecoration(),
-                    ),
-                  ),
-                ),
-                IOSListTile(
-                  title: const Text('Description détaillée *', style: IOSTheme.body),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: CupertinoTextField(
-                      controller: _descriptionController,
-                      placeholder: 'Décrivez votre projet, vos besoins, objectifs...',
-                      style: IOSTheme.body,
-                      maxLines: 6,
-                      decoration: const BoxDecoration(),
-                    ),
-                  ),
-                ),
-                IOSListTile(
-                  title: const Text('Budget estimé (€)', style: IOSTheme.body),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: CupertinoTextField(
-                      controller: _budgetController,
-                      placeholder: 'Ex: 5000',
-                      style: IOSTheme.body,
-                      keyboardType: TextInputType.number,
-                      decoration: const BoxDecoration(),
-                    ),
-                  ),
-                ),
-                IOSListTile(
-                  title: const Text('Date de fin souhaitée', style: IOSTheme.body),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: _selectEndDate,
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: IOSTheme.systemGray6,
-                          borderRadius: BorderRadius.circular(8),
+            Padding(
+              padding: const EdgeInsets.only(left: 16, bottom: 8),
+              child: Text('Informations du projet', style: AppTheme.typography.bodySmall.copyWith(color: AppTheme.colors.textSecondary)),
+            ),
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: [
+                  ListTile(
+                    title: Text('Titre du projet *', style: AppTheme.typography.bodyMedium),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: TextField(
+                        controller: _titleController,
+                        decoration: InputDecoration(
+                          hintText: 'Ex: Site web vitrine pour mon entreprise',
+                          border: InputBorder.none,
+                          hintStyle: TextStyle(color: AppTheme.colors.textSecondary),
                         ),
-                        child: Text(
-                          _selectedEndDate != null
-                              ? DateFormat('dd/MM/yyyy').format(_selectedEndDate!)
-                              : 'Sélectionner une date',
-                          style: IOSTheme.body.copyWith(
-                            color: _selectedEndDate != null
-                                ? IOSTheme.labelPrimary
-                                : IOSTheme.labelTertiary,
+                        style: AppTheme.typography.bodyMedium,
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    title: Text('Description détaillée *', style: AppTheme.typography.bodyMedium),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: TextField(
+                        controller: _descriptionController,
+                        maxLines: 6,
+                        decoration: InputDecoration(
+                          hintText: 'Décrivez votre projet, vos besoins, objectifs...',
+                          border: InputBorder.none,
+                          hintStyle: TextStyle(color: AppTheme.colors.textSecondary),
+                        ),
+                        style: AppTheme.typography.bodyMedium,
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    title: Text('Budget estimé (€)', style: AppTheme.typography.bodyMedium),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: TextField(
+                        controller: _budgetController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: 'Ex: 5000',
+                          border: InputBorder.none,
+                          hintStyle: TextStyle(color: AppTheme.colors.textSecondary),
+                        ),
+                        style: AppTheme.typography.bodyMedium,
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    title: Text('Date de fin souhaitée', style: AppTheme.typography.bodyMedium),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: GestureDetector(
+                        onTap: _selectEndDate,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.colors.background,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _selectedEndDate != null
+                                ? DateFormat('dd/MM/yyyy').format(_selectedEndDate!)
+                                : 'Sélectionner une date',
+                            style: AppTheme.typography.bodyMedium.copyWith(
+                              color: _selectedEndDate != null
+                                  ? AppTheme.colors.textPrimary
+                                  : AppTheme.colors.textSecondary,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
 
             const SizedBox(height: 24),
 
             // Documents
-            IOSListSection(
-              title: "Documents (optionnel)",
-              children: [
-                IOSListTile(
-                  leading: const Icon(CupertinoIcons.doc_fill, color: IOSTheme.primaryBlue),
-                  title: const Text('Ajouter des fichiers', style: IOSTheme.body),
-                  subtitle: const Text('PDF, DOC, Images...', style: IOSTheme.footnote),
-                  trailing: const Icon(CupertinoIcons.add, color: IOSTheme.primaryBlue),
-                  onTap: _pickFiles,
-                ),
-                if (_selectedFiles.isNotEmpty)
-                  ..._selectedFiles.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final file = entry.value;
-                    return IOSListTile(
-                      leading: const Icon(CupertinoIcons.doc, color: IOSTheme.systemGray),
-                      title: Text(
-                        file.name,
-                        style: IOSTheme.body,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        '${(file.size / 1024).round()} KB',
-                        style: IOSTheme.footnote,
-                      ),
-                      trailing: CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: () => _removeFile(index),
-                        child: const Icon(
-                          CupertinoIcons.minus_circle_fill,
-                          color: IOSTheme.systemRed,
+            Padding(
+              padding: const EdgeInsets.only(left: 16, bottom: 8),
+              child: Text('Documents (optionnel)', style: AppTheme.typography.bodySmall.copyWith(color: AppTheme.colors.textSecondary)),
+            ),
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.attach_file, color: AppTheme.colors.primary),
+                    title: Text('Ajouter des fichiers', style: AppTheme.typography.bodyMedium),
+                    subtitle: Text('PDF, DOC, Images...', style: AppTheme.typography.bodySmall),
+                    trailing: Icon(Icons.add, color: AppTheme.colors.primary),
+                    onTap: _pickFiles,
+                  ),
+                  if (_selectedFiles.isNotEmpty)
+                    ..._selectedFiles.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final file = entry.value;
+                      return ListTile(
+                        leading: Icon(Icons.insert_drive_file, color: AppTheme.colors.textSecondary),
+                        title: Text(
+                          file.name,
+                          style: AppTheme.typography.bodyMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    );
-                  }),
-              ],
+                        subtitle: Text(
+                          '${(file.size / 1024).round()} KB',
+                          style: AppTheme.typography.bodySmall,
+                        ),
+                        trailing: IconButton(
+                          icon: Icon(Icons.remove_circle, color: AppTheme.colors.error),
+                          onPressed: () => _removeFile(index),
+                          padding: EdgeInsets.zero,
+                        ),
+                      );
+                    }),
+                ],
+              ),
             ),
 
             const SizedBox(height: 32),
 
             // Bouton d'envoi
-            SizedBox(
-              width: double.infinity,
-              child: CupertinoButton.filled(
-                borderRadius: BorderRadius.circular(12),
-                onPressed: _isSubmitting ? null : _submitRequest,
-                child: _isSubmitting
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const CupertinoActivityIndicator(color: Colors.white),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Envoi en cours...',
-                            style: IOSTheme.body.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.colors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  onPressed: _isSubmitting ? null : _submitRequest,
+                  child: _isSubmitting
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Envoi en cours...',
+                              style: AppTheme.typography.bodyMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
                             ),
-                          ),
-                        ],
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(CupertinoIcons.paperplane_fill, color: Colors.white),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Envoyer la demande',
-                            style: IOSTheme.body.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
+                          ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.send, color: Colors.white),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Envoyer la demande',
+                              style: AppTheme.typography.bodyMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                ),
               ),
             ),
 
             const SizedBox(height: 16),
 
             // Note
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: IOSTheme.systemGray6,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    CupertinoIcons.info_circle_fill,
-                    color: IOSTheme.primaryBlue,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Votre demande sera examinée par notre équipe. Vous recevrez une réponse sous 48h avec un devis détaillé.',
-                      style: IOSTheme.footnote.copyWith(color: IOSTheme.labelSecondary),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.colors.background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.colors.border),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info, color: AppTheme.colors.primary, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Votre demande sera examinée par notre équipe. Vous recevrez une réponse sous 48h avec un devis détaillé.',
+                        style: AppTheme.typography.bodySmall.copyWith(color: AppTheme.colors.textSecondary),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
@@ -460,4 +429,4 @@ class _ProjectRequestFormPageState extends State<ProjectRequestFormPage> {
       ),
     );
   }
-} 
+}

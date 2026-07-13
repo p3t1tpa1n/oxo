@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/availability_service.dart';
 import '../../widgets/base_page_widget.dart';
@@ -69,19 +70,22 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
 
   Color _getColorForDate(DateTime date) {
     final availability = _getAvailabilityForDate(date);
-    if (availability.isEmpty) return Colors.green.shade100; // Par défaut disponible
-    
+    // Teintes douces alignées sur les couleurs d'état du thème
+    if (availability.isEmpty) {
+      return AppTheme.colors.success.withOpacity(0.08); // Par défaut disponible
+    }
+
     if (availability['is_available'] == true) {
       switch (availability['availability_type']) {
         case 'full_day':
-          return Colors.green.shade200;
+          return AppTheme.colors.success.withOpacity(0.18);
         case 'partial_day':
-          return Colors.orange.shade200;
+          return AppTheme.colors.warning.withOpacity(0.18);
         default:
-          return Colors.green.shade100;
+          return AppTheme.colors.success.withOpacity(0.08);
       }
     } else {
-      return Colors.red.shade200;
+      return AppTheme.colors.error.withOpacity(0.15);
     }
   }
 
@@ -99,14 +103,16 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
         FloatingActionButton.extended(
           heroTag: 'fab_availability_1',
           onPressed: _showBulkAvailabilityDialog,
-          backgroundColor: const Color(0xFF3E5C76),
+          backgroundColor: AppTheme.colors.secondary,
+          elevation: 1,
           icon: const Icon(Icons.edit_calendar, color: Colors.white),
           label: const Text('Définir période', style: TextStyle(color: Colors.white)),
         ),
         FloatingActionButton.extended(
           heroTag: 'fab_availability_2',
           onPressed: _createDefaultAvailabilities,
-          backgroundColor: const Color(0xFF2E7D5B),
+          backgroundColor: AppTheme.colors.success,
+          elevation: 1,
           icon: const Icon(Icons.auto_fix_high, color: Colors.white),
           label: const Text('Défaut', style: TextStyle(color: Colors.white)),
         ),
@@ -133,7 +139,6 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
 
   Widget _buildCalendarSection() {
     return Card(
-      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -141,14 +146,12 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.calendar_month, color: Color(0xFF3E5C76)),
+                Icon(Icons.calendar_month_outlined,
+                    size: 20, color: AppTheme.colors.secondary),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Calendrier des disponibilités',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppTheme.typography.h4,
                 ),
                 const Spacer(),
                 IconButton(
@@ -174,16 +177,22 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
                       color: _getColorForDate(day),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: _isAvailableOnDate(day) ? const Color(0xFF2E7D5B) : Colors.red,
-                        width: 1,
+                        color: (_isAvailableOnDate(day)
+                                ? AppTheme.colors.success
+                                : AppTheme.colors.error)
+                            .withOpacity(0.35),
+                        width: 0.5,
                       ),
                     ),
                     child: Center(
                       child: Text(
                         '${day.day}',
                         style: TextStyle(
-                          color: _isAvailableOnDate(day) ? Colors.green.shade800 : Colors.red.shade800,
-                          fontWeight: FontWeight.bold,
+                          color: _isAvailableOnDate(day)
+                              ? AppTheme.colors.success
+                              : AppTheme.colors.error,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
                         ),
                       ),
                     ),
@@ -196,16 +205,17 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
                       color: _getColorForDate(day),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: const Color(0xFF3E5C76),
-                        width: 3,
+                        color: AppTheme.colors.secondary,
+                        width: 2,
                       ),
                     ),
                     child: Center(
                       child: Text(
                         '${day.day}',
-                        style: const TextStyle(
-                          color: Color(0xFF3E5C76),
-                          fontWeight: FontWeight.bold,
+                        style: TextStyle(
+                          color: AppTheme.colors.secondary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
                         ),
                       ),
                     ),
@@ -241,7 +251,6 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
     final isAvailable = availability.isNotEmpty ? availability['is_available'] == true : true;
     
     return Card(
-      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -250,24 +259,29 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
             Row(
               children: [
                 Icon(
-                  isAvailable ? Icons.check_circle : Icons.cancel,
-                  color: isAvailable ? const Color(0xFF2E7D5B) : Colors.red,
+                  isAvailable
+                      ? Icons.check_circle_outline
+                      : Icons.cancel_outlined,
+                  size: 20,
+                  color: isAvailable
+                      ? AppTheme.colors.success
+                      : AppTheme.colors.error,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  'Détails pour ${DateFormat('EEEE d MMMM yyyy', 'fr_FR').format(_selectedDay)}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    'Détails pour ${DateFormat('EEEE d MMMM yyyy', 'fr_FR').format(_selectedDay)}',
+                    style: AppTheme.typography.h4,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: () => _showEditAvailabilityDialog(_selectedDay, availability),
-                  icon: const Icon(Icons.edit),
+                  icon: const Icon(Icons.edit_outlined, size: 18),
                   label: const Text('Modifier'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3E5C76),
+                    backgroundColor: AppTheme.colors.secondary,
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -282,15 +296,45 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
   }
 
   Widget _buildAvailabilityDetails(Map<String, dynamic> availability, bool isAvailable) {
+    Widget row(String label, String value, {Color? valueColor}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 90,
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.colors.textSecondary,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: valueColor ?? AppTheme.colors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (availability.isEmpty) {
-      return const Column(
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('📋 Statut: Disponible (par défaut)'),
-          SizedBox(height: 8),
-          Text('⏰ Horaires: Journée complète'),
-          SizedBox(height: 8),
-          Text('📝 Notes: Aucune note spécifique'),
+          row('Statut', 'Disponible (par défaut)',
+              valueColor: AppTheme.colors.success),
+          row('Horaires', 'Journée complète'),
+          row('Notes', 'Aucune note spécifique'),
         ],
       );
     }
@@ -298,27 +342,21 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '📋 Statut: ${isAvailable ? "Disponible" : "Indisponible"}',
-          style: TextStyle(
-            color: isAvailable ? Colors.green.shade700 : Colors.red.shade700,
-            fontWeight: FontWeight.w600,
-          ),
+        row(
+          'Statut',
+          isAvailable ? 'Disponible' : 'Indisponible',
+          valueColor:
+              isAvailable ? AppTheme.colors.success : AppTheme.colors.error,
         ),
-        const SizedBox(height: 8),
-        Text('📌 Type: ${_getAvailabilityTypeLabel(availability['availability_type'])}'),
-        if (availability['start_time'] != null || availability['end_time'] != null) ...[
-          const SizedBox(height: 8),
-          Text('⏰ Horaires: ${availability['start_time'] ?? "Non défini"} - ${availability['end_time'] ?? "Non défini"}'),
-        ],
-        if (availability['unavailability_reason'] != null) ...[
-          const SizedBox(height: 8),
-          Text('🔍 Raison: ${_getUnavailabilityReasonLabel(availability['unavailability_reason'])}'),
-        ],
-        if (availability['notes'] != null && availability['notes'].toString().isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text('📝 Notes: ${availability['notes']}'),
-        ],
+        row('Type', _getAvailabilityTypeLabel(availability['availability_type'])),
+        if (availability['start_time'] != null || availability['end_time'] != null)
+          row('Horaires',
+              '${availability['start_time'] ?? "Non défini"} - ${availability['end_time'] ?? "Non défini"}'),
+        if (availability['unavailability_reason'] != null)
+          row('Raison',
+              _getUnavailabilityReasonLabel(availability['unavailability_reason'])),
+        if (availability['notes'] != null && availability['notes'].toString().isNotEmpty)
+          row('Notes', availability['notes'].toString()),
       ],
     );
   }
@@ -361,10 +399,14 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildLegendItem(Colors.green.shade200, 'Disponible - Journée complète'),
-            _buildLegendItem(Colors.orange.shade200, 'Disponible - Journée partielle'),
-            _buildLegendItem(Colors.red.shade200, 'Indisponible'),
-            _buildLegendItem(Colors.green.shade100, 'Disponible (par défaut)'),
+            _buildLegendItem(AppTheme.colors.success.withOpacity(0.18),
+                'Disponible - Journée complète'),
+            _buildLegendItem(AppTheme.colors.warning.withOpacity(0.18),
+                'Disponible - Journée partielle'),
+            _buildLegendItem(
+                AppTheme.colors.error.withOpacity(0.15), 'Indisponible'),
+            _buildLegendItem(AppTheme.colors.success.withOpacity(0.08),
+                'Disponible (par défaut)'),
           ],
         ),
         actions: [
@@ -388,7 +430,7 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
             decoration: BoxDecoration(
               color: color,
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.grey),
+              border: Border.all(color: AppTheme.colors.border, width: 0.5),
             ),
           ),
           const SizedBox(width: 12),

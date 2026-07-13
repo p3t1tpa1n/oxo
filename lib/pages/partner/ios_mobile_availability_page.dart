@@ -1,12 +1,12 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/availability_service.dart';
 
 class IOSMobileAvailabilityPage extends StatefulWidget {
   final bool showHeader;
-  
+
   const IOSMobileAvailabilityPage({
     Key? key,
     this.showHeader = true,
@@ -16,26 +16,23 @@ class IOSMobileAvailabilityPage extends StatefulWidget {
   State<IOSMobileAvailabilityPage> createState() => _IOSMobileAvailabilityPageState();
 }
 
-class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> with SingleTickerProviderStateMixin {
-  // État général
+class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage>
+    with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _availabilities = [];
   bool _isLoading = true;
   DateTime _currentDate = DateTime.now();
-  bool _isMonthView = false; // false = semaine, true = mois
-  
-  // Pour l'onglet partenaires
+  bool _isMonthView = false;
+
   List<Map<String, dynamic>> _partners = [];
   Map<String, dynamic>? _selectedPartner;
   List<Map<String, dynamic>> _partnerAvailabilities = [];
-  
-  // Tab controller
+
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    // Commencer au début de la semaine courante
     final now = DateTime.now();
     _currentDate = now.subtract(Duration(days: now.weekday - 1));
     _loadAvailabilities();
@@ -48,40 +45,27 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
     super.dispose();
   }
 
-  DateTime get _weekStart {
-    return _currentDate.subtract(Duration(days: _currentDate.weekday - 1));
-  }
+  DateTime get _weekStart =>
+      _currentDate.subtract(Duration(days: _currentDate.weekday - 1));
 
-  DateTime get _monthStart {
-    return DateTime(_currentDate.year, _currentDate.month, 1);
-  }
+  DateTime get _monthStart =>
+      DateTime(_currentDate.year, _currentDate.month, 1);
 
   Future<void> _loadAvailabilities() async {
     setState(() => _isLoading = true);
-    
     try {
-      DateTime startDate;
-      DateTime endDate;
-      
-      if (_isMonthView) {
-        startDate = _monthStart;
-        endDate = DateTime(_currentDate.year, _currentDate.month + 1, 0);
-      } else {
-        startDate = _weekStart;
-        endDate = _weekStart.add(const Duration(days: 6));
-      }
-      
+      final startDate = _isMonthView
+          ? _monthStart
+          : _weekStart;
+      final endDate = _isMonthView
+          ? DateTime(_currentDate.year, _currentDate.month + 1, 0)
+          : _weekStart.add(const Duration(days: 6));
+
       final availabilities = await AvailabilityService.getPartnerOwnAvailability(
         startDate: startDate,
         endDate: endDate,
       );
-      
-      if (mounted) {
-        setState(() {
-          _availabilities = availabilities;
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() { _availabilities = availabilities; _isLoading = false; });
     } catch (e) {
       debugPrint('Erreur chargement disponibilités: $e');
       if (mounted) setState(() => _isLoading = false);
@@ -91,11 +75,7 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
   Future<void> _loadPartners() async {
     try {
       final partners = await SupabaseService.getPartners();
-      if (mounted) {
-        setState(() {
-          _partners = partners;
-        });
-      }
+      if (mounted) setState(() { _partners = partners; });
     } catch (e) {
       debugPrint('Erreur chargement partenaires: $e');
     }
@@ -103,23 +83,13 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
 
   Future<void> _loadPartnerAvailabilities() async {
     if (_selectedPartner == null) return;
-    
     setState(() => _isLoading = true);
-    
     try {
-      DateTime startDate;
-      DateTime endDate;
-      
-      if (_isMonthView) {
-        startDate = _monthStart;
-        endDate = DateTime(_currentDate.year, _currentDate.month + 1, 0);
-      } else {
-        startDate = _weekStart;
-        endDate = _weekStart.add(const Duration(days: 6));
-      }
-      
+      final startDate = _isMonthView ? _monthStart : _weekStart;
+      final endDate = _isMonthView
+          ? DateTime(_currentDate.year, _currentDate.month + 1, 0)
+          : _weekStart.add(const Duration(days: 6));
       final partnerId = _selectedPartner!['user_id']?.toString() ?? '';
-      
       final response = await SupabaseService.client
           .from('partner_availability')
           .select('*')
@@ -127,13 +97,7 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
           .gte('date', startDate.toIso8601String().split('T')[0])
           .lte('date', endDate.toIso8601String().split('T')[0])
           .order('date');
-      
-      if (mounted) {
-        setState(() {
-          _partnerAvailabilities = List<Map<String, dynamic>>.from(response);
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() { _partnerAvailabilities = List<Map<String, dynamic>>.from(response); _isLoading = false; });
     } catch (e) {
       debugPrint('Erreur chargement disponibilités partenaire: $e');
       if (mounted) setState(() => _isLoading = false);
@@ -142,32 +106,20 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
 
   void _goToPreviousPeriod() {
     setState(() {
-      if (_isMonthView) {
-        _currentDate = DateTime(_currentDate.year, _currentDate.month - 1, 1);
-      } else {
-        _currentDate = _currentDate.subtract(const Duration(days: 7));
-      }
+      _currentDate = _isMonthView
+          ? DateTime(_currentDate.year, _currentDate.month - 1, 1)
+          : _currentDate.subtract(const Duration(days: 7));
     });
-    if (_tabController.index == 0) {
-      _loadAvailabilities();
-    } else {
-      _loadPartnerAvailabilities();
-    }
+    _tabController.index == 0 ? _loadAvailabilities() : _loadPartnerAvailabilities();
   }
 
   void _goToNextPeriod() {
     setState(() {
-      if (_isMonthView) {
-        _currentDate = DateTime(_currentDate.year, _currentDate.month + 1, 1);
-      } else {
-        _currentDate = _currentDate.add(const Duration(days: 7));
-      }
+      _currentDate = _isMonthView
+          ? DateTime(_currentDate.year, _currentDate.month + 1, 1)
+          : _currentDate.add(const Duration(days: 7));
     });
-    if (_tabController.index == 0) {
-      _loadAvailabilities();
-    } else {
-      _loadPartnerAvailabilities();
-    }
+    _tabController.index == 0 ? _loadAvailabilities() : _loadPartnerAvailabilities();
   }
 
   void _goToToday() {
@@ -175,144 +127,88 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
       final now = DateTime.now();
       _currentDate = now.subtract(Duration(days: now.weekday - 1));
     });
-    if (_tabController.index == 0) {
-      _loadAvailabilities();
-    } else {
-      _loadPartnerAvailabilities();
-    }
+    _tabController.index == 0 ? _loadAvailabilities() : _loadPartnerAvailabilities();
   }
 
   void _toggleViewMode() {
-    setState(() {
-      _isMonthView = !_isMonthView;
-    });
-    if (_tabController.index == 0) {
-      _loadAvailabilities();
-    } else {
-      _loadPartnerAvailabilities();
-    }
+    setState(() { _isMonthView = !_isMonthView; });
+    _tabController.index == 0 ? _loadAvailabilities() : _loadPartnerAvailabilities();
+  }
+
+  Widget _buildTabs() {
+    return Column(
+      children: [
+        TabBar(
+          controller: _tabController,
+          labelColor: AppTheme.colors.primary,
+          unselectedLabelColor: AppTheme.colors.textSecondary,
+          indicatorColor: AppTheme.colors.primary,
+          onTap: (_) => setState(() {}),
+          tabs: const [
+            Tab(text: 'Mes disponibilités'),
+            Tab(text: 'Partenaires'),
+          ],
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildMyAvailabilityTab(),
+              _buildPartnersAvailabilityTab(),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Si pas de header, afficher directement le contenu avec tabs internes
     if (!widget.showHeader) {
       return Container(
-        color: CupertinoColors.systemGroupedBackground,
-        child: Column(
-          children: [
-            // Tabs pour basculer entre "Mes disponibilités" et "Partenaires"
-            Material(
-              color: CupertinoColors.systemGroupedBackground,
-              child: TabBar(
-                controller: _tabController,
-                labelColor: CupertinoColors.systemBlue,
-                unselectedLabelColor: CupertinoColors.secondaryLabel,
-                indicatorColor: CupertinoColors.systemBlue,
-                onTap: (_) => setState(() {}),
-                tabs: const [
-                  Tab(text: 'Mes disponibilités'),
-                  Tab(text: 'Partenaires'),
-                ],
-              ),
-            ),
-            
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildMyAvailabilityTab(),
-                  _buildPartnersAvailabilityTab(),
-                ],
-              ),
-            ),
-          ],
-        ),
+        color: AppTheme.colors.background,
+        child: _buildTabs(),
       );
     }
-    
-    // Avec header (navigation standalone)
-    return CupertinoPageScaffold(
-      backgroundColor: CupertinoColors.systemGroupedBackground,
-      navigationBar: CupertinoNavigationBar(
-        backgroundColor: CupertinoColors.systemGroupedBackground,
-        border: null,
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
+
+    return Scaffold(
+      backgroundColor: AppTheme.colors.background,
+      appBar: AppBar(
+        title: const Text('Disponibilités'),
+        backgroundColor: AppTheme.colors.surface,
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Icon(CupertinoIcons.chevron_left, color: CupertinoColors.systemBlue),
         ),
-        trailing: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: _showQuickActions,
-          child: const Text('Ajouter', style: TextStyle(color: CupertinoColors.systemBlue)),
-        ),
-        middle: const Text(
-          'Disponibilités',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: CupertinoColors.label,
+        actions: [
+          TextButton(
+            onPressed: _showQuickActions,
+            child: Text('Ajouter', style: TextStyle(color: AppTheme.colors.primary)),
           ),
-        ),
+        ],
       ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Tabs
-            Material(
-              color: CupertinoColors.systemGroupedBackground,
-              child: TabBar(
-                controller: _tabController,
-                labelColor: CupertinoColors.systemBlue,
-                unselectedLabelColor: CupertinoColors.secondaryLabel,
-                indicatorColor: CupertinoColors.systemBlue,
-                onTap: (_) => setState(() {}),
-                tabs: const [
-                  Tab(text: 'Mes disponibilités'),
-                  Tab(text: 'Partenaires'),
-                ],
-              ),
-            ),
-            
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildMyAvailabilityTab(),
-                  _buildPartnersAvailabilityTab(),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+      body: _buildTabs(),
     );
   }
 
   // ============================================
   // ONGLET MES DISPONIBILITÉS
   // ============================================
-  
+
   Widget _buildMyAvailabilityTab() {
     if (_isLoading) {
-      return const Center(child: CupertinoActivityIndicator());
+      return Center(child: CircularProgressIndicator(color: AppTheme.colors.primary, strokeWidth: 2));
     }
-    
     return SingleChildScrollView(
       child: Column(
         children: [
           const SizedBox(height: 16),
-          // Navigation et toggle vue
           _buildNavigationHeader(),
           const SizedBox(height: 16),
-          // Affichage semaine ou mois
           _buildPeriodInfo(),
           const SizedBox(height: 20),
-          // Calendrier
           _isMonthView ? _buildMonthlyCalendar() : _buildWeeklyCalendar(),
           const SizedBox(height: 24),
-          // Boutons d'action
           _buildActionButtons(),
           const SizedBox(height: 20),
         ],
@@ -326,66 +222,57 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Bouton précédent
-          CupertinoButton(
-            padding: const EdgeInsets.all(8),
+          IconButton(
             onPressed: _goToPreviousPeriod,
-            child: const Icon(CupertinoIcons.chevron_left, color: CupertinoColors.systemBlue),
+            icon: Icon(Icons.chevron_left, color: AppTheme.colors.primary),
           ),
-          
-          // Bouton aujourd'hui + toggle mois/semaine
           Row(
             children: [
-              CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                color: CupertinoColors.systemGrey6,
-                borderRadius: BorderRadius.circular(8),
-                onPressed: _goToToday,
-                child: const Text(
-                  "Aujourd'hui",
-                  style: TextStyle(
-                    color: CupertinoColors.systemBlue,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
+              _navButton("Aujourd'hui", _goToToday, false),
               const SizedBox(width: 8),
-              CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                color: _isMonthView ? CupertinoColors.systemBlue : CupertinoColors.systemGrey6,
-                borderRadius: BorderRadius.circular(8),
-                onPressed: _toggleViewMode,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      CupertinoIcons.calendar,
-                      size: 16,
-                      color: _isMonthView ? CupertinoColors.white : CupertinoColors.systemBlue,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      _isMonthView ? 'Mois' : 'Semaine',
-                      style: TextStyle(
-                        color: _isMonthView ? CupertinoColors.white : CupertinoColors.systemBlue,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+              _navButton(
+                _isMonthView ? 'Mois' : 'Semaine',
+                _toggleViewMode,
+                _isMonthView,
+                icon: Icons.calendar_today,
               ),
             ],
           ),
-          
-          // Bouton suivant
-          CupertinoButton(
-            padding: const EdgeInsets.all(8),
+          IconButton(
             onPressed: _goToNextPeriod,
-            child: const Icon(CupertinoIcons.chevron_right, color: CupertinoColors.systemBlue),
+            icon: Icon(Icons.chevron_right, color: AppTheme.colors.primary),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _navButton(String label, VoidCallback onTap, bool active, {IconData? icon}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? AppTheme.colors.primary : AppTheme.colors.inputBackground,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 16, color: active ? Colors.white : AppTheme.colors.primary),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: active ? Colors.white : AppTheme.colors.primary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -393,41 +280,26 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
   Widget _buildPeriodInfo() {
     final weekDays = List.generate(7, (index) => _weekStart.add(Duration(days: index)));
     final availableDays = weekDays.where((day) {
-      final availability = _getAvailabilityForDate(day, _availabilities);
-      return availability['is_available'] == true;
+      return _getAvailabilityForDate(day, _availabilities)['is_available'] == true;
     }).length;
 
-    String periodText;
-    if (_isMonthView) {
-      periodText = DateFormat('MMMM yyyy', 'fr_FR').format(_currentDate);
-    } else {
-      periodText = 'Semaine du ${DateFormat('d', 'fr_FR').format(_weekStart)} au ${DateFormat('d MMMM', 'fr_FR').format(_weekStart.add(const Duration(days: 6)))}';
-    }
+    final periodText = _isMonthView
+        ? DateFormat('MMMM yyyy', 'fr_FR').format(_currentDate)
+        : 'Semaine du ${DateFormat('d', 'fr_FR').format(_weekStart)} au ${DateFormat('d MMMM', 'fr_FR').format(_weekStart.add(const Duration(days: 6)))}';
 
     return Column(
       children: [
-        Text(
-          periodText,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: CupertinoColors.label,
-          ),
-        ),
+        Text(periodText, style: AppTheme.typography.h4.copyWith(fontWeight: FontWeight.w600)),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: CupertinoColors.systemGrey5,
+            color: AppTheme.colors.inputBackground,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
-            '$availableDays jours disponibles${_isMonthView ? ' cette semaine' : ''}',
-            style: const TextStyle(
-              fontSize: 15,
-              color: CupertinoColors.secondaryLabel,
-              fontWeight: FontWeight.w500,
-            ),
+            '$availableDays jours disponibles',
+            style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary),
           ),
         ),
       ],
@@ -436,30 +308,21 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
 
   Widget _buildWeeklyCalendar() {
     final weekDays = List.generate(7, (index) => _weekStart.add(Duration(days: index)));
-    
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          // En-têtes des jours
           Row(
             children: weekDays.map((day) => Expanded(
               child: Center(
                 child: Text(
                   DateFormat('EEE', 'fr_FR').format(day),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: CupertinoColors.secondaryLabel,
-                  ),
+                  style: AppTheme.typography.caption.copyWith(color: AppTheme.colors.textSecondary),
                 ),
               ),
             )).toList(),
           ),
-          
           const SizedBox(height: 12),
-          
-          // Grille des jours
           Row(
             children: weekDays.map((day) => Expanded(
               child: _buildDayCard(day, _availabilities, canEdit: true),
@@ -474,63 +337,37 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
     final firstDayOfMonth = DateTime(_currentDate.year, _currentDate.month, 1);
     final lastDayOfMonth = DateTime(_currentDate.year, _currentDate.month + 1, 0);
     final firstWeekday = firstDayOfMonth.weekday;
-    
-    // Créer une liste de toutes les semaines du mois
+
     List<List<DateTime?>> weeks = [];
     List<DateTime?> currentWeek = List.filled(7, null);
-    
-    // Remplir les jours avant le premier jour du mois
-    for (int i = 0; i < firstWeekday - 1; i++) {
-      currentWeek[i] = null;
-    }
-    
-    // Remplir les jours du mois
+
+    for (int i = 0; i < firstWeekday - 1; i++) { currentWeek[i] = null; }
+
     for (int day = 1; day <= lastDayOfMonth.day; day++) {
       final date = DateTime(_currentDate.year, _currentDate.month, day);
       final weekdayIndex = date.weekday - 1;
       currentWeek[weekdayIndex] = date;
-      
-      if (weekdayIndex == 6) {
-        weeks.add(currentWeek);
-        currentWeek = List.filled(7, null);
-      }
+      if (weekdayIndex == 6) { weeks.add(currentWeek); currentWeek = List.filled(7, null); }
     }
-    
-    // Ajouter la dernière semaine si non vide
-    if (currentWeek.any((d) => d != null)) {
-      weeks.add(currentWeek);
-    }
+    if (currentWeek.any((d) => d != null)) weeks.add(currentWeek);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          // En-têtes des jours
           Row(
             children: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day) => Expanded(
-              child: Center(
-                child: Text(
-                  day,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: CupertinoColors.secondaryLabel,
-                  ),
-                ),
-              ),
+              child: Center(child: Text(day, style: AppTheme.typography.caption.copyWith(color: AppTheme.colors.textSecondary))),
             )).toList(),
           ),
-          
           const SizedBox(height: 8),
-          
-          // Grille des semaines
           ...weeks.map((week) => Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Row(
               children: week.map((day) => Expanded(
-                child: day != null 
-                  ? _buildMonthDayCard(day, _availabilities, canEdit: true)
-                  : const SizedBox(height: 48),
+                child: day != null
+                    ? _buildMonthDayCard(day, _availabilities, canEdit: true)
+                    : const SizedBox(height: 48),
               )).toList(),
             ),
           )),
@@ -544,24 +381,24 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
     final isAvailable = availability['is_available'] == true;
     final isToday = _isToday(day);
     final isPast = day.isBefore(DateTime.now().subtract(const Duration(days: 1)));
-    
+
     Color backgroundColor;
     Widget icon;
-    
+
     if (isPast) {
-      backgroundColor = CupertinoColors.systemGrey6;
-      icon = const Icon(CupertinoIcons.minus, color: CupertinoColors.systemGrey3, size: 18);
+      backgroundColor = AppTheme.colors.inputBackground;
+      icon = Icon(Icons.remove, color: AppTheme.colors.textSecondary, size: 18);
     } else if (availability.isNotEmpty) {
       if (isAvailable) {
-        backgroundColor = CupertinoColors.systemGreen;
-        icon = const Icon(CupertinoIcons.checkmark, color: Colors.white, size: 18);
+        backgroundColor = AppTheme.colors.success;
+        icon = const Icon(Icons.check, color: Colors.white, size: 18);
       } else {
-        backgroundColor = const Color(0xFFFFE5E5);
-        icon = const Icon(CupertinoIcons.xmark, color: CupertinoColors.systemRed, size: 18);
+        backgroundColor = AppTheme.colors.error.withOpacity(0.15);
+        icon = Icon(Icons.close, color: AppTheme.colors.error, size: 18);
       }
     } else {
-      backgroundColor = CupertinoColors.systemGrey6;
-      icon = const Icon(CupertinoIcons.minus, color: CupertinoColors.systemGrey3, size: 18);
+      backgroundColor = AppTheme.colors.inputBackground;
+      icon = Icon(Icons.remove, color: AppTheme.colors.textSecondary, size: 18);
     }
 
     return GestureDetector(
@@ -572,7 +409,7 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(12),
-          border: isToday ? Border.all(color: CupertinoColors.systemBlue, width: 2) : null,
+          border: isToday ? Border.all(color: AppTheme.colors.primary, width: 2) : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -582,7 +419,7 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: isAvailable ? Colors.white : CupertinoColors.label,
+                color: isAvailable ? Colors.white : AppTheme.colors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -593,7 +430,7 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
                 color: isAvailable ? Colors.white.withOpacity(0.3) : backgroundColor,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: icon,
+              child: Center(child: icon),
             ),
           ],
         ),
@@ -606,24 +443,24 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
     final isAvailable = availability['is_available'] == true;
     final isToday = _isToday(day);
     final isPast = day.isBefore(DateTime.now().subtract(const Duration(days: 1)));
-    
+
     Color backgroundColor;
     Color textColor;
-    
+
     if (isPast) {
-      backgroundColor = CupertinoColors.systemGrey6;
-      textColor = CupertinoColors.systemGrey3;
+      backgroundColor = AppTheme.colors.inputBackground;
+      textColor = AppTheme.colors.textSecondary;
     } else if (availability.isNotEmpty) {
       if (isAvailable) {
-        backgroundColor = CupertinoColors.systemGreen;
+        backgroundColor = AppTheme.colors.success;
         textColor = Colors.white;
       } else {
-        backgroundColor = const Color(0xFFFFE5E5);
-        textColor = CupertinoColors.systemRed;
+        backgroundColor = AppTheme.colors.error.withOpacity(0.15);
+        textColor = AppTheme.colors.error;
       }
     } else {
-      backgroundColor = CupertinoColors.systemGrey6;
-      textColor = CupertinoColors.label;
+      backgroundColor = AppTheme.colors.inputBackground;
+      textColor = AppTheme.colors.textPrimary;
     }
 
     return GestureDetector(
@@ -634,17 +471,10 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(8),
-          border: isToday ? Border.all(color: CupertinoColors.systemBlue, width: 2) : null,
+          border: isToday ? Border.all(color: AppTheme.colors.primary, width: 2) : null,
         ),
         child: Center(
-          child: Text(
-            '${day.day}',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: textColor,
-            ),
-          ),
+          child: Text('${day.day}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textColor)),
         ),
       ),
     );
@@ -655,57 +485,40 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          // Bouton principal
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
-              color: CupertinoColors.systemBlue,
-              borderRadius: BorderRadius.circular(12),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+            child: ElevatedButton(
               onPressed: _showBulkAvailabilityDialog,
-              child: const Text(
-                'Définir mes disponibilités',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.colors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
+              child: const Text('Définir mes disponibilités', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
             ),
           ),
-          
           const SizedBox(height: 12),
-          
-          // Boutons secondaires
           Row(
             children: [
               Expanded(
-                child: CupertinoButton(
-                  color: CupertinoColors.systemGrey5,
-                  borderRadius: BorderRadius.circular(12),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                child: OutlinedButton(
                   onPressed: _createDefaultAvailabilities,
-                  child: const Text(
-                    'Auto-remplir',
-                    style: TextStyle(
-                      color: CupertinoColors.label,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
+                  child: Text('Auto-remplir', style: TextStyle(color: AppTheme.colors.textPrimary)),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: CupertinoButton(
-                  color: CupertinoColors.systemGrey5,
-                  borderRadius: BorderRadius.circular(12),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                child: OutlinedButton(
                   onPressed: _setWeekendUnavailable,
-                  child: const Text(
-                    'Week-ends occupés',
-                    style: TextStyle(
-                      color: CupertinoColors.label,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
+                  child: Text('Week-ends occupés', style: TextStyle(color: AppTheme.colors.textPrimary)),
                 ),
               ),
             ],
@@ -723,11 +536,8 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
     return Column(
       children: [
         const SizedBox(height: 16),
-        // Sélecteur de partenaire
         _buildPartnerSelector(),
         const SizedBox(height: 16),
-        
-        // Contenu selon sélection
         if (_selectedPartner == null)
           _buildNoPartnerSelected()
         else
@@ -735,16 +545,13 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Navigation
                   _buildNavigationHeader(),
                   const SizedBox(height: 16),
-                  // Info période
                   _buildPartnerPeriodInfo(),
                   const SizedBox(height: 20),
-                  // Calendrier
-                  _isMonthView 
-                    ? _buildPartnerMonthlyCalendar() 
-                    : _buildPartnerWeeklyCalendar(),
+                  _isMonthView
+                      ? _buildPartnerMonthlyCalendar()
+                      : _buildPartnerWeeklyCalendar(),
                   const SizedBox(height: 20),
                 ],
               ),
@@ -762,28 +569,26 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: CupertinoColors.white,
+            color: AppTheme.colors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: CupertinoColors.systemGrey4),
+            border: Border.all(color: AppTheme.colors.border),
           ),
           child: Row(
             children: [
-              const Icon(CupertinoIcons.person_2_fill, color: CupertinoColors.systemBlue, size: 22),
+              Icon(Icons.people, color: AppTheme.colors.primary, size: 22),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  _selectedPartner != null 
-                    ? '${_selectedPartner!['first_name'] ?? ''} ${_selectedPartner!['last_name'] ?? ''}'.trim()
-                    : 'Sélectionner un partenaire',
+                  _selectedPartner != null
+                      ? '${_selectedPartner!['first_name'] ?? ''} ${_selectedPartner!['last_name'] ?? ''}'.trim()
+                      : 'Sélectionner un partenaire',
                   style: TextStyle(
                     fontSize: 16,
-                    color: _selectedPartner != null 
-                      ? CupertinoColors.label 
-                      : CupertinoColors.secondaryLabel,
+                    color: _selectedPartner != null ? AppTheme.colors.textPrimary : AppTheme.colors.textSecondary,
                   ),
                 ),
               ),
-              const Icon(CupertinoIcons.chevron_down, color: CupertinoColors.secondaryLabel, size: 18),
+              Icon(Icons.keyboard_arrow_down, color: AppTheme.colors.textSecondary, size: 18),
             ],
           ),
         ),
@@ -793,149 +598,69 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
 
   void _showPartnerPicker() {
     if (_partners.isEmpty) {
-      showCupertinoDialog(
+      showDialog(
         context: context,
-        builder: (context) => CupertinoAlertDialog(
+        builder: (context) => AlertDialog(
           title: const Text('Aucun partenaire'),
           content: const Text('Aucun partenaire n\'est disponible.'),
-          actions: [
-            CupertinoDialogAction(
-              child: const Text('OK'),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ],
+          actions: [TextButton(child: const Text('OK'), onPressed: () => Navigator.pop(context))],
         ),
       );
       return;
     }
 
-    showCupertinoModalPopup(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.5,
-        decoration: const BoxDecoration(
-          color: CupertinoColors.systemBackground,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Handle
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey3,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.5,
+        builder: (context, scrollController) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(child: const Text('Annuler'), onPressed: () => Navigator.pop(context)),
+                  Text('Choisir un partenaire', style: AppTheme.typography.h4),
+                  const SizedBox(width: 70),
+                ],
               ),
-              
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      child: const Text('Annuler'),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Text(
-                      'Choisir un partenaire',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.builder(
+                controller: scrollController,
+                itemCount: _partners.length,
+                itemBuilder: (context, index) {
+                  final partner = _partners[index];
+                  final name = '${partner['first_name'] ?? ''} ${partner['last_name'] ?? ''}'.trim();
+                  final email = partner['email'] ?? partner['user_email'] ?? '';
+                  final isSelected = _selectedPartner?['user_id'] == partner['user_id'];
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: AppTheme.colors.primary.withOpacity(0.2),
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : '?',
+                        style: TextStyle(color: AppTheme.colors.primary, fontWeight: FontWeight.w600),
                       ),
                     ),
-                    const SizedBox(width: 70),
-                  ],
-                ),
+                    title: Text(name.isNotEmpty ? name : 'Partenaire'),
+                    subtitle: email.isNotEmpty ? Text(email) : null,
+                    trailing: isSelected ? Icon(Icons.check, color: AppTheme.colors.primary) : null,
+                    selected: isSelected,
+                    onTap: () {
+                      setState(() { _selectedPartner = partner; });
+                      Navigator.pop(context);
+                      _loadPartnerAvailabilities();
+                    },
+                  );
+                },
               ),
-              
-              const Divider(height: 1),
-              
-              // Liste des partenaires
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _partners.length,
-                  itemBuilder: (context, index) {
-                    final partner = _partners[index];
-                    final name = '${partner['first_name'] ?? ''} ${partner['last_name'] ?? ''}'.trim();
-                    final email = partner['email'] ?? partner['user_email'] ?? '';
-                    final isSelected = _selectedPartner?['user_id'] == partner['user_id'];
-                    
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedPartner = partner;
-                        });
-                        Navigator.pop(context);
-                        _loadPartnerAvailabilities();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: isSelected ? CupertinoColors.systemBlue.withOpacity(0.1) : null,
-                          border: const Border(
-                            bottom: BorderSide(color: CupertinoColors.separator),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: CupertinoColors.systemBlue.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(22),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: CupertinoColors.systemBlue,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    name.isNotEmpty ? name : 'Partenaire',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  if (email.isNotEmpty)
-                                    Text(
-                                      email,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: CupertinoColors.secondaryLabel,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            if (isSelected)
-                              const Icon(CupertinoIcons.checkmark, color: CupertinoColors.systemBlue),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -949,28 +674,14 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                CupertinoIcons.person_2,
-                size: 64,
-                color: CupertinoColors.systemGrey3,
-              ),
+              Icon(Icons.people_outline, size: 64, color: AppTheme.colors.textSecondary),
               const SizedBox(height: 16),
-              const Text(
-                'Sélectionnez un partenaire',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: CupertinoColors.secondaryLabel,
-                ),
-              ),
+              Text('Sélectionnez un partenaire', style: AppTheme.typography.h3.copyWith(color: AppTheme.colors.textSecondary)),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Choisissez un partenaire dans la liste\npour voir ses disponibilités',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: CupertinoColors.tertiaryLabel,
-                ),
+                style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary),
               ),
             ],
           ),
@@ -981,53 +692,25 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
 
   Widget _buildPartnerPeriodInfo() {
     final name = '${_selectedPartner?['first_name'] ?? ''} ${_selectedPartner?['last_name'] ?? ''}'.trim();
-    
     final weekDays = List.generate(7, (index) => _weekStart.add(Duration(days: index)));
     final availableDays = weekDays.where((day) {
-      final availability = _getAvailabilityForDate(day, _partnerAvailabilities);
-      return availability['is_available'] == true;
+      return _getAvailabilityForDate(day, _partnerAvailabilities)['is_available'] == true;
     }).length;
 
-    String periodText;
-    if (_isMonthView) {
-      periodText = DateFormat('MMMM yyyy', 'fr_FR').format(_currentDate);
-    } else {
-      periodText = 'Semaine du ${DateFormat('d', 'fr_FR').format(_weekStart)} au ${DateFormat('d MMMM', 'fr_FR').format(_weekStart.add(const Duration(days: 6)))}';
-    }
+    final periodText = _isMonthView
+        ? DateFormat('MMMM yyyy', 'fr_FR').format(_currentDate)
+        : 'Semaine du ${DateFormat('d', 'fr_FR').format(_weekStart)} au ${DateFormat('d MMMM', 'fr_FR').format(_weekStart.add(const Duration(days: 6)))}';
 
     return Column(
       children: [
-        Text(
-          name.isNotEmpty ? name : 'Partenaire',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: CupertinoColors.label,
-          ),
-        ),
+        Text(name.isNotEmpty ? name : 'Partenaire', style: AppTheme.typography.h3),
         const SizedBox(height: 8),
-        Text(
-          periodText,
-          style: const TextStyle(
-            fontSize: 15,
-            color: CupertinoColors.secondaryLabel,
-          ),
-        ),
+        Text(periodText, style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary)),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: CupertinoColors.systemGrey5,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            '$availableDays jours disponibles',
-            style: const TextStyle(
-              fontSize: 15,
-              color: CupertinoColors.secondaryLabel,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          decoration: BoxDecoration(color: AppTheme.colors.inputBackground, borderRadius: BorderRadius.circular(20)),
+          child: Text('$availableDays jours disponibles', style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary)),
         ),
       ],
     );
@@ -1035,30 +718,16 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
 
   Widget _buildPartnerWeeklyCalendar() {
     final weekDays = List.generate(7, (index) => _weekStart.add(Duration(days: index)));
-    
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          // En-têtes des jours
           Row(
             children: weekDays.map((day) => Expanded(
-              child: Center(
-                child: Text(
-                  DateFormat('EEE', 'fr_FR').format(day),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: CupertinoColors.secondaryLabel,
-                  ),
-                ),
-              ),
+              child: Center(child: Text(DateFormat('EEE', 'fr_FR').format(day), style: AppTheme.typography.caption.copyWith(color: AppTheme.colors.textSecondary))),
             )).toList(),
           ),
-          
           const SizedBox(height: 12),
-          
-          // Grille des jours (lecture seule)
           Row(
             children: weekDays.map((day) => Expanded(
               child: _buildDayCard(day, _partnerAvailabilities, canEdit: false),
@@ -1073,59 +742,35 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
     final firstDayOfMonth = DateTime(_currentDate.year, _currentDate.month, 1);
     final lastDayOfMonth = DateTime(_currentDate.year, _currentDate.month + 1, 0);
     final firstWeekday = firstDayOfMonth.weekday;
-    
+
     List<List<DateTime?>> weeks = [];
     List<DateTime?> currentWeek = List.filled(7, null);
-    
-    for (int i = 0; i < firstWeekday - 1; i++) {
-      currentWeek[i] = null;
-    }
-    
+    for (int i = 0; i < firstWeekday - 1; i++) { currentWeek[i] = null; }
     for (int day = 1; day <= lastDayOfMonth.day; day++) {
       final date = DateTime(_currentDate.year, _currentDate.month, day);
       final weekdayIndex = date.weekday - 1;
       currentWeek[weekdayIndex] = date;
-      
-      if (weekdayIndex == 6) {
-        weeks.add(currentWeek);
-        currentWeek = List.filled(7, null);
-      }
+      if (weekdayIndex == 6) { weeks.add(currentWeek); currentWeek = List.filled(7, null); }
     }
-    
-    if (currentWeek.any((d) => d != null)) {
-      weeks.add(currentWeek);
-    }
+    if (currentWeek.any((d) => d != null)) weeks.add(currentWeek);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          // En-têtes des jours
           Row(
             children: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day) => Expanded(
-              child: Center(
-                child: Text(
-                  day,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: CupertinoColors.secondaryLabel,
-                  ),
-                ),
-              ),
+              child: Center(child: Text(day, style: AppTheme.typography.caption.copyWith(color: AppTheme.colors.textSecondary))),
             )).toList(),
           ),
-          
           const SizedBox(height: 8),
-          
-          // Grille des semaines (lecture seule)
           ...weeks.map((week) => Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Row(
               children: week.map((day) => Expanded(
-                child: day != null 
-                  ? _buildMonthDayCard(day, _partnerAvailabilities, canEdit: false)
-                  : const SizedBox(height: 48),
+                child: day != null
+                    ? _buildMonthDayCard(day, _partnerAvailabilities, canEdit: false)
+                    : const SizedBox(height: 48),
               )).toList(),
             ),
           )),
@@ -1135,288 +780,93 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
   }
 
   // ============================================
-  // MÉTHODES EXISTANTES (conservées)
+  // DIALOGS & ACTIONS
   // ============================================
 
   void _editDay(DateTime day, Map<String, dynamic> currentAvailability) {
     bool isAvailable = currentAvailability['is_available'] == true;
     String availabilityType = currentAvailability['availability_type'] ?? 'full_day';
-    String notes = currentAvailability['notes'] ?? '';
-    final notesController = TextEditingController(text: notes);
+    final notesController = TextEditingController(text: currentAvailability['notes'] ?? '');
 
-    showCupertinoModalPopup(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => Material(
-          color: Colors.transparent,
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.55,
-            decoration: const BoxDecoration(
-              color: CupertinoColors.systemBackground,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  // Handle
-                  Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.systemGrey3,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+        builder: (context, setDialogState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        child: Text('Annuler', style: TextStyle(color: AppTheme.colors.textSecondary)),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      Text(DateFormat('EEE d MMM', 'fr_FR').format(day), style: AppTheme.typography.h4),
+                      TextButton(
+                        child: Text('OK', style: TextStyle(color: AppTheme.colors.primary, fontWeight: FontWeight.w600)),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _saveAvailability(day, isAvailable, availabilityType, notesController.text);
+                        },
+                      ),
+                    ],
                   ),
-                  
-                  // Header avec date
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          child: Text(
-                            'Annuler',
-                            style: TextStyle(
-                              color: CupertinoColors.secondaryLabel,
-                              fontSize: 16,
-                            ),
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        Text(
-                          DateFormat('EEE d MMM', 'fr_FR').format(day),
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: CupertinoColors.label,
-                          ),
-                        ),
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          child: Text(
-                            'OK',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                              color: CupertinoColors.systemBlue,
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _saveAvailability(day, isAvailable, availabilityType, notesController.text);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const Divider(height: 1),
-                  
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                const Divider(height: 1),
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Statut', style: AppTheme.typography.caption.copyWith(color: AppTheme.colors.textSecondary, letterSpacing: 0.5)),
+                      const SizedBox(height: 12),
+                      Row(
                         children: [
-                          // Toggle disponibilité
-                          Text(
-                            'Statut',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: CupertinoColors.secondaryLabel,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setDialogState(() => isAvailable = true),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    decoration: BoxDecoration(
-                                      color: isAvailable ? CupertinoColors.systemGreen : CupertinoColors.systemGrey6,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: isAvailable ? CupertinoColors.systemGreen : CupertinoColors.systemGrey4,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          CupertinoIcons.checkmark_circle_fill,
-                                          size: 18,
-                                          color: isAvailable ? CupertinoColors.white : CupertinoColors.secondaryLabel,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Disponible',
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600,
-                                            color: isAvailable ? CupertinoColors.white : CupertinoColors.label,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setDialogState(() => isAvailable = false),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    decoration: BoxDecoration(
-                                      color: !isAvailable ? CupertinoColors.systemRed : CupertinoColors.systemGrey6,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: !isAvailable ? CupertinoColors.systemRed : CupertinoColors.systemGrey4,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          CupertinoIcons.xmark_circle_fill,
-                                          size: 18,
-                                          color: !isAvailable ? CupertinoColors.white : CupertinoColors.secondaryLabel,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Occupé',
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600,
-                                            color: !isAvailable ? CupertinoColors.white : CupertinoColors.label,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          
-                          if (isAvailable) ...[
-                            const SizedBox(height: 24),
-                            Text(
-                              'Durée',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: CupertinoColors.secondaryLabel,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => setDialogState(() => availabilityType = 'full_day'),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: availabilityType == 'full_day' 
-                                          ? CupertinoColors.systemBlue 
-                                          : CupertinoColors.systemGrey6,
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: availabilityType == 'full_day' 
-                                            ? CupertinoColors.systemBlue 
-                                            : CupertinoColors.systemGrey4,
-                                        ),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          'Journée',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: availabilityType == 'full_day' 
-                                              ? CupertinoColors.white 
-                                              : CupertinoColors.label,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => setDialogState(() => availabilityType = 'partial_day'),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: availabilityType == 'partial_day' 
-                                          ? CupertinoColors.systemBlue 
-                                          : CupertinoColors.systemGrey6,
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: availabilityType == 'partial_day' 
-                                            ? CupertinoColors.systemBlue 
-                                            : CupertinoColors.systemGrey4,
-                                        ),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          'Demi-journée',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: availabilityType == 'partial_day' 
-                                              ? CupertinoColors.white 
-                                              : CupertinoColors.label,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                          
-                          const SizedBox(height: 24),
-                          Text(
-                            'Note',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: CupertinoColors.secondaryLabel,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          CupertinoTextField(
-                            placeholder: 'Ajouter une note...',
-                            controller: notesController,
-                            maxLines: 2,
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: CupertinoColors.systemGrey6,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: CupertinoColors.systemGrey4),
-                            ),
-                            style: const TextStyle(fontSize: 15),
-                          ),
+                          Expanded(child: _buildToggleButton('Disponible', Icons.check_circle, true, isAvailable, () => setDialogState(() => isAvailable = true), AppTheme.colors.success)),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildToggleButton('Occupé', Icons.cancel, false, !isAvailable, () => setDialogState(() => isAvailable = false), AppTheme.colors.error)),
                         ],
                       ),
-                    ),
+                      if (isAvailable) ...[
+                        const SizedBox(height: 24),
+                        Text('Durée', style: AppTheme.typography.caption.copyWith(color: AppTheme.colors.textSecondary, letterSpacing: 0.5)),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(child: _buildTypeButton('Journée', 'full_day', availabilityType, () => setDialogState(() => availabilityType = 'full_day'))),
+                            const SizedBox(width: 12),
+                            Expanded(child: _buildTypeButton('Demi-journée', 'partial_day', availabilityType, () => setDialogState(() => availabilityType = 'partial_day'))),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      Text('Note', style: AppTheme.typography.caption.copyWith(color: AppTheme.colors.textSecondary, letterSpacing: 0.5)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: notesController,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          hintText: 'Ajouter une note...',
+                          filled: true,
+                          fillColor: AppTheme.colors.inputBackground,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: AppTheme.colors.border),
+                          ),
+                          contentPadding: const EdgeInsets.all(14),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1424,38 +874,70 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
     );
   }
 
+  Widget _buildToggleButton(String label, IconData icon, bool value, bool active, VoidCallback onTap, Color activeColor) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: active ? activeColor : AppTheme.colors.inputBackground,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: active ? activeColor : AppTheme.colors.border),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 18, color: active ? Colors.white : AppTheme.colors.textSecondary),
+            const SizedBox(width: 8),
+            Text(label, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: active ? Colors.white : AppTheme.colors.textPrimary)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTypeButton(String label, String value, String current, VoidCallback onTap) {
+    final active = current == value;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: active ? AppTheme.colors.primary : AppTheme.colors.inputBackground,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: active ? AppTheme.colors.primary : AppTheme.colors.border),
+        ),
+        child: Center(
+          child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: active ? Colors.white : AppTheme.colors.textPrimary)),
+        ),
+      ),
+    );
+  }
+
   void _showQuickActions() {
-    showCupertinoModalPopup(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: const Text('Actions rapides'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _showBulkAvailabilityDialog();
-            },
-            child: const Text('Définir une période'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _createDefaultAvailabilities();
-            },
-            child: const Text('Créer disponibilités par défaut'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _setWeekendUnavailable();
-            },
-            child: const Text('Marquer week-ends occupés'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Annuler'),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('Définir une période'),
+              onTap: () { Navigator.pop(context); _showBulkAvailabilityDialog(); },
+            ),
+            ListTile(
+              title: const Text('Créer disponibilités par défaut'),
+              onTap: () { Navigator.pop(context); _createDefaultAvailabilities(); },
+            ),
+            ListTile(
+              title: const Text('Marquer week-ends occupés'),
+              onTap: () { Navigator.pop(context); _setWeekendUnavailable(); },
+            ),
+            ListTile(
+              title: Text('Annuler', style: TextStyle(color: AppTheme.colors.textSecondary)),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
         ),
       ),
     );
@@ -1466,76 +948,76 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
     DateTime endDate = DateTime.now().add(const Duration(days: 7));
     bool isAvailable = true;
 
-    showCupertinoDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => CupertinoAlertDialog(
-          title: const Text('Définir une période'),
-          content: SizedBox(
-            height: 150,
+        builder: (context, setDialogState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: SafeArea(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 16),
-                CupertinoSegmentedControl<bool>(
-                  children: const {
-                    true: Text('Disponible'),
-                    false: Text('Occupé'),
-                  },
-                  onValueChanged: (value) => setDialogState(() => isAvailable = value),
-                  groupValue: isAvailable,
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(child: const Text('Annuler'), onPressed: () => Navigator.pop(context)),
+                      Text('Définir une période', style: AppTheme.typography.h4),
+                      TextButton(
+                        child: Text('Sauvegarder', style: TextStyle(color: AppTheme.colors.primary, fontWeight: FontWeight.w600)),
+                        onPressed: () { Navigator.pop(context); _saveBulkAvailability(startDate, endDate, isAvailable); },
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: CupertinoButton(
-                        color: CupertinoColors.systemGrey6,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        onPressed: () async {
-                          final date = await _showDatePicker(startDate);
-                          if (date != null) setDialogState(() => startDate = date);
-                        },
-                        child: Text(
-                          DateFormat('dd/MM').format(startDate),
-                          style: const TextStyle(color: CupertinoColors.label),
-                        ),
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: _buildTypeButton('Disponible', 'available', isAvailable ? 'available' : 'busy', () => setDialogState(() => isAvailable = true))),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildTypeButton('Occupé', 'busy', isAvailable ? 'available' : 'busy', () => setDialogState(() => isAvailable = false))),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text('à', style: TextStyle(color: CupertinoColors.label)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: CupertinoButton(
-                        color: CupertinoColors.systemGrey6,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        onPressed: () async {
-                          final date = await _showDatePicker(endDate);
-                          if (date != null) setDialogState(() => endDate = date);
-                        },
-                        child: Text(
-                          DateFormat('dd/MM').format(endDate),
-                          style: const TextStyle(color: CupertinoColors.label),
-                        ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () async {
+                                final date = await showDatePicker(context: context, initialDate: startDate, firstDate: DateTime(2020), lastDate: DateTime(2030));
+                                if (date != null) setDialogState(() => startDate = date);
+                              },
+                              child: Text(DateFormat('dd/MM').format(startDate)),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text('à', style: AppTheme.typography.bodyMedium),
+                          ),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () async {
+                                final date = await showDatePicker(context: context, initialDate: endDate, firstDate: DateTime(2020), lastDate: DateTime(2030));
+                                if (date != null) setDialogState(() => endDate = date);
+                              },
+                              child: Text(DateFormat('dd/MM').format(endDate)),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          actions: [
-            CupertinoDialogAction(
-              child: const Text('Annuler'),
-              onPressed: () => Navigator.pop(context),
-            ),
-            CupertinoDialogAction(
-              child: const Text('Sauvegarder'),
-              onPressed: () {
-                Navigator.pop(context);
-                _saveBulkAvailability(startDate, endDate, isAvailable);
-              },
-            ),
-          ],
         ),
       ),
     );
@@ -1549,34 +1031,25 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
         availabilityType: type,
         notes: notes.isNotEmpty ? notes : null,
       );
-      
       _loadAvailabilities();
-      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${DateFormat('dd/MM').format(day)} mis à jour'),
-            backgroundColor: CupertinoColors.systemBlue,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(20),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('${DateFormat('dd/MM').format(day)} mis à jour'),
+          backgroundColor: AppTheme.colors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(20),
+          duration: const Duration(seconds: 2),
+        ));
       }
     } catch (e) {
       if (mounted) {
-        showCupertinoDialog(
+        showDialog(
           context: context,
-          builder: (context) => CupertinoAlertDialog(
+          builder: (context) => AlertDialog(
             title: const Text('Erreur'),
             content: Text('Impossible de sauvegarder la disponibilité.\n\nErreur: $e'),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
+            actions: [TextButton(child: const Text('OK'), onPressed: () => Navigator.pop(context))],
           ),
         );
       }
@@ -1591,33 +1064,24 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
         isAvailable: isAvailable,
         availabilityType: isAvailable ? 'full_day' : 'unavailable',
       );
-      
       _loadAvailabilities();
-      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Période ${DateFormat('dd/MM').format(startDate)}-${DateFormat('dd/MM').format(endDate)} définie'),
-            backgroundColor: CupertinoColors.systemBlue,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(20),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Période ${DateFormat('dd/MM').format(startDate)}-${DateFormat('dd/MM').format(endDate)} définie'),
+          backgroundColor: AppTheme.colors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(20),
+        ));
       }
     } catch (e) {
       if (mounted) {
-        showCupertinoDialog(
+        showDialog(
           context: context,
-          builder: (context) => CupertinoAlertDialog(
+          builder: (context) => AlertDialog(
             title: const Text('Erreur'),
             content: Text('Erreur lors de la définition de la période: $e'),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
+            actions: [TextButton(child: const Text('OK'), onPressed: () => Navigator.pop(context))],
           ),
         );
       }
@@ -1628,31 +1092,23 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
     try {
       await AvailabilityService.createDefaultAvailabilityForPartner();
       _loadAvailabilities();
-      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Disponibilités par défaut créées'),
-            backgroundColor: CupertinoColors.systemGreen,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(20),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Disponibilités par défaut créées'),
+          backgroundColor: AppTheme.colors.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(20),
+        ));
       }
     } catch (e) {
       if (mounted) {
-        showCupertinoDialog(
+        showDialog(
           context: context,
-          builder: (context) => CupertinoAlertDialog(
+          builder: (context) => AlertDialog(
             title: const Text('Erreur'),
             content: Text('Erreur: $e'),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
+            actions: [TextButton(child: const Text('OK'), onPressed: () => Navigator.pop(context))],
           ),
         );
       }
@@ -1663,7 +1119,6 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
     final now = DateTime.now();
     final startDate = DateTime(now.year, now.month, now.day);
     final endDate = startDate.add(const Duration(days: 30));
-    
     try {
       await AvailabilityService.setPartnerAvailabilityBulk(
         startDate: startDate,
@@ -1673,52 +1128,26 @@ class _IOSMobileAvailabilityPageState extends State<IOSMobileAvailabilityPage> w
         daysOfWeek: [6, 7],
         notes: 'Week-end',
       );
-      
       _loadAvailabilities();
-      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Week-ends marqués occupés'),
-            backgroundColor: CupertinoColors.systemOrange,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(20),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Week-ends marqués occupés'),
+          backgroundColor: AppTheme.colors.warning,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(20),
+        ));
       }
     } catch (e) {
       debugPrint('Erreur week-ends: $e');
     }
   }
 
-  Future<DateTime?> _showDatePicker(DateTime initialDate) async {
-    DateTime? selectedDate;
-    
-    await showCupertinoModalPopup(
-      context: context,
-      builder: (context) => Container(
-        height: 250,
-        color: CupertinoColors.systemBackground.resolveFrom(context),
-        child: SafeArea(
-          top: false,
-          child: CupertinoDatePicker(
-            initialDateTime: initialDate,
-            mode: CupertinoDatePickerMode.date,
-            onDateTimeChanged: (date) => selectedDate = date,
-          ),
-        ),
-      ),
-    );
-    
-    return selectedDate;
-  }
-
-  // Méthodes utilitaires
+  // Utilitaires
   Map<String, dynamic> _getAvailabilityForDate(DateTime date, List<Map<String, dynamic>> availabilities) {
     final dateStr = date.toIso8601String().split('T')[0];
     return availabilities.firstWhere(
-      (availability) => availability['date'] == dateStr,
+      (a) => a['date'] == dateStr,
       orElse: () => <String, dynamic>{},
     );
   }

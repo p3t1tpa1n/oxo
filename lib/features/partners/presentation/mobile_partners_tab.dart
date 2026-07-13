@@ -4,14 +4,12 @@
 // Utilise STRICTEMENT AppTheme
 // ============================================================================
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../models/user_role.dart';
-import '../../../utils/device_detector.dart';
 import '../../../widgets/oxo_card.dart';
 import '../../../pages/associate/ios_partner_detail_page.dart';
 
@@ -71,8 +69,8 @@ class _MobilePartnersTabState extends State<MobilePartnersTab> {
         final firstName = (p['first_name'] ?? '').toString().toLowerCase();
         final lastName = (p['last_name'] ?? '').toString().toLowerCase();
         final email = (p['email'] ?? '').toString().toLowerCase();
-        return firstName.contains(_searchQuery) || 
-               lastName.contains(_searchQuery) || 
+        return firstName.contains(_searchQuery) ||
+               lastName.contains(_searchQuery) ||
                email.contains(_searchQuery);
       }).toList();
     }
@@ -84,7 +82,7 @@ class _MobilePartnersTabState extends State<MobilePartnersTab> {
 
   Future<void> _loadPartners() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final partners = await SupabaseService.getPartners();
       setState(() {
@@ -101,71 +99,70 @@ class _MobilePartnersTabState extends State<MobilePartnersTab> {
   Widget build(BuildContext context) {
     final userRole = SupabaseService.currentUserRole;
     final title = userRole == UserRole.client ? 'Demandes' : 'Partenaires';
-    
-    return CupertinoPageScaffold(
+
+    return Scaffold(
       backgroundColor: AppTheme.colors.background,
-      child: DefaultTextStyle(
-        style: TextStyle(
-          decoration: TextDecoration.none,
-          color: AppTheme.colors.textPrimary,
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header personnalisé
-              _buildHeader(title),
-              
-              // Barre de recherche
-              _buildSearchBar(),
-              
-              // Liste des partenaires
-              Expanded(
-              child: _isLoading
-                ? Center(
-                    child: CupertinoActivityIndicator(
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header personnalisé
+            _buildHeader(title),
+
+            // Barre de recherche
+            _buildSearchBar(),
+
+            // Liste des partenaires
+            Expanded(
+            child: _isLoading
+              ? Center(
+                  child: SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(
                       color: AppTheme.colors.primary,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                )
+              : _filteredPartners.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          AppIcons.partners,
+                          size: 48,
+                          color: AppTheme.colors.textSecondary,
+                        ),
+                        SizedBox(height: AppTheme.spacing.md),
+                        Text(
+                          _searchQuery.isNotEmpty
+                            ? 'Aucun partenaire trouvé'
+                            : 'Aucun partenaire',
+                          style: AppTheme.typography.h4.copyWith(
+                            color: AppTheme.colors.textSecondary,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ],
                     ),
                   )
-                : _filteredPartners.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _getIconForPlatform(AppIcons.partners, AppIcons.partnersIOS),
-                            size: 48,
-                            color: AppTheme.colors.textSecondary,
-                          ),
-                          SizedBox(height: AppTheme.spacing.md),
-                          Text(
-                            _searchQuery.isNotEmpty 
-                              ? 'Aucun partenaire trouvé'
-                              : 'Aucun partenaire',
-                            style: AppTheme.typography.h4.copyWith(
-                              color: AppTheme.colors.textSecondary,
-                              decoration: TextDecoration.none,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _loadPartners,
-                      color: AppTheme.colors.primary,
-                      child: ListView.builder(
-                        padding: EdgeInsets.all(AppTheme.spacing.md),
-                        itemCount: _filteredPartners.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: EdgeInsets.only(bottom: AppTheme.spacing.sm),
-                            child: _buildPartnerCard(_filteredPartners[index]),
-                          );
-                        },
-                      ),
-                      ),
-              ),
-            ],
-          ),
+                : RefreshIndicator(
+                    onRefresh: _loadPartners,
+                    color: AppTheme.colors.primary,
+                    child: ListView.builder(
+                      padding: EdgeInsets.all(AppTheme.spacing.md),
+                      itemCount: _filteredPartners.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: AppTheme.spacing.sm),
+                          child: _buildPartnerCard(_filteredPartners[index]),
+                        );
+                      },
+                    ),
+                    ),
+            ),
+          ],
         ),
       ),
     );
@@ -194,16 +191,14 @@ class _MobilePartnersTabState extends State<MobilePartnersTab> {
           ),
           SizedBox(width: 8),
           // Icône cloche (notifications)
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            minSize: 0,
-            onPressed: () {
+          GestureDetector(
+            onTap: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/messaging');
             },
             child: Stack(
               children: [
                 Icon(
-                  _getIconForPlatform(AppIcons.notifications, AppIcons.notificationsIOS),
+                  AppIcons.notifications,
                   color: AppTheme.colors.textPrimary,
                   size: 24,
                 ),
@@ -228,14 +223,12 @@ class _MobilePartnersTabState extends State<MobilePartnersTab> {
           ),
           SizedBox(width: AppTheme.spacing.sm),
           // Icône engrenage (paramètres)
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            minSize: 0,
-            onPressed: () {
+          GestureDetector(
+            onTap: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/profile');
             },
             child: Icon(
-              _getIconForPlatform(AppIcons.settings, AppIcons.settingsIOS),
+              AppIcons.settings,
               color: AppTheme.colors.textPrimary,
               size: 24,
             ),
@@ -248,19 +241,25 @@ class _MobilePartnersTabState extends State<MobilePartnersTab> {
   Widget _buildSearchBar() {
     return Container(
       margin: EdgeInsets.all(AppTheme.spacing.md),
-      child: CupertinoSearchTextField(
+      child: TextField(
         controller: _searchController,
-        placeholder: 'Rechercher un partenaire...',
+        decoration: InputDecoration(
+          hintText: 'Rechercher un partenaire...',
+          hintStyle: AppTheme.typography.bodyMedium.copyWith(
+            color: AppTheme.colors.textSecondary,
+            decoration: TextDecoration.none,
+          ),
+          prefixIcon: Icon(Icons.search),
+          filled: true,
+          fillColor: AppTheme.colors.inputBackground,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radius.medium),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: EdgeInsets.symmetric(vertical: 8),
+        ),
         style: AppTheme.typography.bodyMedium.copyWith(
           decoration: TextDecoration.none,
-        ),
-        placeholderStyle: AppTheme.typography.bodyMedium.copyWith(
-          color: AppTheme.colors.textSecondary,
-          decoration: TextDecoration.none,
-        ),
-        decoration: BoxDecoration(
-          color: AppTheme.colors.inputBackground,
-          borderRadius: BorderRadius.circular(AppTheme.radius.medium),
         ),
       ),
     );
@@ -272,11 +271,11 @@ class _MobilePartnersTabState extends State<MobilePartnersTab> {
     final email = partner['email'] ?? '';
     final name = '$firstName $lastName'.trim();
     final displayName = name.isNotEmpty ? name : email.split('@').first;
-    
+
     return OxoCard(
       onTap: () {
         Navigator.of(context).push(
-          CupertinoPageRoute(
+          MaterialPageRoute(
             builder: (context) => IOSPartnerDetailPage(partner: partner),
           ),
         );
@@ -323,7 +322,7 @@ class _MobilePartnersTabState extends State<MobilePartnersTab> {
             ),
           ),
           Icon(
-            _getIconForPlatform(AppIcons.next, AppIcons.nextIOS),
+            AppIcons.next,
             color: AppTheme.colors.textSecondary,
             size: 16,
           ),
@@ -331,10 +330,4 @@ class _MobilePartnersTabState extends State<MobilePartnersTab> {
       ),
     );
   }
-
-  IconData _getIconForPlatform(IconData material, IconData cupertino) {
-    return DeviceDetector.shouldUseIOSInterface() ? cupertino : material;
-  }
 }
-
-

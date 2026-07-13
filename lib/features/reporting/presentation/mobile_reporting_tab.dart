@@ -4,13 +4,13 @@
 // Utilise STRICTEMENT AppTheme
 // ============================================================================
 
-import 'package:flutter/cupertino.dart';
+
 import 'package:flutter/material.dart';
 import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../pages/partner/ios_mobile_availability_page.dart';
 import '../../../pages/partner/ios_mobile_actions_page.dart';
-import '../../../utils/device_detector.dart';
+
 
 class MobileReportingTab extends StatefulWidget {
   const MobileReportingTab({Key? key}) : super(key: key);
@@ -55,84 +55,69 @@ class _MobileReportingTabState extends State<MobileReportingTab> with SingleTick
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
+    return Scaffold(
       backgroundColor: AppTheme.colors.background,
-      child: DefaultTextStyle(
-        style: TextStyle(
-          decoration: TextDecoration.none,
-          color: AppTheme.colors.textPrimary,
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header personnalisé avec titre dynamique
-              _buildHeader(),
-              
-              // Tabs - wrapped in Material
-              Material(
-                color: AppTheme.colors.surface,
-                child: TabBar(
-                  controller: _tabController,
-                  labelColor: AppTheme.colors.primary,
-                  unselectedLabelColor: AppTheme.colors.textSecondary,
-                  indicatorColor: AppTheme.colors.primary,
-                  tabs: [
-                    Tab(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _getIconForPlatform(AppIcons.availability, AppIcons.availabilityIOS),
-                            size: 16,
-                          ),
-                          SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              'Disponibilités',
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12),
-                            ),
-                          ),
-                        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header personnalisé avec titre dynamique
+            _buildHeader(),
+
+            // Tabs
+            TabBar(
+              controller: _tabController,
+              labelColor: AppTheme.colors.primary,
+              unselectedLabelColor: AppTheme.colors.textSecondary,
+              indicatorColor: AppTheme.colors.primary,
+              tabs: [
+                Tab(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(AppIcons.availability, size: 16),
+                      SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          'Disponibilités',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ),
-                    ),
-                    Tab(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _getIconForPlatform(AppIcons.actions, AppIcons.actionsIOS),
-                            size: 16,
-                          ),
-                          SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              'Actions Comm.',
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12),
-                            ),
-                          ),
-                        ],
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(AppIcons.actions, size: 16),
+                      SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          'Actions Comm.',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+              ],
+            ),
+
+            // Contenu
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  const IOSMobileAvailabilityPage(showHeader: false),
+                  const IOSMobileActionsPage(showHeader: false),
+                ],
               ),
-              
-              // Contenu
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    const IOSMobileAvailabilityPage(showHeader: false),
-                    const IOSMobileActionsPage(showHeader: false),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -161,14 +146,14 @@ class _MobileReportingTabState extends State<MobileReportingTab> with SingleTick
           ),
           SizedBox(width: 8),
           // Icône engrenage (paramètres)
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/profile');
             },
-            child: Icon(
-              _getIconForPlatform(AppIcons.settings, AppIcons.settingsIOS),
+            icon: Icon(
+              AppIcons.settings,
               color: AppTheme.colors.textPrimary,
               size: 24,
             ),
@@ -178,8 +163,5 @@ class _MobileReportingTabState extends State<MobileReportingTab> with SingleTick
     );
   }
 
-  IconData _getIconForPlatform(IconData material, IconData cupertino) {
-    return DeviceDetector.shouldUseIOSInterface() ? cupertino : material;
-  }
 }
 

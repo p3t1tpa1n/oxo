@@ -3,6 +3,7 @@
 // ============================================================================
 
 import 'package:flutter/material.dart';
+import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../models/user_role.dart';
 import '../associate/partner_profiles_page.dart';
@@ -69,60 +70,38 @@ const Expanded(
     }
 
     return Scaffold(
+      backgroundColor: AppTheme.colors.background,
       body: Row(
         children: [
-Expanded(
+          Expanded(
             child: Column(
               children: [
-                // En-tête
+                // Barre d'onglets (le titre est fourni par DesktopShell)
                 Container(
-                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        spreadRadius: 1,
-                        blurRadius: 3,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
+                    color: AppTheme.colors.surface,
+                    border: Border(
+                      bottom: BorderSide(
+                          color: AppTheme.colors.border, width: 0.5),
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.people,
-                        color: Color(0xFF16283C),
-                        size: 28,
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Partenaires et Clients',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF16283C),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Barre d'onglets
-                Container(
-                  color: Colors.white,
                   child: TabBar(
                     controller: _tabController,
-                    labelColor: const Color(0xFF16283C),
-                    unselectedLabelColor: Colors.grey,
-                    indicatorColor: const Color(0xFF16283C),
-                    indicatorWeight: 3,
+                    labelColor: AppTheme.colors.primary,
+                    unselectedLabelColor: AppTheme.colors.textSecondary,
+                    indicatorColor: AppTheme.colors.primary,
+                    indicatorWeight: 2,
+                    labelStyle: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600),
+                    unselectedLabelStyle: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.normal),
                     tabs: const [
                       Tab(
-                        icon: Icon(Icons.people_alt),
+                        icon: Icon(Icons.people_alt_outlined, size: 20),
                         text: 'Profils Partenaires',
                       ),
                       Tab(
-                        icon: Icon(Icons.business),
+                        icon: Icon(Icons.business_outlined, size: 20),
                         text: 'Sociétés et Groupes',
                       ),
                     ],

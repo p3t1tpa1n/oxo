@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
 
 class ProposedMissionsPage extends StatefulWidget {
@@ -258,7 +259,6 @@ Expanded(
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -270,24 +270,22 @@ Expanded(
                 Expanded(
                   child: Text(
                     mission['title'] ?? 'Mission sans titre',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTheme.typography.h4,
                   ),
                 ),
                 _buildPriorityBadge(mission['priority']),
               ],
             ),
             const SizedBox(height: 12),
-            
+
             // Description
             if (mission['description'] != null) ...[
               Text(
                 mission['description'],
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[700],
+                  height: 1.4,
+                  color: AppTheme.colors.textSecondary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -324,21 +322,25 @@ Expanded(
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton.icon(
+                OutlinedButton.icon(
                   onPressed: () => _rejectMission(mission['id'], mission['title'] ?? ''),
-                  icon: const Icon(Icons.close, color: Colors.red),
-                  label: const Text(
+                  icon: Icon(Icons.close, size: 18, color: AppTheme.colors.error),
+                  label: Text(
                     'Refuser',
-                    style: TextStyle(color: Colors.red),
+                    style: TextStyle(color: AppTheme.colors.error),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                        color: AppTheme.colors.error.withOpacity(0.5)),
                   ),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton.icon(
                   onPressed: () => _acceptMission(mission['id'], mission['title'] ?? ''),
-                  icon: const Icon(Icons.check),
+                  icon: const Icon(Icons.check, size: 18),
                   label: const Text('Accepter'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D5B),
+                    backgroundColor: AppTheme.colors.success,
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -357,34 +359,33 @@ Expanded(
     switch (priority) {
       case 'high':
       case 'urgent':
-        color = Colors.red;
+        color = AppTheme.colors.error;
         label = 'Urgent';
         break;
       case 'medium':
-        color = const Color(0xFFB07B2E);
+        color = AppTheme.colors.warning;
         label = 'Normal';
         break;
       case 'low':
-        color = const Color(0xFF3E5C76);
+        color = AppTheme.colors.secondary;
         label = 'Faible';
         break;
       default:
-        color = Colors.grey;
+        color = AppTheme.colors.statusCancelled;
         label = priority ?? 'Non défini';
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
         style: TextStyle(
           color: color,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
           fontSize: 12,
         ),
       ),
@@ -393,21 +394,22 @@ Expanded(
 
   Widget _buildInfoChip(IconData icon, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(20),
+        color: AppTheme.colors.background,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppTheme.colors.borderLight, width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: Colors.grey[700]),
+          Icon(icon, size: 14, color: AppTheme.colors.textSecondary),
           const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[700],
+              color: AppTheme.colors.textSecondary,
             ),
           ),
         ],

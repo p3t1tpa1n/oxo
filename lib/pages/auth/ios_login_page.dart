@@ -1,7 +1,5 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../../config/ios_theme.dart';
-import '../../widgets/ios_widgets.dart';
+import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../app/shells/mobile_shell_professional.dart';
 
@@ -15,7 +13,6 @@ class IOSLoginPage extends StatefulWidget {
 class _IOSLoginPageState extends State<IOSLoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   String _errorMessage = '';
@@ -28,118 +25,66 @@ class _IOSLoginPageState extends State<IOSLoginPage> {
   }
 
   Future<void> _handleLogin() async {
-    // Valider que les champs ne sont pas vides
     if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
-      setState(() {
-        _errorMessage = 'Veuillez remplir tous les champs';
-      });
+      setState(() => _errorMessage = 'Veuillez remplir tous les champs');
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
+    setState(() { _isLoading = true; _errorMessage = ''; });
 
     try {
-      final email = _emailController.text.trim();
-      final password = _passwordController.text;
-
-      debugPrint('📱 iOS: Tentative de connexion avec: $email');
-
       final result = await SupabaseService.signIn(
-        email: email,
-        password: password,
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
 
       if (result.user != null) {
         if (!mounted) return;
-        
-        // Récupérer le rôle utilisateur
         final userRole = await SupabaseService.getCurrentUserRole();
-        debugPrint('📱 iOS: Rôle utilisateur récupéré: $userRole');
-        
         if (!mounted) return;
-        
+
         if (userRole == null) {
-          debugPrint('❌ iOS: Rôle utilisateur est null');
-          setState(() {
-            _errorMessage = 'Erreur: Rôle utilisateur non défini';
-            _isLoading = false;
-          });
+          setState(() { _errorMessage = 'Erreur: Rôle utilisateur non défini'; _isLoading = false; });
           return;
         }
 
         final roleValue = userRole.toString().toLowerCase();
-        debugPrint('📱 iOS: Valeur du rôle: $roleValue');
-
-        // Redirection selon le rôle - Utiliser pushAndRemoveUntil pour éviter le retour arrière
-        if (roleValue == 'client') {
-          debugPrint('📱 iOS: Redirection client vers /client/invoices');
-          Navigator.of(context).pushNamedAndRemoveUntil(
-            '/client/invoices',
-            (route) => false,
-          );
+        if (roleValue.contains('client')) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/client/invoices', (route) => false);
         } else {
-          // Pour associés, partenaires et admins : utiliser le shell iOS
-          debugPrint('📱 iOS: Redirection vers MobileShellProfessional');
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (context) => const MobileShellProfessional(),
-            ),
+            MaterialPageRoute(builder: (context) => const MobileShellProfessional()),
             (route) => false,
           );
         }
       } else {
-        setState(() {
-          _errorMessage = 'Identifiants incorrects. Veuillez réessayer.';
-          _isLoading = false;
-        });
+        setState(() { _errorMessage = 'Identifiants incorrects.'; _isLoading = false; });
       }
     } catch (e) {
-      debugPrint('❌ iOS: Erreur de connexion: $e');
-      String errorMsg = 'Une erreur est survenue lors de la connexion';
-      if (e.toString().contains('Failed to fetch')) {
-        errorMsg = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
-      } else if (e.toString().contains('Invalid login credentials')) {
-        errorMsg = 'Email ou mot de passe incorrect';
-      }
-      setState(() {
-        _errorMessage = errorMsg;
-        _isLoading = false;
-      });
+      String msg = 'Une erreur est survenue';
+      if (e.toString().contains('Failed to fetch')) msg = 'Impossible de se connecter. Vérifiez votre connexion.';
+      if (e.toString().contains('Invalid login credentials')) msg = 'Email ou mot de passe incorrect';
+      setState(() { _errorMessage = msg; _isLoading = false; });
     }
   }
 
   Future<void> _handleForgotPassword() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
-      await IOSAlert.show(
-        context: context,
-        title: 'Email requis',
-        message: 'Veuillez saisir votre adresse email avant de demander une réinitialisation.',
-        confirmText: 'OK',
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Saisissez votre email d\'abord')),
       );
       return;
     }
 
-    final confirm = await showCupertinoDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Réinitialisation du mot de passe'),
-        content: Text(
-          'Un email de réinitialisation va être envoyé à $email.\n\nConsultez votre boîte de réception et suivez les instructions.',
-        ),
+        content: Text('Un email de réinitialisation va être envoyé à $email.'),
         actions: [
-          CupertinoDialogAction(
-            child: const Text('Annuler'),
-            onPressed: () => Navigator.of(context).pop(false),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            child: const Text('Envoyer'),
-            onPressed: () => Navigator.of(context).pop(true),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Envoyer')),
         ],
       ),
     );
@@ -148,20 +93,14 @@ class _IOSLoginPageState extends State<IOSLoginPage> {
       try {
         await SupabaseService.client.auth.resetPasswordForEmail(email);
         if (mounted) {
-          await IOSAlert.show(
-            context: context,
-            title: 'Email envoyé',
-            message: 'Vérifiez votre boîte de réception pour réinitialiser votre mot de passe.',
-            confirmText: 'OK',
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Email envoyé. Vérifiez votre boîte de réception.')),
           );
         }
       } catch (e) {
         if (mounted) {
-          await IOSAlert.show(
-            context: context,
-            title: 'Erreur',
-            message: 'Impossible d\'envoyer l\'email. Veuillez réessayer.',
-            confirmText: 'OK',
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Impossible d\'envoyer l\'email.')),
           );
         }
       }
@@ -170,242 +109,114 @@ class _IOSLoginPageState extends State<IOSLoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return IOSScaffold(
-      backgroundColor: IOSTheme.systemGroupedBackground,
+    return Scaffold(
+      backgroundColor: AppTheme.colors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 60),
-                
-                // Logo et titre - Style minimal
-                Center(
-                  child: Column(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 60),
+              // Logo
+              Center(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: AppTheme.colors.primary,
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'OXO',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 28),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text('Bienvenue', style: AppTheme.typography.h1),
+                    const SizedBox(height: 8),
+                    Text('Connectez-vous à votre compte',
+                        style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 48),
+              // Email
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  hintText: 'Adresse e-mail',
+                  prefixIcon: const Icon(Icons.email_outlined),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Password
+              TextField(
+                controller: _passwordController,
+                obscureText: !_isPasswordVisible,
+                decoration: InputDecoration(
+                  hintText: 'Mot de passe',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(_isPasswordVisible ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onSubmitted: (_) => _handleLogin(),
+              ),
+              if (_errorMessage.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.colors.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
                     children: [
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: IOSTheme.primaryBlue,
-                          borderRadius: BorderRadius.circular(22),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            "OXO",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 28,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        "Bienvenue",
-                        style: IOSTheme.largeTitle.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Connectez-vous à votre compte",
-                        style: IOSTheme.body.copyWith(color: IOSTheme.labelSecondary),
+                      Icon(Icons.error_outline, color: AppTheme.colors.error, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(_errorMessage,
+                            style: AppTheme.typography.bodySmall.copyWith(color: AppTheme.colors.error)),
                       ),
                     ],
                   ),
                 ),
-                
-                const SizedBox(height: 50),
-                
-                // Formulaire de connexion
-                IOSListSection(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          IOSTextField(
-                            controller: _emailController,
-                            placeholder: "Adresse e-mail",
-                            keyboardType: TextInputType.emailAddress,
-                            prefix: const Padding(
-                              padding: EdgeInsets.only(right: 12),
-                              child: Icon(
-                                CupertinoIcons.mail,
-                                color: IOSTheme.systemGray,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          IOSTextField(
-                            controller: _passwordController,
-                            placeholder: "Mot de passe",
-                            obscureText: !_isPasswordVisible,
-                            prefix: const Padding(
-                              padding: EdgeInsets.only(right: 12),
-                              child: Icon(
-                                CupertinoIcons.lock,
-                                color: IOSTheme.systemGray,
-                                size: 20,
-                              ),
-                            ),
-                            suffix: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _isPasswordVisible = !_isPasswordVisible;
-                                });
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 12),
-                                child: Icon(
-                                  _isPasswordVisible
-                                      ? CupertinoIcons.eye_slash
-                                      : CupertinoIcons.eye,
-                                  color: IOSTheme.systemGray,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Message d'erreur
-                if (_errorMessage.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: IOSTheme.systemRed.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            CupertinoIcons.exclamationmark_circle,
-                            color: IOSTheme.systemRed,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _errorMessage,
-                              style: IOSTheme.footnote.copyWith(
-                                color: IOSTheme.systemRed,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                
-                const SizedBox(height: 24),
-                
-                // Bouton de connexion
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: IOSPrimaryButton(
-                    text: "Se connecter",
-                    onPressed: _handleLogin,
-                    isLoading: _isLoading,
-                    isEnabled: !_isLoading,
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Mot de passe oublié
-                Center(
-                  child: CupertinoButton(
-                    onPressed: _handleForgotPassword,
-                    child: Text(
-                      "Mot de passe oublié ?",
-                      style: IOSTheme.body.copyWith(color: IOSTheme.primaryBlue),
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 40),
-                
-                // Informations supplémentaires
-                IOSListSection(
-                  title: "À propos",
-                  children: [
-                    const IOSListTile(
-                      leading: Icon(
-                        CupertinoIcons.info_circle,
-                        color: IOSTheme.primaryBlue,
-                      ),
-                      title: Text("Version de l'application"),
-                      trailing: Text(
-                        "1.0.0",
-                        style: TextStyle(
-                          color: IOSTheme.labelSecondary,
-                          fontSize: 17,
-                          fontFamily: '.SF Pro Text',
-                        ),
-                      ),
-                    ),
-                    IOSListTile(
-                      leading: const Icon(
-                        CupertinoIcons.shield,
-                        color: IOSTheme.systemGreen,
-                      ),
-                      title: const Text("Confidentialité"),
-                      trailing: const Icon(
-                        CupertinoIcons.chevron_right,
-                        color: IOSTheme.systemGray,
-                        size: 16,
-                      ),
-                      onTap: () {
-                        IOSAlert.show(
-                          context: context,
-                          title: 'Confidentialité',
-                          message: 'Vos données sont protégées et chiffrées.',
-                          confirmText: 'Compris',
-                        );
-                      },
-                    ),
-                    IOSListTile(
-                      leading: const Icon(
-                        CupertinoIcons.doc_text,
-                        color: IOSTheme.systemOrange,
-                      ),
-                      title: const Text("Conditions d'utilisation"),
-                      trailing: const Icon(
-                        CupertinoIcons.chevron_right,
-                        color: IOSTheme.systemGray,
-                        size: 16,
-                      ),
-                      onTap: () {
-                        IOSAlert.show(
-                          context: context,
-                          title: 'Conditions d\'utilisation',
-                          message: 'Consultez nos conditions d\'utilisation.',
-                          confirmText: 'OK',
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 40),
               ],
-            ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _handleLogin,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.colors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: _isLoading
+                    ? const SizedBox(height: 20, width: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('Se connecter',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: TextButton(
+                  onPressed: _handleForgotPassword,
+                  child: Text('Mot de passe oublié ?',
+                      style: TextStyle(color: AppTheme.colors.primary)),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
-} 
+}

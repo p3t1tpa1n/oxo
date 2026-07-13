@@ -4,14 +4,12 @@
 // Utilise STRICTEMENT AppTheme
 // ============================================================================
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../models/user_role.dart';
-import '../../../utils/device_detector.dart';
 import '../../../services/feedback_service.dart';
 import '../../../widgets/oxo_card.dart';
 import 'preferences_page.dart';
@@ -91,16 +89,14 @@ class _MobileProfileTabState extends State<MobileProfileTab> {
     final user = SupabaseService.currentUser;
     
     if (user == null) {
-      return CupertinoPageScaffold(
-        child: Center(
-          child: Text('Non connecté'),
-        ),
+      return const Scaffold(
+        body: Center(child: Text('Non connecté')),
       );
     }
 
-    return CupertinoPageScaffold(
+    return Scaffold(
       backgroundColor: AppTheme.colors.background,
-      child: SafeArea(
+      body: SafeArea(
         child: Column(
           children: [
             // Header personnalisé
@@ -111,8 +107,9 @@ class _MobileProfileTabState extends State<MobileProfileTab> {
               child:
               _isLoading
                 ? Center(
-                    child: CupertinoActivityIndicator(
+                    child: CircularProgressIndicator(
                       color: AppTheme.colors.primary,
+                      strokeWidth: 2,
                     ),
                   )
                 : RefreshIndicator(
@@ -160,16 +157,16 @@ class _MobileProfileTabState extends State<MobileProfileTab> {
           ),
           Spacer(),
           // Icône cloche (notifications)
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/messaging');
             },
-            child: Stack(
+            icon: Stack(
               children: [
                 Icon(
-                  _getIconForPlatform(AppIcons.notifications, AppIcons.notificationsIOS),
+                  AppIcons.notifications,
                   color: AppTheme.colors.textPrimary,
                   size: 24,
                 ),
@@ -194,18 +191,18 @@ class _MobileProfileTabState extends State<MobileProfileTab> {
           ),
           SizedBox(width: AppTheme.spacing.sm),
           // Icône engrenage (paramètres)
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context).push(
-                CupertinoPageRoute(
+                MaterialPageRoute(
                   builder: (context) => const PreferencesPage(),
                 ),
               );
             },
-            child: Icon(
-              _getIconForPlatform(AppIcons.settings, AppIcons.settingsIOS),
+            icon: Icon(
+              AppIcons.settings,
               color: AppTheme.colors.textPrimary,
               size: 24,
             ),
@@ -283,17 +280,17 @@ class _MobileProfileTabState extends State<MobileProfileTab> {
               _buildStatItem(
                 label: 'Missions',
                 value: '${_stats['total_missions'] ?? 0}',
-                icon: _getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS),
+                icon: AppIcons.missions,
               ),
               _buildStatItem(
                 label: 'Terminées',
                 value: '${_stats['completed_missions'] ?? 0}',
-                icon: _getIconForPlatform(AppIcons.done, AppIcons.doneIOS),
+                icon: AppIcons.done,
               ),
               _buildStatItem(
                 label: 'Jours',
                 value: '${_stats['days_logged'] ?? 0}',
-                icon: _getIconForPlatform(AppIcons.timesheet, AppIcons.timesheetIOS),
+                icon: AppIcons.timesheet,
               ),
             ],
           ),
@@ -334,12 +331,12 @@ class _MobileProfileTabState extends State<MobileProfileTab> {
       child: Column(
         children: [
           _buildPreferenceTile(
-            icon: _getIconForPlatform(AppIcons.settings, AppIcons.settingsIOS),
+            icon: AppIcons.settings,
             title: 'Préférences',
             subtitle: 'Thème, notifications, etc.',
             onTap: () {
               Navigator.of(context).push(
-                CupertinoPageRoute(
+                MaterialPageRoute(
                   builder: (context) => const PreferencesPage(),
                 ),
               );
@@ -352,7 +349,7 @@ class _MobileProfileTabState extends State<MobileProfileTab> {
           ),
           if (SupabaseService.currentUserRole == UserRole.admin)
             _buildPreferenceTile(
-              icon: _getIconForPlatform(AppIcons.admin, AppIcons.adminIOS),
+              icon: AppIcons.admin,
               title: 'Gestion des rôles',
               subtitle: 'Administration',
               onTap: () {
@@ -402,7 +399,7 @@ class _MobileProfileTabState extends State<MobileProfileTab> {
               ),
             ),
             Icon(
-              _getIconForPlatform(AppIcons.next, AppIcons.nextIOS),
+              AppIcons.next,
               color: AppTheme.colors.textSecondary,
               size: 16,
             ),
@@ -422,7 +419,7 @@ class _MobileProfileTabState extends State<MobileProfileTab> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              _getIconForPlatform(AppIcons.logout, AppIcons.logoutIOS),
+              AppIcons.logout,
               color: AppTheme.colors.error,
               size: 20,
             ),
@@ -479,8 +476,5 @@ class _MobileProfileTabState extends State<MobileProfileTab> {
     }
   }
 
-  IconData _getIconForPlatform(IconData material, IconData cupertino) {
-    return DeviceDetector.shouldUseIOSInterface() ? cupertino : material;
-  }
 }
 

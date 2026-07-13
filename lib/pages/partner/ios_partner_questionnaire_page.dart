@@ -1,9 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../services/partner_profile_service.dart';
-import '../../widgets/ios_widgets.dart';
-import '../../config/ios_theme.dart';
+import '../../config/app_theme.dart';
 
 class IOSPartnerQuestionnairePage extends StatefulWidget {
   const IOSPartnerQuestionnairePage({super.key});
@@ -16,28 +14,28 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
   final PageController _pageController = PageController();
   int _currentPage = 0;
   final int _totalPages = 8;
-  
+
   // Données du formulaire
   final Map<String, dynamic> _formData = {};
   bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        middle: Text(
-          'Profil Partenaire',
-          style: IOSTheme.title2,
-        ),
-        backgroundColor: CupertinoColors.systemBackground,
-        border: null,
+    return Scaffold(
+      backgroundColor: AppTheme.colors.background,
+      appBar: AppBar(
+        backgroundColor: AppTheme.colors.surface,
+        elevation: 0,
+        iconTheme: IconThemeData(color: AppTheme.colors.textPrimary),
+        titleTextStyle: AppTheme.typography.h4.copyWith(color: AppTheme.colors.textPrimary),
+        title: Text('Profil Partenaire', style: AppTheme.typography.h3),
       ),
-      child: SafeArea(
+      body: SafeArea(
         child: Column(
           children: [
             // Indicateur de progression
             _buildProgressIndicator(),
-            
+
             // Contenu du questionnaire
             Expanded(
               child: PageView(
@@ -59,7 +57,7 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
                 ],
               ),
             ),
-            
+
             // Navigation
             _buildNavigationButtons(),
           ],
@@ -78,24 +76,22 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
             children: [
               Text(
                 'Étape ${_currentPage + 1} sur $_totalPages',
-                style: IOSTheme.body.copyWith(
-                  color: CupertinoColors.systemGrey,
-                ),
+                style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary),
               ),
               Text(
                 '${((_currentPage + 1) / _totalPages * 100).round()}%',
-                style: IOSTheme.body.copyWith(
-                  color: CupertinoColors.systemBlue,
+                style: AppTheme.typography.bodyMedium.copyWith(
+                  color: AppTheme.colors.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          CupertinoSlider(
+          LinearProgressIndicator(
             value: (_currentPage + 1) / _totalPages,
-            onChanged: null,
-            activeColor: CupertinoColors.systemBlue,
+            backgroundColor: AppTheme.colors.border,
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.colors.primary),
           ),
         ],
       ),
@@ -108,37 +104,33 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IOSListSection(
-            title: '🧍 Informations personnelles',
-            children: [
-              IOSCard(
-                child: Column(
-                  children: [
-                    _buildDropdownField(
-                      'Civilité',
-                      'civility',
-                      ['M.', 'Mme', 'Dr', 'Prof'],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField('Prénom', 'first_name'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Nom', 'last_name'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Email', 'email', keyboardType: TextInputType.emailAddress),
-                    const SizedBox(height: 16),
-                    _buildTextField('Téléphone', 'phone', keyboardType: TextInputType.phone),
-                    const SizedBox(height: 16),
-                    _buildDateField('Date de naissance', 'birth_date'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Adresse', 'address'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Code postal', 'postal_code'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Ville', 'city'),
-                  ],
-                ),
+          _buildSectionHeader('🧍 Informations personnelles'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 0),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildDropdownField('Civilité', 'civility', ['M.', 'Mme', 'Dr', 'Prof']),
+                  const SizedBox(height: 16),
+                  _buildTextField('Prénom', 'first_name'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Nom', 'last_name'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Email', 'email', keyboardType: TextInputType.emailAddress),
+                  const SizedBox(height: 16),
+                  _buildTextField('Téléphone', 'phone', keyboardType: TextInputType.phone),
+                  const SizedBox(height: 16),
+                  _buildDateField('Date de naissance', 'birth_date'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Adresse', 'address'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Code postal', 'postal_code'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Ville', 'city'),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -151,35 +143,35 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IOSListSection(
-            title: '🏢 Informations société',
-            children: [
-              IOSCard(
-                child: Column(
-                  children: [
-                    _buildTextField('Nom de la société', 'company_name'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Forme juridique', 'legal_form'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Capital', 'capital'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Adresse du siège', 'company_address'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Code postal', 'company_postal_code'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Ville', 'company_city'),
-                    const SizedBox(height: 16),
-                    _buildTextField('RCS', 'rcs'),
-                    const SizedBox(height: 16),
-                    _buildTextField('SIREN', 'siren'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Représentant', 'representative_name'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Qualité du représentant', 'representative_title'),
-                  ],
-                ),
+          _buildSectionHeader('🏢 Informations société'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 0),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildTextField('Nom de la société', 'company_name'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Forme juridique', 'legal_form'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Capital', 'capital'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Adresse du siège', 'company_address'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Code postal', 'company_postal_code'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Ville', 'company_city'),
+                  const SizedBox(height: 16),
+                  _buildTextField('RCS', 'rcs'),
+                  const SizedBox(height: 16),
+                  _buildTextField('SIREN', 'siren'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Représentant', 'representative_name'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Qualité du représentant', 'representative_title'),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -189,35 +181,33 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
   Widget _buildActivityDomainsPage() {
     final domains = [
       'Direction Financière',
-      'Direction Juridique', 
+      'Direction Juridique',
       'Direction Générale',
       'Direction Transformation'
     ];
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IOSListSection(
-            title: '💼 Domaines d\'activité',
-            children: [
-              IOSCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Sélectionnez vos domaines d\'expertise :',
-                      style: IOSTheme.body.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ...domains.map((domain) => _buildCheckboxTile(domain, 'activity_domains')),
-                  ],
-                ),
+          _buildSectionHeader('💼 Domaines d\'activité'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 0),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sélectionnez vos domaines d\'expertise :',
+                    style: AppTheme.typography.bodyMedium.copyWith(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 16),
+                  ...domains.map((domain) => _buildCheckboxTile(domain, 'activity_domains')),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -233,31 +223,29 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
       'Allemand courant',
       'Allemand technique'
     ];
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IOSListSection(
-            title: '🌍 Langues & Niveau',
-            children: [
-              IOSCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Sélectionnez vos compétences linguistiques :',
-                      style: IOSTheme.body.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ...languages.map((language) => _buildCheckboxTile(language, 'languages')),
-                  ],
-                ),
+          _buildSectionHeader('🌍 Langues & Niveau'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 0),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sélectionnez vos compétences linguistiques :',
+                    style: AppTheme.typography.bodyMedium.copyWith(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 16),
+                  ...languages.map((language) => _buildCheckboxTile(language, 'languages')),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -270,21 +258,21 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IOSListSection(
-            title: '🎓 Diplômes significatifs',
-            children: [
-              IOSCard(
-                child: Column(
-                  children: [
-                    _buildTextField('Diplôme 1', 'diploma_1'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Diplôme 2', 'diploma_2'),
-                    const SizedBox(height: 16),
-                    _buildTextField('Diplôme 3', 'diploma_3'),
-                  ],
-                ),
+          _buildSectionHeader('🎓 Diplômes significatifs'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 0),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildTextField('Diplôme 1', 'diploma_1'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Diplôme 2', 'diploma_2'),
+                  const SizedBox(height: 16),
+                  _buildTextField('Diplôme 3', 'diploma_3'),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -300,31 +288,29 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
       'Opérations',
       'Ressources Humaines'
     ];
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IOSListSection(
-            title: '🧭 Parcours',
-            children: [
-              IOSCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Sélectionnez vos parcours :',
-                      style: IOSTheme.body.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ...careerPaths.map((path) => _buildCheckboxTile(path, 'career_paths')),
-                  ],
-                ),
+          _buildSectionHeader('🧭 Parcours'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 0),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sélectionnez vos parcours :',
+                    style: AppTheme.typography.bodyMedium.copyWith(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 16),
+                  ...careerPaths.map((path) => _buildCheckboxTile(path, 'career_paths')),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -339,31 +325,29 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
       'Directeur d\'Établissement',
       'Directeur de Transformation'
     ];
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IOSListSection(
-            title: '👔 Principale fonction',
-            children: [
-              IOSCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Sélectionnez vos fonctions principales :',
-                      style: IOSTheme.body.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ...functions.map((function) => _buildCheckboxTile(function, 'main_functions')),
-                  ],
-                ),
+          _buildSectionHeader('👔 Principale fonction'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 0),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sélectionnez vos fonctions principales :',
+                    style: AppTheme.typography.bodyMedium.copyWith(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 16),
+                  ...functions.map((function) => _buildCheckboxTile(function, 'main_functions')),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -395,34 +379,39 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
       'Spin-off',
       'Split-off'
     ];
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IOSListSection(
-            title: '🧠 Expériences professionnelles',
-            children: [
-              IOSCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Sélectionnez vos expériences :',
-                      style: IOSTheme.body.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ...experiences.map((experience) => _buildCheckboxTile(experience, 'professional_experiences')),
-                  ],
-                ),
+          _buildSectionHeader('🧠 Expériences professionnelles'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 0),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sélectionnez vos expériences :',
+                    style: AppTheme.typography.bodyMedium.copyWith(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 16),
+                  ...experiences.map((experience) => _buildCheckboxTile(experience, 'professional_experiences')),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, bottom: 8),
+      child: Text(title, style: AppTheme.typography.bodySmall.copyWith(color: AppTheme.colors.textSecondary)),
     );
   }
 
@@ -432,14 +421,16 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
       children: [
         Text(
           label,
-          style: IOSTheme.body.copyWith(
-            fontWeight: FontWeight.w500,
-          ),
+          style: AppTheme.typography.bodyMedium.copyWith(fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
-        IOSTextField(
-          placeholder: 'Saisir $label',
+        TextField(
+          controller: TextEditingController(text: _formData[key]?.toString()),
           keyboardType: keyboardType,
+          decoration: InputDecoration(
+            hintText: 'Saisir $label',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
           onChanged: (value) {
             _formData[key] = value;
           },
@@ -454,18 +445,16 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
       children: [
         Text(
           label,
-          style: IOSTheme.body.copyWith(
-            fontWeight: FontWeight.w500,
-          ),
+          style: AppTheme.typography.bodyMedium.copyWith(fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
-        CupertinoButton(
-          padding: EdgeInsets.zero,
+        GestureDetector(
+          onTap: () => _showDropdownPicker(label, key, options),
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              border: Border.all(color: CupertinoColors.systemGrey4),
+              border: Border.all(color: AppTheme.colors.border),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -473,23 +462,16 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
               children: [
                 Text(
                   _formData[key] ?? 'Sélectionner',
-                  style: IOSTheme.body.copyWith(
-                    color: _formData[key] != null 
-                        ? CupertinoColors.label 
-                        : CupertinoColors.systemGrey,
+                  style: AppTheme.typography.bodyMedium.copyWith(
+                    color: _formData[key] != null
+                        ? AppTheme.colors.textPrimary
+                        : AppTheme.colors.textSecondary,
                   ),
                 ),
-                const Icon(
-                  CupertinoIcons.chevron_down,
-                  size: 16,
-                  color: CupertinoColors.systemGrey,
-                ),
+                Icon(Icons.keyboard_arrow_down, size: 16, color: AppTheme.colors.textSecondary),
               ],
             ),
           ),
-          onPressed: () {
-            _showDropdownPicker(label, key, options);
-          },
         ),
       ],
     );
@@ -501,44 +483,35 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
       children: [
         Text(
           label,
-          style: IOSTheme.body.copyWith(
-            fontWeight: FontWeight.w500,
-          ),
+          style: AppTheme.typography.bodyMedium.copyWith(fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
-        CupertinoButton(
-          padding: EdgeInsets.zero,
+        GestureDetector(
+          onTap: () => _showDatePicker(label, key),
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              border: Border.all(color: CupertinoColors.systemGrey4),
+              border: Border.all(color: AppTheme.colors.border),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  _formData[key] != null 
+                  _formData[key] != null
                       ? _formData[key].toString()
                       : 'Sélectionner une date',
-                  style: IOSTheme.body.copyWith(
-                    color: _formData[key] != null 
-                        ? CupertinoColors.label 
-                        : CupertinoColors.systemGrey,
+                  style: AppTheme.typography.bodyMedium.copyWith(
+                    color: _formData[key] != null
+                        ? AppTheme.colors.textPrimary
+                        : AppTheme.colors.textSecondary,
                   ),
                 ),
-                const Icon(
-                  CupertinoIcons.calendar,
-                  size: 16,
-                  color: CupertinoColors.systemGrey,
-                ),
+                Icon(Icons.calendar_today, size: 16, color: AppTheme.colors.textSecondary),
               ],
             ),
           ),
-          onPressed: () {
-            _showDatePicker(label, key);
-          },
         ),
       ],
     );
@@ -547,32 +520,9 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
   Widget _buildCheckboxTile(String title, String key) {
     final List<dynamic> selectedItems = _formData[key] ?? [];
     final bool isSelected = selectedItems.contains(title);
-    
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          children: [
-            Icon(
-              isSelected ? CupertinoIcons.checkmark_square_fill : CupertinoIcons.square,
-              color: isSelected ? CupertinoColors.systemBlue : CupertinoColors.systemGrey,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: IOSTheme.body.copyWith(
-                  color: isSelected ? CupertinoColors.label : CupertinoColors.systemGrey,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      onPressed: () {
+
+    return GestureDetector(
+      onTap: () {
         setState(() {
           if (isSelected) {
             selectedItems.remove(title);
@@ -582,6 +532,28 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
           _formData[key] = selectedItems;
         });
       },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+              color: isSelected ? AppTheme.colors.primary : AppTheme.colors.textSecondary,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: AppTheme.typography.bodyMedium.copyWith(
+                  color: isSelected ? AppTheme.colors.textPrimary : AppTheme.colors.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -592,31 +564,35 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
         children: [
           if (_currentPage > 0)
             Expanded(
-              child: IOSSecondaryButton(
-                text: 'Précédent',
+              child: OutlinedButton(
                 onPressed: () {
                   _pageController.previousPage(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
                   );
                 },
+                child: const Text('Précédent'),
               ),
             ),
           if (_currentPage > 0) const SizedBox(width: 16),
           Expanded(
             child: _currentPage == _totalPages - 1
-                ?                 IOSPrimaryButton(
-                  text: _isLoading ? 'Enregistrement...' : 'Terminer',
-                  onPressed: _isLoading ? null : _saveQuestionnaire,
-                )
-                : IOSPrimaryButton(
-                    text: 'Suivant',
+                ? ElevatedButton(
+                    onPressed: _isLoading ? null : _saveQuestionnaire,
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.colors.primary, minimumSize: const Size(double.infinity, 50)),
+                    child: _isLoading
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('Terminer', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                  )
+                : ElevatedButton(
                     onPressed: () {
                       _pageController.nextPage(
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeInOut,
                       );
                     },
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.colors.primary, minimumSize: const Size(double.infinity, 50)),
+                    child: const Text('Suivant', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
                   ),
           ),
         ],
@@ -625,67 +601,41 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
   }
 
   void _showDropdownPicker(String label, String key, List<String> options) {
-    showCupertinoModalPopup(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: Text(label),
-        actions: options.map((option) => CupertinoActionSheetAction(
-          child: Text(option),
-          onPressed: () {
-            setState(() {
-              _formData[key] = option;
-            });
-            Navigator.pop(context);
-          },
-        )).toList(),
-        cancelButton: CupertinoActionSheetAction(
-          child: const Text('Annuler'),
-          onPressed: () => Navigator.pop(context),
-        ),
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ...options.map((option) => ListTile(
+                title: Text(option),
+                onTap: () {
+                  setState(() {
+                    _formData[key] = option;
+                  });
+                  Navigator.pop(context);
+                },
+              )),
+          ListTile(
+            title: Text('Annuler', style: TextStyle(color: AppTheme.colors.textSecondary)),
+            onTap: () => Navigator.pop(context),
+          ),
+        ],
       ),
     );
   }
 
-  void _showDatePicker(String label, String key) {
-    showCupertinoModalPopup(
+  void _showDatePicker(String label, String key) async {
+    final picked = await showDatePicker(
       context: context,
-      builder: (context) => Container(
-        height: 300,
-        color: CupertinoColors.systemBackground,
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CupertinoButton(
-                    child: const Text('Annuler'),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  CupertinoButton(
-                    child: const Text('Valider'),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: CupertinoDatePicker(
-                mode: CupertinoDatePickerMode.date,
-                initialDateTime: DateTime.now().subtract(const Duration(days: 365 * 25)),
-                maximumDate: DateTime.now(),
-                onDateTimeChanged: (date) {
-                  setState(() {
-                    _formData[key] = date.toIso8601String().split('T')[0];
-                  });
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
+      initialDate: DateTime.now().subtract(const Duration(days: 365 * 25)),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
     );
+    if (picked != null) {
+      setState(() {
+        _formData[key] = picked.toIso8601String().split('T')[0];
+      });
+    }
   }
 
   Future<void> _saveQuestionnaire() async {
@@ -734,20 +684,19 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
       await PartnerProfileService.createPartnerProfile(profileData);
 
       if (mounted) {
-        // Afficher le succès
-        showCupertinoDialog(
+        showDialog(
           context: context,
-          builder: (context) => CupertinoAlertDialog(
+          builder: (c) => AlertDialog(
             title: const Text('Profil créé !'),
             content: const Text('Votre profil partenaire a été enregistré avec succès.'),
             actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
+              TextButton(
                 onPressed: () {
-                  Navigator.pop(context); // Fermer le dialog
+                  Navigator.pop(c); // Fermer le dialog
                   // Rediriger vers le dashboard partenaire
                   Navigator.pushReplacementNamed(context, '/partner_dashboard');
                 },
+                child: const Text('OK'),
               ),
             ],
           ),
@@ -755,16 +704,13 @@ class _IOSPartnerQuestionnairePageState extends State<IOSPartnerQuestionnairePag
       }
     } catch (e) {
       if (mounted) {
-        showCupertinoDialog(
+        showDialog(
           context: context,
-          builder: (context) => CupertinoAlertDialog(
+          builder: (c) => AlertDialog(
             title: const Text('Erreur'),
             content: Text('Erreur lors de la sauvegarde : $e'),
             actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.pop(context),
-              ),
+              TextButton(onPressed: () => Navigator.pop(c), child: const Text('OK')),
             ],
           ),
         );

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oxo/services/supabase_service.dart';
@@ -44,16 +43,11 @@ class _IOSMobileActionsPageState extends State<IOSMobileActionsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTextStyle(
-      style: TextStyle(
-        decoration: TextDecoration.none,
-        color: AppTheme.colors.textPrimary,
-      ),
-      child: Container(
-        color: AppTheme.colors.background,
-        child: _isLoading
-            ? const Center(child: CupertinoActivityIndicator())
-            : Column(
+    return Container(
+      color: AppTheme.colors.background,
+      child: _isLoading
+          ? Center(child: CircularProgressIndicator(color: AppTheme.colors.primary, strokeWidth: 2))
+          : Column(
                 children: [
                   // Header avec bouton retour (optionnel)
                   if (widget.showHeader) _buildHeader(),
@@ -65,7 +59,6 @@ class _IOSMobileActionsPageState extends State<IOSMobileActionsPage> {
                   Expanded(child: _buildActionsList()),
                 ],
               ),
-      ),
     );
   }
 
@@ -78,10 +71,12 @@ class _IOSMobileActionsPageState extends State<IOSMobileActionsPage> {
       color: AppTheme.colors.surface,
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Icon(
-              CupertinoIcons.chevron_left,
+          IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: () => Navigator.of(context).pop(),
+            icon: Icon(
+              Icons.chevron_left,
               color: AppTheme.colors.textPrimary,
               size: 24,
             ),
@@ -295,13 +290,13 @@ class _IOSMobileActionsPageState extends State<IOSMobileActionsPage> {
             children: [
               _buildInfoBadge(
                 '${estimatedValue is num ? estimatedValue.toStringAsFixed(0) : estimatedValue}€',
-                CupertinoIcons.money_euro_circle,
+                Icons.euro,
               ),
               SizedBox(width: AppTheme.spacing.sm),
               if (dueDate != null)
                 _buildInfoBadge(
                   DateFormat('dd/MM/yyyy').format(dueDate),
-                  CupertinoIcons.calendar,
+                  Icons.calendar_today,
                 ),
               const Spacer(),
               // Badge statut
@@ -367,7 +362,7 @@ class _IOSMobileActionsPageState extends State<IOSMobileActionsPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              CupertinoIcons.briefcase,
+              Icons.business_center,
               size: 48,
               color: AppTheme.colors.textSecondary,
             ),

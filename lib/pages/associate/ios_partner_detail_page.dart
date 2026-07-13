@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
@@ -29,7 +28,7 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
     try {
       final userId = widget.partner['user_id']?.toString();
       debugPrint('🔍 Chargement du profil complet pour user_id: $userId');
-      
+
       if (userId != null && userId.isNotEmpty) {
         // Essayer de charger depuis partner_profiles
         final response = await SupabaseService.client
@@ -37,7 +36,7 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
             .select('*')
             .eq('user_id', userId)
             .maybeSingle();
-        
+
         if (response != null) {
           debugPrint('✅ Profil complet chargé: ${response.keys}');
           setState(() {
@@ -47,7 +46,7 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
           return;
         }
       }
-      
+
       // Fallback: utiliser les données de base
       setState(() {
         _fullProfile = widget.partner;
@@ -64,37 +63,32 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
+    return Scaffold(
       backgroundColor: AppTheme.colors.background,
-      navigationBar: CupertinoNavigationBar(
-        middle: Text(
-          'Profil Partenaire',
-          style: TextStyle(
-            color: AppTheme.colors.textPrimary,
-            fontWeight: FontWeight.w600,
-            decoration: TextDecoration.none,
-          ),
-        ),
+      appBar: AppBar(
         backgroundColor: AppTheme.colors.surface,
-        border: null,
-        trailing: CupertinoButton(
-          padding: EdgeInsets.zero,
-          child: Icon(
-            CupertinoIcons.share,
-            color: AppTheme.colors.primary,
+        elevation: 0,
+        iconTheme: IconThemeData(color: AppTheme.colors.textPrimary),
+        titleTextStyle: AppTheme.typography.h4.copyWith(color: AppTheme.colors.textPrimary),
+        title: const Text('Profil Partenaire'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.share, color: AppTheme.colors.primary),
+            onPressed: () => _sharePartnerProfile(context),
           ),
-          onPressed: () => _sharePartnerProfile(context),
-        ),
+        ],
       ),
-      child: DefaultTextStyle(
+      body: DefaultTextStyle(
         style: TextStyle(
           decoration: TextDecoration.none,
           color: AppTheme.colors.textPrimary,
         ),
         child: _isLoading
             ? Center(
-                child: CupertinoActivityIndicator(
-                  color: AppTheme.colors.primary,
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(color: AppTheme.colors.primary, strokeWidth: 2),
                 ),
               )
             : SafeArea(
@@ -126,7 +120,7 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
     final companyName = _fullProfile['company_name'] ?? '';
     final email = _fullProfile['email'] ?? '';
     final phone = _fullProfile['phone'] ?? '';
-    
+
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -155,9 +149,9 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Nom complet
           Text(
             '$firstName $lastName',
@@ -169,7 +163,7 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
             ),
             textAlign: TextAlign.center,
           ),
-          
+
           if (companyName.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
@@ -183,16 +177,16 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
               textAlign: TextAlign.center,
             ),
           ],
-          
+
           const SizedBox(height: 16),
-          
+
           // Contact
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (email.isNotEmpty) ...[
                 _buildContactItem(
-                  CupertinoIcons.mail,
+                  Icons.mail,
                   email,
                   'Email',
                 ),
@@ -200,7 +194,7 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
               ],
               if (phone.isNotEmpty) ...[
                 _buildContactItem(
-                  CupertinoIcons.phone,
+                  Icons.phone,
                   phone,
                   'Téléphone',
                 ),
@@ -321,7 +315,7 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
 
   Widget _buildActivityDomains() {
     final domains = _fullProfile['activity_domains'] as List<dynamic>? ?? [];
-    
+
     return _buildSection(
       '💼 DOMAINES D\'ACTIVITÉ',
       domains.isEmpty
@@ -342,7 +336,7 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
 
   Widget _buildLanguages() {
     final languages = _fullProfile['languages'] as List<dynamic>? ?? [];
-    
+
     return _buildSection(
       '🌍 LANGUES & NIVEAU',
       languages.isEmpty
@@ -363,7 +357,7 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
 
   Widget _buildDiplomas() {
     final diplomas = _fullProfile['diplomas'] as List<dynamic>? ?? [];
-    
+
     return _buildSection(
       '🎓 DIPLÔMES SIGNIFICATIFS',
       diplomas.isEmpty
@@ -383,7 +377,7 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
 
   Widget _buildCareerPaths() {
     final careerPaths = _fullProfile['career_paths'] as List<dynamic>? ?? [];
-    
+
     return _buildSection(
       '🧭 PARCOURS',
       careerPaths.isEmpty
@@ -404,7 +398,7 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
 
   Widget _buildMainFunctions() {
     final functions = _fullProfile['main_functions'] as List<dynamic>? ?? [];
-    
+
     return _buildSection(
       '👔 PRINCIPALE FONCTION',
       functions.isEmpty
@@ -425,7 +419,7 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
 
   Widget _buildProfessionalExperiences() {
     final experiences = _fullProfile['professional_experiences'] as List<dynamic>? ?? [];
-    
+
     return _buildSection(
       '🧠 EXPÉRIENCES PROFESSIONNELLES',
       experiences.isEmpty
@@ -452,10 +446,12 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
           // Bouton principal
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
-              color: AppTheme.colors.primary,
-              borderRadius: BorderRadius.circular(10),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.colors.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
               onPressed: () => _assignMission(context),
               child: Text(
                 'Assigner une mission',
@@ -471,10 +467,12 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
           // Bouton secondaire
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: AppTheme.colors.primary),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
               onPressed: () => _sendMessage(context),
               child: Text(
                 'Envoyer un message',
@@ -490,10 +488,12 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
           // Bouton secondaire
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: AppTheme.colors.primary),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
               onPressed: () => _viewAvailability(context),
               child: Text(
                 'Voir les disponibilités',
@@ -513,7 +513,7 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
   Widget _buildInfoRow(String label, dynamic value) {
     final displayValue = value?.toString().isNotEmpty == true ? value.toString() : 'Non renseigné';
     final isNotSet = displayValue == 'Non renseigné';
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -598,39 +598,32 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
   }
 
   void _sharePartnerProfile(BuildContext context) {
-    showCupertinoDialog(
+    showDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (c) => AlertDialog(
         title: const Text('Partager le profil'),
         content: const Text('Fonctionnalité de partage à venir'),
         actions: [
-          CupertinoDialogAction(
-            child: const Text('OK'),
-            onPressed: () => Navigator.pop(context),
-          ),
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('OK')),
         ],
       ),
     );
   }
 
   void _assignMission(BuildContext context) {
-    showCupertinoDialog(
+    showDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (c) => AlertDialog(
         title: const Text('Assigner une mission'),
         content: Text('Assigner une mission à ${_fullProfile['first_name']} ${_fullProfile['last_name']} ?'),
         actions: [
-          CupertinoDialogAction(
-            child: const Text('Annuler'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            child: const Text('Assigner'),
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Annuler')),
+          TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(c);
               _showSuccessMessage('Mission assignée avec succès');
             },
+            child: const Text('Assigner'),
           ),
         ],
       ),
@@ -650,16 +643,13 @@ class _IOSPartnerDetailPageState extends State<IOSPartnerDetailPage> {
   }
 
   void _viewAvailability(BuildContext context) {
-    showCupertinoDialog(
+    showDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (c) => AlertDialog(
         title: const Text('Voir les disponibilités'),
         content: const Text('Redirection vers le calendrier des disponibilités...'),
         actions: [
-          CupertinoDialogAction(
-            child: const Text('OK'),
-            onPressed: () => Navigator.pop(context),
-          ),
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('OK')),
         ],
       ),
     );

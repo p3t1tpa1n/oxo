@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/messaging_service.dart';
 import 'conversation_detail_page.dart';
@@ -136,15 +137,28 @@ class _MessagingPageState extends State<MessagingPage> {
     });
   }
 
+  String _roleLabel(String? role) {
+    switch (role?.toLowerCase()) {
+      case 'associe':
+      case 'associé':
+        return 'Associé';
+      case 'partenaire':
+        return 'Partenaire';
+      case 'client':
+        return 'Client';
+      case 'admin':
+        return 'Administrateur';
+      default:
+        return role ?? '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Le titre et le chrome sont fournis par DesktopShell : pas d'AppBar ici.
     if (isInitializing) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Messagerie'),
-          backgroundColor: const Color(0xFF16283C),
-          foregroundColor: Colors.white,
-        ),
+        backgroundColor: AppTheme.colors.background,
         body: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -160,16 +174,13 @@ class _MessagingPageState extends State<MessagingPage> {
 
     if (error != null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Messagerie'),
-          backgroundColor: const Color(0xFF16283C),
-          foregroundColor: Colors.white,
-        ),
+        backgroundColor: AppTheme.colors.background,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              Icon(Icons.error_outline,
+                  size: 48, color: AppTheme.colors.error),
               const SizedBox(height: 16),
               Text(error!),
               const SizedBox(height: 16),
@@ -184,78 +195,104 @@ class _MessagingPageState extends State<MessagingPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Messagerie'),
-        backgroundColor: const Color(0xFF16283C),
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadUsers,
-          ),
-        ],
-      ),
+      backgroundColor: AppTheme.colors.background,
       body: Row(
         children: [
           // Colonne de gauche : liste des utilisateurs
           Container(
             width: 300,
-            color: Colors.grey[200],
+            decoration: BoxDecoration(
+              color: AppTheme.colors.surface,
+              border: Border(
+                right: BorderSide(color: AppTheme.colors.border, width: 0.5),
+              ),
+            ),
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextField(
-                    decoration: const InputDecoration(
-                      hintText: 'Rechercher un utilisateur...',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: _filterUsers,
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Rechercher...',
+                            prefixIcon: Icon(Icons.search,
+                                size: 20,
+                                color: AppTheme.colors.textSecondary),
+                            isDense: true,
+                          ),
+                          onChanged: _filterUsers,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: Icon(Icons.refresh,
+                            size: 20, color: AppTheme.colors.textSecondary),
+                        tooltip: 'Actualiser',
+                        onPressed: _loadUsers,
+                      ),
+                    ],
                   ),
                 ),
+                Divider(height: 1, color: AppTheme.colors.borderLight),
                 Expanded(
                   child: ListView(
                     children: filteredUsers
                         .where((u) => u['user_id'] != SupabaseService.currentUser?.id)
-                        .map((user) => ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: const Color(0xFF16283C),
-                                child: Text(
-                                  (user['first_name']?.toString().isNotEmpty == true 
-                                      ? user['first_name'][0] 
-                                      : user['email']?[0] ?? '?').toUpperCase(),
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              ),
-                              title: Text(
-                                user['first_name'] != null && user['last_name'] != null
-                                    ? '${user['first_name']} ${user['last_name']}'
-                                    : user['email'] ?? 'Utilisateur sans nom',
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(user['email'] ?? ''),
-                                  Text(
-                                    user['user_role'] ?? '',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              onTap: () => _selectUser(
-                                user['user_id'], 
-                                user['first_name'] != null && user['last_name'] != null
-                                    ? '${user['first_name']} ${user['last_name']}'
-                                    : user['email'] ?? 'Utilisateur',
-                              ),
-                              selected: selectedUserId == user['user_id'],
-                              selectedTileColor: const Color(0xFF3E5C76).withOpacity(0.1),
-                            ))
-                        .toList(),
+                        .map((user) {
+                      final bool isSelected =
+                          selectedUserId == user['user_id'];
+                      final String displayName = user['first_name'] != null &&
+                              user['last_name'] != null
+                          ? '${user['first_name']} ${user['last_name']}'
+                          : user['email'] ?? 'Utilisateur sans nom';
+                      return ListTile(
+                        leading: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: isSelected
+                              ? AppTheme.colors.primary
+                              : AppTheme.colors.secondary.withOpacity(0.15),
+                          child: Text(
+                            (user['first_name']?.toString().isNotEmpty == true
+                                    ? user['first_name'][0]
+                                    : user['email']?[0] ?? '?')
+                                .toUpperCase(),
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppTheme.colors.secondary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          displayName,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight:
+                                isSelected ? FontWeight.w600 : FontWeight.w500,
+                            color: AppTheme.colors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          _roleLabel(user['user_role']?.toString()),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.colors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () => _selectUser(user['user_id'], displayName),
+                        selected: isSelected,
+                        selectedTileColor:
+                            AppTheme.colors.secondary.withOpacity(0.08),
+                      );
+                    }).toList(),
                   ),
                 ),
               ],
@@ -275,15 +312,18 @@ class _MessagingPageState extends State<MessagingPage> {
                     ),
                   )
                 : (selectedUserId == null)
-                    ? const Center(
+                    ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
-                            SizedBox(height: 16),
+                            Icon(Icons.chat_bubble_outline,
+                                size: 56, color: AppTheme.colors.textDisabled),
+                            const SizedBox(height: 16),
                             Text(
                               'Sélectionnez un utilisateur pour commencer une conversation',
-                              style: TextStyle(fontSize: 18, color: Colors.grey),
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  color: AppTheme.colors.textSecondary),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -294,18 +334,23 @@ class _MessagingPageState extends State<MessagingPage> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.error_outline, size: 48, color: const Color(0xFFB07B2E)),
+                                Icon(Icons.error_outline,
+                                    size: 48, color: AppTheme.colors.warning),
                                 const SizedBox(height: 16),
                                 Text(
                                   'Impossible de créer une conversation avec $selectedUserName',
-                                  style: const TextStyle(fontSize: 18, color: Colors.grey),
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      color: AppTheme.colors.textSecondary),
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 8),
                                 if (error?.contains('tables de messagerie') == true) ...[
-                                  const Text(
+                                  Text(
                                     'Les tables de messagerie n\'existent pas dans la base de données.',
-                                    style: TextStyle(fontSize: 14, color: Colors.red),
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        color: AppTheme.colors.error),
                                     textAlign: TextAlign.center,
                                   ),
                                   const SizedBox(height: 8),

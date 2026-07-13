@@ -449,13 +449,15 @@ class _DashboardPageState extends State<DashboardPage> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             MessagingFloatingButton(
-              backgroundColor: const Color(0xFF3E5C76),
+              backgroundColor: AppTheme.colors.secondary,
             ),
             const SizedBox(height: 16),
             FloatingActionButton(
               heroTag: 'dashboard_fab',
               onPressed: _showAddMissionDialog,
-              backgroundColor: const Color(0xFF3E5C76),
+              backgroundColor: AppTheme.colors.secondary,
+              foregroundColor: Colors.white,
+              elevation: 1,
               child: const Icon(Icons.add),
             ),
           ],
@@ -470,7 +472,8 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // En-tête avec stats
+          _buildKpiRow(),
+          const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -485,6 +488,138 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // ══════════════════════════════════════════════════════════════════════
+  // KPI (calculés depuis les missions chargées)
+  // ══════════════════════════════════════════════════════════════════════
+
+  Widget _buildKpiRow() {
+    final int toAssign =
+        _missions.where((m) => m['progress_status'] == 'à_assigner').length;
+    final int inProgress =
+        _missions.where((m) => m['progress_status'] == 'en_cours').length;
+    final int done =
+        _missions.where((m) => m['progress_status'] == 'fait').length;
+
+    // Échéances sous 7 jours (missions non terminées)
+    final now = DateTime.now();
+    final int dueSoon = _missions.where((m) {
+      if (m['progress_status'] == 'fait') return false;
+      final raw = m['end_date'] ?? m['due_date'];
+      if (raw == null) return false;
+      final due = DateTime.tryParse(raw.toString());
+      if (due == null) return false;
+      return due.difference(now).inDays <= 7;
+    }).length;
+
+    return Row(
+      children: [
+        _buildKpiCard(
+          label: 'En cours',
+          value: '$inProgress',
+          icon: Icons.play_circle_outline,
+          color: AppTheme.colors.statusInProgress,
+          onTap: () => _toggleStatusFilter('en_cours'),
+        ),
+        const SizedBox(width: 12),
+        _buildKpiCard(
+          label: 'À assigner',
+          value: '$toAssign',
+          icon: Icons.assignment_ind_outlined,
+          color: AppTheme.colors.statusPending,
+          onTap: () => _toggleStatusFilter('à_assigner'),
+        ),
+        const SizedBox(width: 12),
+        _buildKpiCard(
+          label: 'Terminées',
+          value: '$done',
+          icon: Icons.check_circle_outline,
+          color: AppTheme.colors.statusCompleted,
+          onTap: () => _toggleStatusFilter('fait'),
+        ),
+        const SizedBox(width: 12),
+        _buildKpiCard(
+          label: 'Échéance sous 7 jours',
+          value: '$dueSoon',
+          icon: Icons.schedule_outlined,
+          color: dueSoon > 0
+              ? AppTheme.colors.warning
+              : AppTheme.colors.textSecondary,
+        ),
+      ],
+    );
+  }
+
+  /// Un clic filtre la table, un second clic sur le même KPI annule le filtre.
+  void _toggleStatusFilter(String status) {
+    setState(() {
+      _statusFilter = _statusFilter == status ? null : status;
+    });
+  }
+
+  Widget _buildKpiCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
+    return Expanded(
+      child: Material(
+        color: AppTheme.colors.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radius.medium),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTheme.radius.medium),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTheme.radius.medium),
+              border: Border.all(color: AppTheme.colors.border, width: 0.5),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(AppTheme.radius.small),
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        value,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.colors.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.colors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
   // TABLE DES MISSIONS (remplace l'ancien kanban drag & drop)
   // ══════════════════════════════════════════════════════════════════════
 
@@ -493,11 +628,12 @@ class _DashboardPageState extends State<DashboardPage> {
   Color _statusColor(String status) {
     switch (status) {
       case 'en_cours':
-        return const Color(0xFFFF9800);
+        return AppTheme.colors.statusInProgress;
       case 'fait':
-        return const Color(0xFF4CAF50);
+        return AppTheme.colors.statusCompleted;
       default:
-        return const Color(0xFF3E5C76);
+        // à_assigner : en attente
+        return AppTheme.colors.statusPending;
     }
   }
 
@@ -535,8 +671,6 @@ class _DashboardPageState extends State<DashboardPage> {
     final missions = _visibleMissions;
 
     return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -647,6 +781,46 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  /// Échéance colorée : rouge si dépassée, orange si sous 7 jours
+  /// (uniquement pour les missions non terminées).
+  Widget _buildDueDateLabel(DateTime? dueDate, String status) {
+    if (dueDate == null) {
+      return Text('—',
+          style: TextStyle(fontSize: 13, color: AppTheme.colors.textSecondary));
+    }
+
+    final bool isDone = status == 'fait';
+    final int daysLeft = dueDate.difference(DateTime.now()).inDays;
+
+    Color color = AppTheme.colors.textSecondary;
+    IconData? icon;
+    if (!isDone && daysLeft < 0) {
+      color = AppTheme.colors.error;
+      icon = Icons.warning_amber_outlined;
+    } else if (!isDone && daysLeft <= 7) {
+      color = AppTheme.colors.warning;
+      icon = Icons.schedule_outlined;
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+        ],
+        Text(
+          DateFormat('dd/MM/yyyy').format(dueDate),
+          style: TextStyle(
+            fontSize: 13,
+            color: color,
+            fontWeight: icon != null ? FontWeight.w500 : FontWeight.normal,
+          ),
+        ),
+      ],
+    );
+  }
+
   DataRow _buildMissionRow(Map<String, dynamic> mission) {
     final title = mission['title']?.toString() ?? 'Sans titre';
     final description = mission['description']?.toString() ?? '';
@@ -721,10 +895,7 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
         ),
-        DataCell(Text(
-          dueDate != null ? DateFormat('dd/MM/yyyy').format(dueDate) : '—',
-          style: TextStyle(fontSize: 13, color: Colors.grey[700]),
-        )),
+        DataCell(_buildDueDateLabel(dueDate, status)),
         DataCell(
           IconButton(
             icon: const Icon(Icons.chevron_right, size: 20),

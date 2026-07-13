@@ -1,14 +1,12 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../../config/ios_theme.dart';
-import '../../widgets/ios_widgets.dart';
+import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../utils/progress_utils.dart';
 import '../../models/user_role.dart';
 
 class IOSProjectDetailPage extends StatefulWidget {
   final String projectId;
-  
+
   const IOSProjectDetailPage({
     super.key,
     required this.projectId,
@@ -46,7 +44,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
       final missions = await SupabaseService.getCompanyMissions();
       debugPrint('Recherche mission ID: ${widget.projectId}');
       debugPrint('Missions disponibles: ${missions.map((m) => 'ID: ${m['id']}, Title: ${m['title']}').toList()}');
-      
+
       _project = missions.firstWhere(
         (m) => m['id'].toString() == widget.projectId,
         orElse: () {
@@ -54,7 +52,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
           return <String, dynamic>{};
         },
       );
-      
+
       if (_project!.isNotEmpty) {
         debugPrint('Projet trouvé: ${_project!['name'] ?? _project!['title']}');
         debugPrint('Assigned to: ${_project!['assigned_to']}');
@@ -63,7 +61,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
 
       // Charger les tâches du projet
       final allTasks = await SupabaseService.getCompanyMissions();
-      _tasks = allTasks.where((task) => 
+      _tasks = allTasks.where((task) =>
         task['mission_id']?.toString() == widget.projectId
       ).toList();
 
@@ -96,23 +94,16 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
   Future<void> _assignToMyself() async {
     if (_project == null) return;
 
-    final confirm = await showCupertinoDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (c) => AlertDialog(
         title: const Text('S\'assigner cette mission'),
         content: Text(
           'Voulez-vous vous assigner la mission "${_project!['title'] ?? _project!['name']}" ?',
         ),
         actions: [
-          CupertinoDialogAction(
-            child: const Text('Annuler'),
-            onPressed: () => Navigator.of(context).pop(false),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            child: const Text('Confirmer'),
-            onPressed: () => Navigator.of(context).pop(true),
-          ),
+          TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Annuler')),
+          TextButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('Confirmer')),
         ],
       ),
     );
@@ -137,16 +128,13 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
 
       if (mounted) {
         // Afficher un message de succès
-        showCupertinoDialog(
+        showDialog(
           context: context,
-          builder: (context) => CupertinoAlertDialog(
+          builder: (c) => AlertDialog(
             title: const Text('Succès'),
             content: const Text('La mission vous a été assignée avec succès !'),
             actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
+              TextButton(onPressed: () => Navigator.of(c).pop(), child: const Text('OK')),
             ],
           ),
         );
@@ -157,16 +145,13 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
     } catch (e) {
       debugPrint('Erreur lors de l\'assignation: $e');
       if (mounted) {
-        showCupertinoDialog(
+        showDialog(
           context: context,
-          builder: (context) => CupertinoAlertDialog(
+          builder: (c) => AlertDialog(
             title: const Text('Erreur'),
             content: Text('Impossible de s\'assigner la mission: $e'),
             actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
+              TextButton(onPressed: () => Navigator.of(c).pop(), child: const Text('OK')),
             ],
           ),
         );
@@ -180,34 +165,33 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return IOSScaffold(
-      navigationBar: IOSNavigationBar(
-        title: _project?['name'] ?? 'Détails du projet',
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: () => Navigator.of(context).pop(),
-          child: Row(
+    return Scaffold(
+      backgroundColor: AppTheme.colors.background,
+      appBar: AppBar(
+        backgroundColor: AppTheme.colors.surface,
+        elevation: 0,
+        iconTheme: IconThemeData(color: AppTheme.colors.textPrimary),
+        titleTextStyle: AppTheme.typography.h4.copyWith(color: AppTheme.colors.textPrimary),
+        title: Text(_project?['name'] ?? 'Détails du projet'),
+        leading: IconButton(
+          icon: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(CupertinoIcons.chevron_left, size: 18),
-              const SizedBox(width: 4),
-              Text(
-                'Retour',
-                style: IOSTheme.body.copyWith(color: IOSTheme.primaryBlue),
-              ),
+              const Icon(Icons.chevron_left, size: 18),
+              Text('Retour', style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.primary)),
             ],
           ),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          CupertinoButton(
-            padding: EdgeInsets.zero,
+          IconButton(
+            icon: Icon(Icons.more_horiz, color: AppTheme.colors.primary),
             onPressed: _showProjectActions,
-            child: const Icon(CupertinoIcons.ellipsis, color: IOSTheme.primaryBlue),
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CupertinoActivityIndicator())
+          ? const Center(child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2)))
           : _error != null
               ? _buildErrorState()
               : _project == null || _project!.isEmpty
@@ -237,24 +221,20 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            CupertinoIcons.exclamationmark_triangle,
-            size: 64,
-            color: IOSTheme.systemRed,
-          ),
+          Icon(Icons.warning_amber_rounded, size: 64, color: AppTheme.colors.error),
           const SizedBox(height: 16),
-          Text('Erreur', style: IOSTheme.title2),
+          Text('Erreur', style: AppTheme.typography.h3),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
               _error!,
-              style: IOSTheme.body,
+              style: AppTheme.typography.bodyMedium,
               textAlign: TextAlign.center,
             ),
           ),
           const SizedBox(height: 24),
-          CupertinoButton.filled(
+          ElevatedButton(
             onPressed: _loadProjectDetails,
             child: const Text('Réessayer'),
           ),
@@ -268,17 +248,13 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            CupertinoIcons.folder,
-            size: 64,
-            color: IOSTheme.systemGray,
-          ),
+          Icon(Icons.folder_open, size: 64, color: AppTheme.colors.textSecondary),
           const SizedBox(height: 16),
-          Text('Projet non trouvé', style: IOSTheme.title2),
+          Text('Projet non trouvé', style: AppTheme.typography.h3),
           const SizedBox(height: 8),
           Text(
             'Ce projet n\'existe pas ou vous n\'y avez pas accès.',
-            style: IOSTheme.body.copyWith(color: IOSTheme.labelSecondary),
+            style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary),
             textAlign: TextAlign.center,
           ),
         ],
@@ -289,28 +265,31 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
   Widget _buildProjectHeader() {
     final status = _project!['status'] ?? 'actif';
     final progressStatus = _project!['progress_status'] ?? 'à_assigner';
-    final statusColor = IOSTheme.getStatusColor(status);
+    final statusColor = _getStatusColor(status);
     final clientName = _project!['client_name'] ?? _project!['company_name'] ?? 'Aucun client';
     final title = _project!['title'] ?? _project!['name'] ?? 'Projet sans titre';
-    
+
     // Informations sur l'assignation
     final assignedToFirstName = _project!['assigned_to_first_name'];
     final assignedToLastName = _project!['assigned_to_last_name'];
     final hasAssignee = assignedToFirstName != null || assignedToLastName != null;
-    final assigneeName = hasAssignee 
+    final assigneeName = hasAssignee
         ? '${assignedToFirstName ?? ''} ${assignedToLastName ?? ''}'.trim()
         : null;
-    
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: IOSTheme.cardDecoration.copyWith(
+      decoration: BoxDecoration(
+        color: AppTheme.colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.colors.border),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
             statusColor.withOpacity(0.05),
-            IOSTheme.systemBackground,
+            AppTheme.colors.surface,
           ],
         ),
       ),
@@ -327,39 +306,32 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
                 ),
                 child: Text(
                   _getProgressStatusLabel(progressStatus).toUpperCase(),
-                  style: IOSTheme.footnote.copyWith(
+                  style: AppTheme.typography.bodySmall.copyWith(
                     color: statusColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               const Spacer(),
-              Icon(
-                CupertinoIcons.folder_fill,
-                color: statusColor,
-                size: 24,
-              ),
+              Icon(Icons.folder, color: statusColor, size: 24),
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            title,
-            style: IOSTheme.largeTitle,
-          ),
+          Text(title, style: AppTheme.typography.h1),
           const SizedBox(height: 8),
           if (_project!['description'] != null && _project!['description'].toString().isNotEmpty)
             Text(
               _project!['description'],
-              style: IOSTheme.body.copyWith(color: IOSTheme.labelSecondary),
+              style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary),
             ),
           const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(CupertinoIcons.building_2_fill, color: IOSTheme.primaryBlue, size: 16),
+              Icon(Icons.business, color: AppTheme.colors.primary, size: 16),
               const SizedBox(width: 8),
               Text(
                 clientName,
-                style: IOSTheme.footnote.copyWith(color: IOSTheme.primaryBlue),
+                style: AppTheme.typography.bodySmall.copyWith(color: AppTheme.colors.primary),
               ),
             ],
           ),
@@ -368,11 +340,11 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
           if (hasAssignee) ...[
             Row(
               children: [
-                const Icon(CupertinoIcons.person_fill, color: IOSTheme.successColor, size: 16),
+                Icon(Icons.person, color: AppTheme.colors.success, size: 16),
                 const SizedBox(width: 8),
                 Text(
                   'Assigné à: $assigneeName',
-                  style: IOSTheme.footnote.copyWith(color: IOSTheme.successColor),
+                  style: AppTheme.typography.bodySmall.copyWith(color: AppTheme.colors.success),
                 ),
               ],
             ),
@@ -382,11 +354,11 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
           ] else if (_isMissionUnassigned) ...[
             Row(
               children: [
-                const Icon(CupertinoIcons.person_badge_minus, color: IOSTheme.warningColor, size: 16),
+                Icon(Icons.person_off, color: AppTheme.colors.warning, size: 16),
                 const SizedBox(width: 8),
                 Text(
                   'Non assignée',
-                  style: IOSTheme.footnote.copyWith(color: IOSTheme.warningColor),
+                  style: AppTheme.typography.bodySmall.copyWith(color: AppTheme.colors.warning),
                 ),
               ],
             ),
@@ -398,28 +370,46 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
 
   /// Bouton pour s'auto-assigner la mission
   Widget _buildAssignToMyselfButton() {
-    return CupertinoButton(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      color: IOSTheme.primaryBlue,
-      borderRadius: BorderRadius.circular(12),
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppTheme.colors.primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      ),
       onPressed: _isAssigning ? null : _assignToMyself,
       child: _isAssigning
-          ? const CupertinoActivityIndicator(color: CupertinoColors.white)
+          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(CupertinoIcons.person_add, color: CupertinoColors.white, size: 18),
+                const Icon(Icons.person_add, color: Colors.white, size: 18),
                 const SizedBox(width: 8),
                 Text(
                   'M\'assigner cette mission',
-                  style: IOSTheme.body.copyWith(
-                    color: CupertinoColors.white,
+                  style: AppTheme.typography.bodyMedium.copyWith(
+                    color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+      case 'actif':
+        return AppTheme.colors.success;
+      case 'pending':
+      case 'en_attente':
+        return AppTheme.colors.warning;
+      case 'completed':
+      case 'terminé':
+        return AppTheme.colors.primary;
+      default:
+        return AppTheme.colors.textSecondary;
+    }
   }
 
   String _getProgressStatusLabel(String status) {
@@ -444,121 +434,143 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
     final totalTasks = _tasks.length;
     final completedTasks = _tasks.where((t) => t['status'] == 'done' || t['status'] == 'completed').length;
     final progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks * 100).round() : 0;
-    
+
     // Calculer la progression temporelle
     final startDate = _project!['start_date'] != null ? DateTime.parse(_project!['start_date']) : null;
     final endDate = _project!['end_date'] != null ? DateTime.parse(_project!['end_date']) : null;
     final createdAt = _project!['created_at'] != null ? DateTime.parse(_project!['created_at']) : null;
-    
+
     final timeProgressDetails = ProgressUtils.calculateTimeProgressDetails(
       startDate: startDate,
       endDate: endDate,
       createdAt: createdAt,
     );
-    
-    return IOSListSection(
-      title: "Statistiques",
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        IOSListTile(
-          leading: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: IOSTheme.primaryBlue.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(CupertinoIcons.list_bullet, color: IOSTheme.primaryBlue, size: 18),
-          ),
-          title: const Text('Tâches', style: IOSTheme.body),
-          subtitle: Text('$completedTasks/$totalTasks terminées', style: IOSTheme.footnote),
-          trailing: Text('$progressPercentage%', style: IOSTheme.body.copyWith(fontWeight: FontWeight.w600)),
+        Padding(
+          padding: const EdgeInsets.only(left: 16, bottom: 8),
+          child: Text('Statistiques', style: AppTheme.typography.bodySmall.copyWith(color: AppTheme.colors.textSecondary)),
         ),
-        // Progression temporelle
-        if (endDate != null)
-          IOSListTile(
-            leading: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: (timeProgressDetails['isOverdue'] ? IOSTheme.errorColor : IOSTheme.successColor).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [
+              ListTile(
+                leading: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppTheme.colors.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.list, color: AppTheme.colors.primary, size: 18),
+                ),
+                title: Text('Tâches', style: AppTheme.typography.bodyMedium),
+                subtitle: Text('$completedTasks/$totalTasks terminées', style: AppTheme.typography.bodySmall),
+                trailing: Text('$progressPercentage%', style: AppTheme.typography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
               ),
-              child: Icon(
-                CupertinoIcons.clock, 
-                color: timeProgressDetails['isOverdue'] ? IOSTheme.errorColor : IOSTheme.successColor, 
-                size: 18
-              ),
-            ),
-            title: const Text('Progression temporelle', style: IOSTheme.body),
-            subtitle: Text(
-              '${timeProgressDetails['daysElapsed']}/${timeProgressDetails['totalDays']} jours - ${timeProgressDetails['status']}', 
-              style: IOSTheme.footnote
-            ),
-            trailing: Text(
-              '${timeProgressDetails['percentage']}%', 
-              style: IOSTheme.body.copyWith(
-                fontWeight: FontWeight.w600,
-                color: timeProgressDetails['isOverdue'] ? IOSTheme.errorColor : null,
-              )
-            ),
+              // Progression temporelle
+              if (endDate != null)
+                ListTile(
+                  leading: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: (timeProgressDetails['isOverdue'] ? AppTheme.colors.error : AppTheme.colors.success).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.access_time,
+                      color: timeProgressDetails['isOverdue'] ? AppTheme.colors.error : AppTheme.colors.success,
+                      size: 18,
+                    ),
+                  ),
+                  title: Text('Progression temporelle', style: AppTheme.typography.bodyMedium),
+                  subtitle: Text(
+                    '${timeProgressDetails['daysElapsed']}/${timeProgressDetails['totalDays']} jours - ${timeProgressDetails['status']}',
+                    style: AppTheme.typography.bodySmall,
+                  ),
+                  trailing: Text(
+                    '${timeProgressDetails['percentage']}%',
+                    style: AppTheme.typography.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: timeProgressDetails['isOverdue'] ? AppTheme.colors.error : null,
+                    ),
+                  ),
+                ),
+              if (_project!['estimated_days'] != null)
+                ListTile(
+                  leading: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppTheme.colors.warning.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.timer, color: AppTheme.colors.warning, size: 18),
+                  ),
+                  title: Text('Durée estimée', style: AppTheme.typography.bodyMedium),
+                  subtitle: Text('${_project!['estimated_days']} jours', style: AppTheme.typography.bodySmall),
+                ),
+              if (_project!['end_date'] != null)
+                ListTile(
+                  leading: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppTheme.colors.success.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.calendar_today, color: AppTheme.colors.success, size: 18),
+                  ),
+                  title: Text('Date de fin', style: AppTheme.typography.bodyMedium),
+                  subtitle: Text(_project!['end_date'], style: AppTheme.typography.bodySmall),
+                ),
+            ],
           ),
-        if (_project!['estimated_days'] != null)
-          IOSListTile(
-            leading: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: IOSTheme.warningColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(CupertinoIcons.time, color: IOSTheme.warningColor, size: 18),
-            ),
-            title: const Text('Durée estimée', style: IOSTheme.body),
-            subtitle: Text('${_project!['estimated_days']} jours', style: IOSTheme.footnote),
-          ),
-        if (_project!['end_date'] != null)
-          IOSListTile(
-            leading: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: IOSTheme.successColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(CupertinoIcons.calendar, color: IOSTheme.successColor, size: 18),
-            ),
-            title: const Text('Date de fin', style: IOSTheme.body),
-            subtitle: Text(_project!['end_date'], style: IOSTheme.footnote),
-          ),
+        ),
       ],
     );
   }
 
   Widget _buildTasksList() {
-    return IOSListSection(
-      title: "Tâches (${ _tasks.length})",
-      children: _tasks.isEmpty
-          ? [
-              IOSListTile(
-                leading: const Icon(CupertinoIcons.list_bullet, color: IOSTheme.systemGray),
-                title: Text(
-                  'Aucune tâche',
-                  style: IOSTheme.body.copyWith(color: IOSTheme.labelSecondary),
-                ),
-                subtitle: const Text('Aucune tâche n\'est associée à ce projet.', style: IOSTheme.footnote),
-              ),
-            ]
-          : _tasks.map((task) => _buildTaskTile(task)).toList(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 16, bottom: 8),
+          child: Text('Tâches (${_tasks.length})', style: AppTheme.typography.bodySmall.copyWith(color: AppTheme.colors.textSecondary)),
+        ),
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: _tasks.isEmpty
+                ? [
+                    ListTile(
+                      leading: Icon(Icons.list, color: AppTheme.colors.textSecondary),
+                      title: Text(
+                        'Aucune tâche',
+                        style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary),
+                      ),
+                      subtitle: Text('Aucune tâche n\'est associée à ce projet.', style: AppTheme.typography.bodySmall),
+                    ),
+                  ]
+                : _tasks.map((task) => _buildTaskTile(task)).toList(),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildTaskTile(Map<String, dynamic> task) {
     final status = task['status'] ?? 'todo';
-    final statusColor = IOSTheme.getStatusColor(status);
+    final statusColor = _getStatusColor(status);
     final priority = task['priority'] ?? 'medium';
-    final priorityColor = IOSTheme.getPriorityColor(priority);
+    final priorityColor = _getPriorityColor(priority);
 
-    return IOSListTile(
+    return ListTile(
       leading: Container(
         width: 32,
         height: 32,
@@ -567,19 +579,14 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
-          status == 'done' || status == 'completed' 
-              ? CupertinoIcons.checkmark 
-              : CupertinoIcons.circle,
+          status == 'done' || status == 'completed' ? Icons.check : Icons.circle_outlined,
           color: statusColor,
           size: 18,
         ),
       ),
-      title: Text(
-        task['title'] ?? 'Tâche sans titre',
-        style: IOSTheme.body,
-      ),
-      subtitle: task['description'] != null 
-          ? Text(task['description'], style: IOSTheme.footnote)
+      title: Text(task['title'] ?? 'Tâche sans titre', style: AppTheme.typography.bodyMedium),
+      subtitle: task['description'] != null
+          ? Text(task['description'], style: AppTheme.typography.bodySmall)
           : null,
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -589,7 +596,7 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
         ),
         child: Text(
           priority,
-          style: IOSTheme.footnote.copyWith(
+          style: AppTheme.typography.bodySmall.copyWith(
             color: priorityColor,
             fontWeight: FontWeight.w500,
           ),
@@ -598,70 +605,67 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
     );
   }
 
+  Color _getPriorityColor(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'high':
+      case 'urgent':
+        return AppTheme.colors.error;
+      case 'medium':
+        return AppTheme.colors.warning;
+      case 'low':
+        return AppTheme.colors.success;
+      default:
+        return AppTheme.colors.textSecondary;
+    }
+  }
+
   /// Vérifie si l'utilisateur peut modifier le projet (admin ou associé uniquement)
   bool get _canEditProject {
     return _userRole == UserRole.admin || _userRole == UserRole.associe;
   }
 
   void _showProjectActions() {
-    // Définir les actions disponibles selon le rôle
-    final List<CupertinoActionSheetAction> actions = [];
-    
-    // Modifier le projet (admin/associé uniquement)
-    if (_canEditProject) {
-      actions.add(
-        CupertinoActionSheetAction(
-          child: const Text('Modifier le projet'),
-          onPressed: () {
-            Navigator.of(context).pop();
-            _showEditProjectDialog();
-          },
-        ),
-      );
-      actions.add(
-        CupertinoActionSheetAction(
-          child: const Text('Ajouter une tâche'),
-          onPressed: () {
-            Navigator.of(context).pop();
-            _showAddTaskDialog();
-          },
-        ),
-      );
-    }
-    
-    // Voir les documents (accessible à tous)
-    actions.add(
-      CupertinoActionSheetAction(
-        child: const Text('Voir les documents'),
-        onPressed: () {
-          Navigator.of(context).pop();
-          _showDocumentsDialog();
-        },
-      ),
-    );
-    
-    // Contacter l'équipe (partenaires et clients)
-    if (_userRole == UserRole.partenaire || _userRole == UserRole.client) {
-      actions.add(
-        CupertinoActionSheetAction(
-          child: const Text('Contacter l\'équipe'),
-          onPressed: () {
-            Navigator.of(context).pop();
-            Navigator.of(context, rootNavigator: true).pushNamed('/messaging');
-          },
-        ),
-      );
-    }
-
-    showCupertinoModalPopup(
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) => CupertinoActionSheet(
-        title: Text(_project!['title'] ?? _project!['name'] ?? 'Actions du projet'),
-        actions: actions,
-        cancelButton: CupertinoActionSheetAction(
-          child: const Text('Annuler'),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+      builder: (BuildContext ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_canEditProject) ...[
+            ListTile(
+              title: const Text('Modifier le projet'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _showEditProjectDialog();
+              },
+            ),
+            ListTile(
+              title: const Text('Ajouter une tâche'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _showAddTaskDialog();
+              },
+            ),
+          ],
+          ListTile(
+            title: const Text('Voir les documents'),
+            onTap: () {
+              Navigator.of(ctx).pop();
+              _showDocumentsDialog();
+            },
+          ),
+          if (_userRole == UserRole.partenaire || _userRole == UserRole.client)
+            ListTile(
+              title: const Text('Contacter l\'équipe'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                Navigator.of(context, rootNavigator: true).pushNamed('/messaging');
+              },
+            ),
+          ListTile(
+            title: Text('Annuler', style: TextStyle(color: AppTheme.colors.textSecondary)),
+            onTap: () => Navigator.of(ctx).pop(),
+          ),
+        ],
       ),
     );
   }
@@ -669,16 +673,121 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
   void _showEditProjectDialog() {
     final titleController = TextEditingController(text: _project!['title'] ?? _project!['name'] ?? '');
     final descriptionController = TextEditingController(text: _project!['description'] ?? '');
-    
-    showCupertinoModalPopup(
+
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => Material(
-        color: Colors.transparent,
-        child: Container(
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (dialogContext) => Container(
+        height: MediaQuery.of(context).size.height * 0.6,
+        decoration: BoxDecoration(
+          color: AppTheme.colors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Annuler'),
+                    ),
+                    const Text('Modifier le projet', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                    TextButton(
+                      onPressed: () async {
+                        try {
+                          await SupabaseService.client
+                              .from('missions')
+                              .update({
+                                'title': titleController.text,
+                                'description': descriptionController.text,
+                              })
+                              .eq('id', widget.projectId);
+                          Navigator.pop(dialogContext);
+                          _loadProjectDetails();
+                          _showSuccessMessage('Projet modifié avec succès');
+                        } catch (e) {
+                          _showErrorMessage('Erreur lors de la modification: $e');
+                        }
+                      },
+                      child: const Text('Enregistrer'),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Titre', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.colors.textSecondary)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: titleController,
+                        decoration: InputDecoration(
+                          hintText: 'Titre du projet',
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.all(14),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text('Description', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.colors.textSecondary)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: descriptionController,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          hintText: 'Description du projet',
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.all(14),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddTaskDialog() {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    String priority = 'medium';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => Container(
           height: MediaQuery.of(context).size.height * 0.6,
-          decoration: const BoxDecoration(
-            color: CupertinoColors.systemBackground,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: AppTheme.colors.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: SafeArea(
             child: Column(
@@ -687,41 +796,43 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
                   margin: const EdgeInsets.only(top: 12),
                   width: 40,
                   height: 4,
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.systemGrey3,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        child: const Text('Annuler'),
+                      TextButton(
                         onPressed: () => Navigator.pop(dialogContext),
+                        child: const Text('Annuler'),
                       ),
-                      const Text('Modifier le projet', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-                      CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        child: const Text('Enregistrer'),
+                      const Text('Nouvelle tâche', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                      TextButton(
                         onPressed: () async {
+                          if (titleController.text.isEmpty) {
+                            _showErrorMessage('Le titre est requis');
+                            return;
+                          }
                           try {
                             await SupabaseService.client
                                 .from('missions')
-                                .update({
+                                .insert({
                                   'title': titleController.text,
                                   'description': descriptionController.text,
-                                })
-                                .eq('id', widget.projectId);
+                                  'mission_id': widget.projectId,
+                                  'priority': priority,
+                                  'status': 'pending',
+                                  'progress_status': 'à_assigner',
+                                });
                             Navigator.pop(dialogContext);
                             _loadProjectDetails();
-                            _showSuccessMessage('Projet modifié avec succès');
+                            _showSuccessMessage('Tâche créée avec succès');
                           } catch (e) {
-                            _showErrorMessage('Erreur lors de la modification: $e');
+                            _showErrorMessage('Erreur lors de la création: $e');
                           }
                         },
+                        child: const Text('Créer'),
                       ),
                     ],
                   ),
@@ -733,29 +844,45 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Titre', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: CupertinoColors.secondaryLabel)),
+                        Text('Titre', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.colors.textSecondary)),
                         const SizedBox(height: 8),
-                        CupertinoTextField(
+                        TextField(
                           controller: titleController,
-                          placeholder: 'Titre du projet',
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.systemGrey6,
-                            borderRadius: BorderRadius.circular(10),
+                          decoration: InputDecoration(
+                            hintText: 'Titre de la tâche',
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                            contentPadding: const EdgeInsets.all(14),
                           ),
                         ),
                         const SizedBox(height: 20),
-                        const Text('Description', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: CupertinoColors.secondaryLabel)),
+                        Text('Description', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.colors.textSecondary)),
                         const SizedBox(height: 8),
-                        CupertinoTextField(
+                        TextField(
                           controller: descriptionController,
-                          placeholder: 'Description du projet',
-                          maxLines: 4,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.systemGrey6,
-                            borderRadius: BorderRadius.circular(10),
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            hintText: 'Description (optionnel)',
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                            contentPadding: const EdgeInsets.all(14),
                           ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text('Priorité', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.colors.textSecondary)),
+                        const SizedBox(height: 12),
+                        SegmentedButton<String>(
+                          segments: const [
+                            ButtonSegment(value: 'low', label: Text('Basse')),
+                            ButtonSegment(value: 'medium', label: Text('Moyenne')),
+                            ButtonSegment(value: 'high', label: Text('Haute')),
+                          ],
+                          selected: {priority},
+                          onSelectionChanged: (value) {
+                            setDialogState(() => priority = value.first);
+                          },
                         ),
                       ],
                     ),
@@ -769,183 +896,45 @@ class _IOSProjectDetailPageState extends State<IOSProjectDetailPage> {
     );
   }
 
-  void _showAddTaskDialog() {
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    String priority = 'medium';
-
-    showCupertinoModalPopup(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => Material(
-          color: Colors.transparent,
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.6,
-            decoration: const BoxDecoration(
-              color: CupertinoColors.systemBackground,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.systemGrey3,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          child: const Text('Annuler'),
-                          onPressed: () => Navigator.pop(dialogContext),
-                        ),
-                        const Text('Nouvelle tâche', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          child: const Text('Créer'),
-                          onPressed: () async {
-                            if (titleController.text.isEmpty) {
-                              _showErrorMessage('Le titre est requis');
-                              return;
-                            }
-                            try {
-                              await SupabaseService.client
-                                  .from('missions')
-                                  .insert({
-                                    'title': titleController.text,
-                                    'description': descriptionController.text,
-                                    'mission_id': widget.projectId,
-                                    'priority': priority,
-                                    'status': 'pending',
-                                    'progress_status': 'à_assigner',
-                                  });
-                              Navigator.pop(dialogContext);
-                              _loadProjectDetails();
-                              _showSuccessMessage('Tâche créée avec succès');
-                            } catch (e) {
-                              _showErrorMessage('Erreur lors de la création: $e');
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Titre', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: CupertinoColors.secondaryLabel)),
-                          const SizedBox(height: 8),
-                          CupertinoTextField(
-                            controller: titleController,
-                            placeholder: 'Titre de la tâche',
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: CupertinoColors.systemGrey6,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text('Description', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: CupertinoColors.secondaryLabel)),
-                          const SizedBox(height: 8),
-                          CupertinoTextField(
-                            controller: descriptionController,
-                            placeholder: 'Description (optionnel)',
-                            maxLines: 3,
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: CupertinoColors.systemGrey6,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text('Priorité', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: CupertinoColors.secondaryLabel)),
-                          const SizedBox(height: 12),
-                          CupertinoSlidingSegmentedControl<String>(
-                            groupValue: priority,
-                            children: const {
-                              'low': Text('Basse'),
-                              'medium': Text('Moyenne'),
-                              'high': Text('Haute'),
-                            },
-                            onValueChanged: (value) {
-                              if (value != null) {
-                                setDialogState(() => priority = value);
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   void _showDocumentsDialog() {
-    showCupertinoDialog(
+    showDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (c) => AlertDialog(
         title: const Text('Documents'),
         content: const Padding(
           padding: EdgeInsets.only(top: 12),
           child: Text('Aucun document n\'est attaché à ce projet pour le moment.'),
         ),
         actions: [
-          CupertinoDialogAction(
-            child: const Text('OK'),
-            onPressed: () => Navigator.pop(context),
-          ),
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('OK')),
         ],
       ),
     );
   }
 
   void _showSuccessMessage(String message) {
-    showCupertinoDialog(
+    showDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (c) => AlertDialog(
         title: const Text('Succès'),
         content: Text(message),
         actions: [
-          CupertinoDialogAction(
-            child: const Text('OK'),
-            onPressed: () => Navigator.pop(context),
-          ),
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('OK')),
         ],
       ),
     );
   }
 
   void _showErrorMessage(String message) {
-    showCupertinoDialog(
+    showDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (c) => AlertDialog(
         title: const Text('Erreur'),
         content: Text(message),
         actions: [
-          CupertinoDialogAction(
-            child: const Text('OK'),
-            onPressed: () => Navigator.pop(context),
-          ),
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('OK')),
         ],
       ),
     );
   }
-} 
+}

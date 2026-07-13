@@ -1,8 +1,6 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../../config/ios_theme.dart';
-import '../../widgets/ios_widgets.dart';
+import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/messaging_service.dart';
 import 'ios_conversation_detail_page.dart';
@@ -22,10 +20,18 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
   String? error;
   String searchQuery = '';
 
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _initializeMessaging();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeMessaging() async {
@@ -34,13 +40,8 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
         isInitializing = true;
         error = null;
       });
-      
-      // Initialiser le service de messagerie
       await MessagingService().initialize();
-      
-      // Charger les utilisateurs
       await _loadUsers();
-      
     } catch (e) {
       debugPrint('Erreur lors de l\'initialisation de la messagerie: $e');
       setState(() {
@@ -57,10 +58,7 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
     try {
       final usersList = await SupabaseService.getAllUsers();
       debugPrint('Utilisateurs chargés: ${usersList.length}');
-      
-      // Filtrer les utilisateurs selon les restrictions de messagerie
       final filteredUsersList = await _filterUsersForMessaging(usersList);
-      
       setState(() {
         users = filteredUsersList;
         filteredUsers = filteredUsersList;
@@ -73,22 +71,12 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
     }
   }
 
-  /// Filtre les utilisateurs selon les restrictions de messagerie :
-  /// - Associés : peuvent parler à tout le monde
-  /// - Clients/Partenaires : peuvent parler seulement aux associés
   Future<List<Map<String, dynamic>>> _filterUsersForMessaging(List<Map<String, dynamic>> allUsers) async {
     final currentUserRole = await SupabaseService.getCurrentUserRole();
-    
-    if (currentUserRole == null) {
-      return allUsers; // Par défaut, retourner tous les utilisateurs
-    }
-    
-    // Les associés et admins peuvent parler à tout le monde
+    if (currentUserRole == null) return allUsers;
     if (currentUserRole.value == 'associe' || currentUserRole.value == 'admin') {
       return allUsers;
     }
-    
-    // Les clients et partenaires ne peuvent parler qu'aux associés et admins
     return allUsers.where((user) {
       final userRole = user['user_role']?.toString().toLowerCase();
       return userRole == 'associe' || userRole == 'admin';
@@ -99,7 +87,7 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
     setState(() {
       searchQuery = query;
       filteredUsers = users
-          .where((u) => 
+          .where((u) =>
               (u['email']?.toString().toLowerCase().contains(query.toLowerCase()) ?? false) ||
               (u['first_name']?.toString().toLowerCase().contains(query.toLowerCase()) ?? false) ||
               (u['last_name']?.toString().toLowerCase().contains(query.toLowerCase()) ?? false))
@@ -114,12 +102,11 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
           ? '${user['first_name']} ${user['last_name']}'
           : user['email'] ?? 'Utilisateur';
 
-      // Créer ou récupérer la conversation
       final conversationId = await MessagingService().getOrCreateConversation(userId);
-      
+
       if (mounted) {
         Navigator.of(context).push(
-          CupertinoPageRoute(
+          MaterialPageRoute(
             builder: (context) => IOSConversationDetailPage(
               conversationId: conversationId,
               conversationName: userName,
@@ -130,13 +117,13 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
       }
     } catch (e) {
       if (mounted) {
-        showCupertinoDialog(
+        showDialog(
           context: context,
-          builder: (context) => CupertinoAlertDialog(
+          builder: (context) => AlertDialog(
             title: const Text('Erreur'),
             content: Text('Impossible de créer la conversation: $e'),
             actions: [
-              CupertinoDialogAction(
+              TextButton(
                 child: const Text('OK'),
                 onPressed: () => Navigator.of(context).pop(),
               ),
@@ -150,18 +137,16 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
   @override
   Widget build(BuildContext context) {
     if (isInitializing) {
-      return IOSScaffold(
-        navigationBar: const IOSNavigationBar(title: "Messagerie"),
-        body: const Center(
+      return Scaffold(
+        backgroundColor: AppTheme.colors.background,
+        appBar: AppBar(title: const Text('Messagerie'), backgroundColor: AppTheme.colors.surface),
+        body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CupertinoActivityIndicator(),
-              SizedBox(height: 16),
-              Text(
-                'Initialisation de la messagerie...',
-                style: IOSTheme.body,
-              ),
+              CircularProgressIndicator(color: AppTheme.colors.primary, strokeWidth: 2),
+              const SizedBox(height: 16),
+              Text('Initialisation de la messagerie...', style: AppTheme.typography.bodyMedium),
             ],
           ),
         ),
@@ -169,35 +154,26 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
     }
 
     if (error != null) {
-      return IOSScaffold(
-        navigationBar: const IOSNavigationBar(title: "Messagerie"),
+      return Scaffold(
+        backgroundColor: AppTheme.colors.background,
+        appBar: AppBar(title: const Text('Messagerie'), backgroundColor: AppTheme.colors.surface),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                CupertinoIcons.exclamationmark_triangle,
-                size: 64,
-                color: IOSTheme.systemRed,
-              ),
+              Icon(Icons.warning_amber_rounded, size: 64, color: AppTheme.colors.error),
               const SizedBox(height: 16),
-              Text(
-                'Erreur',
-                style: IOSTheme.title2,
-              ),
+              Text('Erreur', style: AppTheme.typography.h3),
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: Text(
-                  error!,
-                  style: IOSTheme.body,
-                  textAlign: TextAlign.center,
-                ),
+                child: Text(error!, style: AppTheme.typography.bodyMedium, textAlign: TextAlign.center),
               ),
               const SizedBox(height: 24),
-              CupertinoButton.filled(
+              ElevatedButton(
                 onPressed: _initializeMessaging,
-                child: const Text('Réessayer'),
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.colors.primary),
+                child: const Text('Réessayer', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -205,32 +181,40 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
       );
     }
 
-    return IOSScaffold(
-      navigationBar: IOSNavigationBar(
-        title: "Messagerie",
+    return Scaffold(
+      backgroundColor: AppTheme.colors.background,
+      appBar: AppBar(
+        title: const Text('Messagerie'),
+        backgroundColor: AppTheme.colors.surface,
         actions: [
-          CupertinoButton(
-            padding: EdgeInsets.zero,
+          IconButton(
+            icon: const Icon(Icons.refresh),
             onPressed: _loadUsers,
-            child: const Icon(
-              CupertinoIcons.refresh,
-              color: IOSTheme.primaryBlue,
-            ),
           ),
         ],
       ),
       body: Column(
         children: [
           // Barre de recherche
-          Container(
+          Padding(
             padding: const EdgeInsets.all(16),
-            child: CupertinoSearchTextField(
-              placeholder: 'Rechercher un utilisateur...',
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Rechercher un utilisateur...',
+                prefixIcon: Icon(Icons.search, color: AppTheme.colors.textSecondary),
+                filled: true,
+                fillColor: AppTheme.colors.inputBackground,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              ),
               onChanged: _filterUsers,
-              style: IOSTheme.body,
             ),
           ),
-          
+
           // Liste des utilisateurs
           Expanded(
             child: filteredUsers.isEmpty
@@ -239,25 +223,23 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          searchQuery.isEmpty 
-                              ? CupertinoIcons.person_2
-                              : CupertinoIcons.search,
+                          searchQuery.isEmpty ? Icons.people : Icons.search,
                           size: 64,
-                          color: IOSTheme.systemGray3,
+                          color: AppTheme.colors.textSecondary,
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          searchQuery.isEmpty 
+                          searchQuery.isEmpty
                               ? 'Aucun utilisateur disponible'
                               : 'Aucun résultat pour "$searchQuery"',
-                          style: IOSTheme.headline,
+                          style: AppTheme.typography.h4,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           searchQuery.isEmpty
                               ? 'Les utilisateurs apparaîtront ici'
                               : 'Essayez un autre terme de recherche',
-                          style: IOSTheme.footnote,
+                          style: AppTheme.typography.bodySmall.copyWith(color: AppTheme.colors.textSecondary),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -267,12 +249,9 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
                     itemCount: filteredUsers.length,
                     itemBuilder: (context, index) {
                       final user = filteredUsers[index];
-                      
-                      // Ne pas afficher l'utilisateur connecté
                       if (user['user_id'] == SupabaseService.currentUser?.id) {
                         return const SizedBox.shrink();
                       }
-                      
                       return _buildUserTile(user);
                     },
                   ),
@@ -287,59 +266,49 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
     final lastName = user['last_name']?.toString() ?? '';
     final email = user['email']?.toString() ?? '';
     final role = user['user_role']?.toString() ?? '';
-    
+
     final displayName = firstName.isNotEmpty && lastName.isNotEmpty
         ? '$firstName $lastName'
         : email;
-    
-    final initials = firstName.isNotEmpty 
+
+    final initials = firstName.isNotEmpty
         ? firstName[0].toUpperCase()
-        : email.isNotEmpty 
+        : email.isNotEmpty
             ? email[0].toUpperCase()
             : '?';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: IOSTheme.systemBackground,
+        color: AppTheme.colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: IOSTheme.systemGray5, width: 1),
+        border: Border.all(color: AppTheme.colors.border, width: 1),
       ),
-      child: IOSListTile(
+      child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: IOSTheme.primaryBlue,
+          backgroundColor: AppTheme.colors.primary,
           radius: 20,
           child: Text(
             initials,
-            style: IOSTheme.headline.copyWith(color: Colors.white),
+            style: AppTheme.typography.bodyMedium.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
-        title: Text(
-          displayName,
-          style: IOSTheme.body,
-        ),
+        title: Text(displayName, style: AppTheme.typography.bodyMedium),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (firstName.isNotEmpty && lastName.isNotEmpty)
-              Text(
-                email,
-                style: IOSTheme.footnote,
-              ),
+              Text(email, style: AppTheme.typography.caption.copyWith(color: AppTheme.colors.textSecondary)),
             Text(
               _formatRole(role),
-              style: IOSTheme.caption1.copyWith(
+              style: AppTheme.typography.caption.copyWith(
                 color: _getRoleColor(role),
                 fontWeight: FontWeight.w600,
               ),
             ),
           ],
         ),
-        trailing: const Icon(
-          CupertinoIcons.chat_bubble,
-          color: IOSTheme.primaryBlue,
-          size: 20,
-        ),
+        trailing: Icon(Icons.chat_bubble_outline, color: AppTheme.colors.primary, size: 20),
         onTap: () => _startConversation(user),
       ),
     );
@@ -357,11 +326,11 @@ class _IOSMessagingPageState extends State<IOSMessagingPage> {
 
   Color _getRoleColor(String role) {
     switch (role.toLowerCase()) {
-      case 'admin': return IOSTheme.systemRed;
-      case 'associe': return IOSTheme.primaryBlue;
-      case 'partenaire': return IOSTheme.systemOrange;
-      case 'client': return IOSTheme.systemGreen;
-      default: return IOSTheme.systemGray;
+      case 'admin': return AppTheme.colors.error;
+      case 'associe': return AppTheme.colors.primary;
+      case 'partenaire': return AppTheme.colors.warning;
+      case 'client': return AppTheme.colors.success;
+      default: return AppTheme.colors.textSecondary;
     }
   }
-} 
+}

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:oxo/services/supabase_service.dart';
 import '../../config/app_theme.dart';
@@ -40,20 +39,20 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       // Charger les sociétés (companies)
       final companiesResponse = await SupabaseService.client
           .from('company')
           .select('*, investor_group:group_id(name)')
           .order('name', ascending: true);
-      
+
       // Charger les groupes d'investisseurs
       final groupsResponse = await SupabaseService.client
           .from('investor_group')
           .select('*')
           .order('name', ascending: true);
-      
+
       if (mounted) {
         setState(() {
           _companies = List<Map<String, dynamic>>.from(companiesResponse);
@@ -77,15 +76,15 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
       child: Container(
         color: AppTheme.colors.background,
         child: _isLoading
-            ? const Center(child: CupertinoActivityIndicator())
+            ? const Center(child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2)))
             : Column(
                 children: [
                   // Sous-onglets Sociétés / Groupes
                   _buildSubTabs(),
-                  
+
                   // Barre de recherche
                   _buildSearchBar(),
-                  
+
                   // Liste
                   Expanded(
                     child: _selectedTab == 0
@@ -127,8 +126,8 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
         label,
         style: AppTheme.typography.h3.copyWith(
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected 
-              ? AppTheme.colors.textPrimary 
+          color: isSelected
+              ? AppTheme.colors.textPrimary
               : AppTheme.colors.textSecondary,
           decoration: TextDecoration.none,
         ),
@@ -139,22 +138,30 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
   Widget _buildSearchBar() {
     return Container(
       margin: EdgeInsets.all(AppTheme.spacing.md),
-      child: CupertinoSearchTextField(
+      child: TextField(
         controller: _searchController,
-        placeholder: _selectedTab == 0 
-            ? 'Rechercher une société...' 
-            : 'Rechercher un groupe...',
         style: AppTheme.typography.bodyMedium.copyWith(
           decoration: TextDecoration.none,
         ),
-        placeholderStyle: AppTheme.typography.bodyMedium.copyWith(
-          color: AppTheme.colors.textSecondary,
-          decoration: TextDecoration.none,
-        ),
-        decoration: BoxDecoration(
-          color: AppTheme.colors.inputBackground,
-          borderRadius: BorderRadius.circular(AppTheme.radius.medium),
-          border: Border.all(color: AppTheme.colors.border),
+        decoration: InputDecoration(
+          hintText: _selectedTab == 0
+              ? 'Rechercher une société...'
+              : 'Rechercher un groupe...',
+          hintStyle: AppTheme.typography.bodyMedium.copyWith(
+            color: AppTheme.colors.textSecondary,
+            decoration: TextDecoration.none,
+          ),
+          prefixIcon: const Icon(Icons.search),
+          filled: true,
+          fillColor: AppTheme.colors.inputBackground,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radius.medium),
+            borderSide: BorderSide(color: AppTheme.colors.border),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radius.medium),
+            borderSide: BorderSide(color: AppTheme.colors.border),
+          ),
         ),
       ),
     );
@@ -224,7 +231,7 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
             ),
           ),
           SizedBox(width: AppTheme.spacing.md),
-          
+
           // Infos
           Expanded(
             child: Column(
@@ -239,7 +246,7 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
                     decoration: TextDecoration.none,
                   ),
                 ),
-                
+
                 // Groupe
                 if (groupName != null) ...[
                   SizedBox(height: 2),
@@ -251,14 +258,14 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
                     ),
                   ),
                 ],
-                
+
                 // Ville
                 if (city.isNotEmpty) ...[
                   SizedBox(height: 4),
                   Row(
                     children: [
                       Icon(
-                        CupertinoIcons.location_solid,
+                        Icons.location_on,
                         size: 14,
                         color: AppTheme.colors.textSecondary,
                       ),
@@ -273,14 +280,14 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
                     ],
                   ),
                 ],
-                
+
                 // Détention
                 if (detention != null) ...[
                   SizedBox(height: 4),
                   Row(
                     children: [
                       Icon(
-                        CupertinoIcons.building_2_fill,
+                        Icons.business,
                         size: 14,
                         color: AppTheme.colors.textSecondary,
                       ),
@@ -298,7 +305,7 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
               ],
             ),
           ),
-          
+
           // Statut et édition
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -310,7 +317,7 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(
-                  color: status == 'active' 
+                  color: status == 'active'
                       ? const Color(0xFF34C759).withOpacity(0.1)
                       : Colors.grey.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(4),
@@ -318,8 +325,8 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
                 child: Text(
                   status == 'active' ? 'Actif' : 'Inactif',
                   style: AppTheme.typography.caption.copyWith(
-                    color: status == 'active' 
-                        ? const Color(0xFF34C759) 
+                    color: status == 'active'
+                        ? const Color(0xFF34C759)
                         : Colors.grey,
                     fontWeight: FontWeight.w600,
                     decoration: TextDecoration.none,
@@ -333,7 +340,7 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
                   // TODO: Éditer la société
                 },
                 child: Icon(
-                  CupertinoIcons.pencil,
+                  Icons.edit,
                   size: 20,
                   color: AppTheme.colors.textSecondary,
                 ),
@@ -405,7 +412,7 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
             ),
           ),
           SizedBox(width: AppTheme.spacing.md),
-          
+
           // Infos
           Expanded(
             child: Column(
@@ -434,14 +441,14 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
               ],
             ),
           ),
-          
+
           // Icône édition
           GestureDetector(
             onTap: () {
               // TODO: Éditer le groupe
             },
             child: Icon(
-              CupertinoIcons.pencil,
+              Icons.edit,
               size: 20,
               color: AppTheme.colors.textSecondary,
             ),
@@ -459,7 +466,7 @@ class _IOSMobileAdminClientsPageState extends State<IOSMobileAdminClientsPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              CupertinoIcons.building_2_fill,
+              Icons.business,
               size: 48,
               color: AppTheme.colors.textSecondary,
             ),

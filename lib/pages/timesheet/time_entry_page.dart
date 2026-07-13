@@ -115,8 +115,13 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
         _commentControllers[key] = TextEditingController(
           text: day.entry!.comment ?? '',
         );
-        // Note: day.entry!.clientId sera maintenant mission_id
-        _selectedMissions[key] = day.entry!.clientId; // Temporairement, sera converti vers mission_id
+        // Ne présélectionner la mission que si elle figure dans la liste
+        // (sinon le DropdownButton lève une assertion "exactly one item").
+        final entryMissionId = day.entry!.missionId;
+        _selectedMissions[key] = (entryMissionId != null &&
+                _availableMissions.any((m) => m.id == entryMissionId))
+            ? entryMissionId
+            : null;
       } else {
         _selectedDays[key] = null;
         _commentControllers[key] = TextEditingController();
@@ -201,7 +206,7 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
       });
 
       // Micro snackbar
-      _showQuickSnackBar('${DateFormat('dd/MM').format(day.date)} enregistré ✓', const Color(0xFF2E7D5B));
+      _showQuickSnackBar('${DateFormat('dd/MM').format(day.date)} enregistré', const Color(0xFF2E7D5B));
 
       // Supprimer l'animation après 2 secondes
       Future.delayed(const Duration(seconds: 2), () {
@@ -271,7 +276,7 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Saisie supprimée'), backgroundColor: const Color(0xFF2E7D5B)),
+          const SnackBar(content: Text('Saisie supprimée'), backgroundColor: const Color(0xFF2E7D5B)),
         );
       }
 
@@ -322,7 +327,7 @@ class _TimeEntryPageState extends State<TimeEntryPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Mois soumis avec succès'), backgroundColor: const Color(0xFF2E7D5B)),
+          const SnackBar(content: Text('Mois soumis'), backgroundColor: const Color(0xFF2E7D5B)),
         );
       }
 
@@ -380,8 +385,6 @@ Expanded(
     final totalDaysEntered = _calendar.where((d) => d.hasEntry).fold(0.0, (sum, d) => sum + (d.entry?.days ?? 0));
 
     return Card(
-      elevation: 2,
-      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -495,30 +498,48 @@ Expanded(
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFDCE1E8), width: 0.5),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Icon(icon, size: 32, color: color),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
             ),
+            child: Icon(icon, size: 20, color: color),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[700],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A2530),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ],
@@ -528,8 +549,6 @@ Expanded(
 
   Widget _buildTimesheetTable() {
     return Card(
-      elevation: 2,
-      color: Colors.white,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: ConstrainedBox(
@@ -563,7 +582,12 @@ Expanded(
   DataRow _buildTableRow(CalendarDay day) {
     final key = day.date.toIso8601String();
     final isEditable = !day.hasEntry || day.entry!.status == 'draft';
-    final selectedMissionId = _selectedMissions[key];
+    // Sécurité : ne jamais passer au dropdown une valeur absente des items
+    final rawSelectedMissionId = _selectedMissions[key];
+    final selectedMissionId = (rawSelectedMissionId != null &&
+            _availableMissions.any((m) => m.id == rawSelectedMissionId))
+        ? rawSelectedMissionId
+        : null;
     
     // Récupérer le tarif depuis la mission sélectionnée
     final dailyRate = selectedMissionId != null

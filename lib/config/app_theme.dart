@@ -51,15 +51,19 @@ class AppTheme {
       centerTitle: false,
     ),
     cardTheme: CardTheme(
-      elevation: 2,
+      // Look flat et pro : bordure fine plutôt qu'ombre portée
+      elevation: 0,
+      color: colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(radius.medium),
+        side: BorderSide(color: colors.border, width: 0.5),
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: colors.primary,
         foregroundColor: Colors.white,
+        elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radius.small),
@@ -164,6 +168,9 @@ class AppColors {
   final Color progressMedium = const Color(0xFF3E5C76); // 50-79%
   final Color progressHigh = const Color(0xFF2E7D5B); // >= 80%
   
+  // Sidebar (accent de sélection sur fond primary)
+  final Color sidebarAccent = const Color(0xFF7FA3C4);
+
   // Couleurs d'input
   final Color inputBackground = const Color(0xFFFAFAFA);
   final Color inputBorder = const Color(0xFFDCE1E8);
@@ -307,17 +314,17 @@ class AppShadows {
   
   List<BoxShadow> get small => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.05),
-      blurRadius: 4,
-      offset: const Offset(0, 2),
+      color: Colors.black.withOpacity(0.04),
+      blurRadius: 3,
+      offset: const Offset(0, 1),
     ),
   ];
-  
+
   List<BoxShadow> get medium => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.1),
+      color: Colors.black.withOpacity(0.08),
       blurRadius: 8,
-      offset: const Offset(0, 4),
+      offset: const Offset(0, 3),
     ),
   ];
   

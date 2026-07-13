@@ -4,13 +4,11 @@
 // Utilise STRICTEMENT AppTheme (pas IOSTheme)
 // ============================================================================
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
 import '../../../services/notification_service.dart';
-import '../../../utils/device_detector.dart';
 import '../../../services/company_service.dart';
 
 class MobileAdminTab extends StatefulWidget {
@@ -45,18 +43,16 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    
+
     try {
-      // Charger les statistiques
       final users = await SupabaseService.client
           .from('profiles')
           .select('role')
           .neq('role', 'client');
-      
+
       final clients = await CompanyService.getAllCompanies();
       final missions = await SupabaseService.getCompanyMissions();
-      
-      // Compter les demandes clients en attente
+
       int pendingRequests = 0;
       try {
         final requests = await SupabaseService.client
@@ -85,45 +81,40 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
+    return Scaffold(
       backgroundColor: AppTheme.colors.background,
-      child: DefaultTextStyle(
-        style: TextStyle(
-          decoration: TextDecoration.none,
-          color: AppTheme.colors.textPrimary,
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              Expanded(
-                child: _isLoading
-                    ? Center(
-                        child: CupertinoActivityIndicator(
-                          color: AppTheme.colors.primary,
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadData,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: _isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(
                         color: AppTheme.colors.primary,
-                        child: SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: EdgeInsets.all(AppTheme.spacing.md),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildStatsSection(),
-                              SizedBox(height: AppTheme.spacing.lg),
-                              _buildQuickActionsSection(),
-                              SizedBox(height: AppTheme.spacing.lg),
-                              _buildManagementSection(),
-                            ],
-                          ),
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _loadData,
+                      color: AppTheme.colors.primary,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.all(AppTheme.spacing.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildStatsSection(),
+                            SizedBox(height: AppTheme.spacing.lg),
+                            _buildQuickActionsSection(),
+                            SizedBox(height: AppTheme.spacing.lg),
+                            _buildManagementSection(),
+                          ],
                         ),
                       ),
-              ),
-            ],
-          ),
+                    ),
+            ),
+          ],
         ),
       ),
     );
@@ -147,16 +138,16 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
             ),
           ),
           const Spacer(),
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/messaging');
             },
-            child: Stack(
+            icon: Stack(
               children: [
                 Icon(
-                  _getIconForPlatform(AppIcons.notifications, AppIcons.notificationsIOS),
+                  AppIcons.notifications,
                   color: AppTheme.colors.textPrimary,
                   size: 24,
                 ),
@@ -180,14 +171,14 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
             ),
           ),
           SizedBox(width: AppTheme.spacing.sm),
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/profile');
             },
-            child: Icon(
-              _getIconForPlatform(AppIcons.settings, AppIcons.settingsIOS),
+            icon: Icon(
+              AppIcons.settings,
               color: AppTheme.colors.textPrimary,
               size: 24,
             ),
@@ -215,7 +206,7 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
               child: _buildStatCard(
                 'Utilisateurs',
                 '${_stats['users'] ?? 0}',
-                CupertinoIcons.person_2,
+                Icons.people,
                 AppTheme.colors.primary,
               ),
             ),
@@ -224,7 +215,7 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
               child: _buildStatCard(
                 'Clients',
                 '${_stats['clients'] ?? 0}',
-                CupertinoIcons.building_2_fill,
+                Icons.business,
                 AppTheme.colors.success,
               ),
             ),
@@ -237,7 +228,7 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
               child: _buildStatCard(
                 'Missions',
                 '${_stats['missions'] ?? 0}',
-                CupertinoIcons.folder,
+                Icons.folder,
                 AppTheme.colors.info,
               ),
             ),
@@ -246,7 +237,7 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
               child: _buildStatCard(
                 'Demandes',
                 '${_stats['pendingRequests'] ?? 0}',
-                CupertinoIcons.bell,
+                Icons.notifications,
                 AppTheme.colors.warning,
               ),
             ),
@@ -324,7 +315,7 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
             Expanded(
               child: _buildQuickActionButton(
                 'Ajouter utilisateur',
-                CupertinoIcons.person_add,
+                Icons.person_add,
                 AppTheme.colors.primary,
                 () => Navigator.of(context, rootNavigator: true).pushNamed('/admin/roles'),
               ),
@@ -333,7 +324,7 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
             Expanded(
               child: _buildQuickActionButton(
                 'Ajouter client',
-                CupertinoIcons.building_2_fill,
+                Icons.business,
                 AppTheme.colors.success,
                 () => Navigator.of(context, rootNavigator: true).pushNamed('/create-client'),
               ),
@@ -345,9 +336,9 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
   }
 
   Widget _buildQuickActionButton(String label, IconData icon, Color color, VoidCallback onTap) {
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      onPressed: onTap,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radius.medium),
       child: Container(
         padding: EdgeInsets.all(AppTheme.spacing.md),
         decoration: BoxDecoration(
@@ -399,21 +390,21 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
               _buildManagementTile(
                 'Gestion des utilisateurs',
                 'Ajouter, modifier ou supprimer des utilisateurs',
-                CupertinoIcons.person_2,
+                Icons.people,
                 () => Navigator.of(context, rootNavigator: true).pushNamed('/admin/roles'),
               ),
               _buildDivider(),
               _buildManagementTile(
                 'Gestion des clients',
                 'Gérer les entreprises clientes',
-                CupertinoIcons.building_2_fill,
+                Icons.business,
                 () => Navigator.of(context, rootNavigator: true).pushNamed('/clients'),
               ),
               _buildDivider(),
               _buildManagementTile(
                 'Demandes clients',
                 'Voir et traiter les demandes',
-                CupertinoIcons.bell,
+                Icons.notifications,
                 () => Navigator.of(context, rootNavigator: true).pushNamed('/admin/client-requests'),
                 badge: _stats['pendingRequests'] ?? 0,
               ),
@@ -421,14 +412,14 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
               _buildManagementTile(
                 'Profils partenaires',
                 'Gérer les profils des partenaires',
-                CupertinoIcons.person_crop_circle,
+                Icons.account_circle,
                 () => Navigator.of(context, rootNavigator: true).pushNamed('/partner-profiles'),
               ),
               _buildDivider(),
               _buildManagementTile(
                 'Reporting',
                 'Voir les rapports et statistiques',
-                CupertinoIcons.chart_bar,
+                Icons.bar_chart,
                 () => _showReportingOptions(),
               ),
             ],
@@ -439,9 +430,8 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
   }
 
   Widget _buildManagementTile(String title, String subtitle, IconData icon, VoidCallback onTap, {int badge = 0}) {
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      onPressed: onTap,
+    return InkWell(
+      onTap: onTap,
       child: Container(
         padding: EdgeInsets.all(AppTheme.spacing.md),
         child: Row(
@@ -498,7 +488,7 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
               ),
             SizedBox(width: AppTheme.spacing.sm),
             Icon(
-              CupertinoIcons.chevron_right,
+              Icons.chevron_right,
               color: AppTheme.colors.textSecondary,
               size: 16,
             ),
@@ -517,82 +507,69 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
   }
 
   void _showReportingOptions() {
-    showCupertinoModalPopup(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: const Text('Rapports et Statistiques'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _showStatsReport();
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(CupertinoIcons.chart_pie),
-                SizedBox(width: 8),
-                Text('Statistiques générales'),
-              ],
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Rapports et Statistiques', style: AppTheme.typography.h4),
             ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _showMissionsReport();
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(CupertinoIcons.folder),
-                SizedBox(width: 8),
-                Text('Rapport des missions'),
-              ],
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.pie_chart),
+              title: const Text('Statistiques générales'),
+              onTap: () {
+                Navigator.pop(context);
+                _showStatsReport();
+              },
             ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _showPartnersReport();
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(CupertinoIcons.person_2),
-                SizedBox(width: 8),
-                Text('Activité des partenaires'),
-              ],
+            ListTile(
+              leading: const Icon(Icons.folder),
+              title: const Text('Rapport des missions'),
+              onTap: () {
+                Navigator.pop(context);
+                _showMissionsReport();
+              },
             ),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Fermer'),
+            ListTile(
+              leading: const Icon(Icons.people),
+              title: const Text('Activité des partenaires'),
+              onTap: () {
+                Navigator.pop(context);
+                _showPartnersReport();
+              },
+            ),
+            ListTile(
+              title: const Text('Fermer'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
         ),
       ),
     );
   }
 
   void _showStatsReport() {
-    showCupertinoDialog(
+    showDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Statistiques Générales'),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildReportRow('Utilisateurs actifs', '${_stats['users'] ?? 0}'),
-              _buildReportRow('Clients', '${_stats['clients'] ?? 0}'),
-              _buildReportRow('Missions en cours', '${_stats['missions'] ?? 0}'),
-              _buildReportRow('Demandes en attente', '${_stats['pendingRequests'] ?? 0}'),
-            ],
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildReportRow('Utilisateurs actifs', '${_stats['users'] ?? 0}'),
+            _buildReportRow('Clients', '${_stats['clients'] ?? 0}'),
+            _buildReportRow('Missions en cours', '${_stats['missions'] ?? 0}'),
+            _buildReportRow('Demandes en attente', '${_stats['pendingRequests'] ?? 0}'),
+          ],
         ),
         actions: [
-          CupertinoDialogAction(
+          TextButton(
             child: const Text('Fermer'),
             onPressed: () => Navigator.pop(context),
           ),
@@ -617,39 +594,36 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
   Future<void> _showMissionsReport() async {
     try {
       final missions = await SupabaseService.getCompanyMissions();
-      
+
       int enCours = 0;
       int termine = 0;
       int aAssigner = 0;
-      
+
       for (final m in missions) {
         final status = m['progress_status'] ?? m['status'] ?? '';
         if (status == 'en_cours' || status == 'in_progress') enCours++;
         else if (status == 'fait' || status == 'done' || status == 'completed') termine++;
         else aAssigner++;
       }
-      
+
       if (!mounted) return;
-      
-      showCupertinoDialog(
+
+      showDialog(
         context: context,
-        builder: (context) => CupertinoAlertDialog(
+        builder: (context) => AlertDialog(
           title: const Text('Rapport des Missions'),
-          content: Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildReportRow('Total missions', '${missions.length}'),
-                _buildReportRow('En cours', '$enCours'),
-                _buildReportRow('Terminées', '$termine'),
-                _buildReportRow('À assigner', '$aAssigner'),
-              ],
-            ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildReportRow('Total missions', '${missions.length}'),
+              _buildReportRow('En cours', '$enCours'),
+              _buildReportRow('Terminées', '$termine'),
+              _buildReportRow('À assigner', '$aAssigner'),
+            ],
           ),
           actions: [
-            CupertinoDialogAction(
+            TextButton(
               child: const Text('Fermer'),
               onPressed: () => Navigator.pop(context),
             ),
@@ -667,37 +641,34 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
           .from('profiles')
           .select()
           .eq('role', 'partenaire');
-      
+
       if (!mounted) return;
-      
-      showCupertinoDialog(
+
+      showDialog(
         context: context,
-        builder: (context) => CupertinoAlertDialog(
+        builder: (context) => AlertDialog(
           title: const Text('Activité des Partenaires'),
-          content: Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildReportRow('Partenaires actifs', '${partners.length}'),
-                const SizedBox(height: 8),
-                const Text(
-                  'Pour un rapport détaillé, consultez la section "Profils partenaires".',
-                  style: TextStyle(fontSize: 12, color: CupertinoColors.secondaryLabel),
-                ),
-              ],
-            ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildReportRow('Partenaires actifs', '${partners.length}'),
+              const SizedBox(height: 8),
+              Text(
+                'Pour un rapport détaillé, consultez la section "Profils partenaires".',
+                style: TextStyle(fontSize: 12, color: AppTheme.colors.textSecondary),
+              ),
+            ],
           ),
           actions: [
-            CupertinoDialogAction(
+            TextButton(
               child: const Text('Voir les profils'),
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.of(context, rootNavigator: true).pushNamed('/partner-profiles');
               },
             ),
-            CupertinoDialogAction(
+            TextButton(
               child: const Text('Fermer'),
               onPressed: () => Navigator.pop(context),
             ),
@@ -708,9 +679,4 @@ class _MobileAdminTabState extends State<MobileAdminTab> {
       debugPrint('Erreur rapport partenaires: $e');
     }
   }
-
-  IconData _getIconForPlatform(IconData material, IconData cupertino) {
-    return DeviceDetector.shouldUseIOSInterface() ? cupertino : material;
-  }
 }
-

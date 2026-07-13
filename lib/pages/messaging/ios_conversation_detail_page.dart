@@ -1,9 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
-import '../../config/ios_theme.dart';
-import '../../widgets/ios_widgets.dart';
+import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/messaging_service.dart';
 
@@ -28,7 +26,7 @@ class _IOSConversationDetailPageState extends State<IOSConversationDetailPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   late final StreamSubscription<List<Map<String, dynamic>>> _messagesSubscription;
-  
+
   bool _isLoading = true;
   List<Map<String, dynamic>> _messages = [];
   String? _error;
@@ -46,10 +44,8 @@ class _IOSConversationDetailPageState extends State<IOSConversationDetailPage> {
     });
 
     try {
-      // Marquer les messages comme lus quand on ouvre la conversation
       await _messagingService.markMessagesAsRead(widget.conversationId);
-      
-      // Écouter les messages
+
       _messagesSubscription = _messagingService
           .getMessagesStream(widget.conversationId)
           .listen(
@@ -59,11 +55,7 @@ class _IOSConversationDetailPageState extends State<IOSConversationDetailPage> {
                   _messages = messages;
                   _isLoading = false;
                 });
-                
-                // Marquer les messages comme lus quand de nouveaux messages arrivent
                 _messagingService.markMessagesAsRead(widget.conversationId);
-                
-                // Défiler vers le bas automatiquement
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (_scrollController.hasClients) {
                     _scrollController.animateTo(
@@ -84,8 +76,7 @@ class _IOSConversationDetailPageState extends State<IOSConversationDetailPage> {
               }
             },
           );
-      
-      // Charger les messages initiaux
+
       await _messagingService.loadMessages(widget.conversationId);
     } catch (e) {
       debugPrint('Erreur lors de l\'initialisation des messages: $e');
@@ -102,59 +93,32 @@ class _IOSConversationDetailPageState extends State<IOSConversationDetailPage> {
     final message = _messageController.text.trim();
     if (message.isEmpty) return;
 
-    setState(() {
-      _isSending = true;
-    });
+    setState(() { _isSending = true; });
 
     try {
-      final success = await _messagingService.sendMessage(
-        widget.conversationId,
-        message,
-      );
-
+      final success = await _messagingService.sendMessage(widget.conversationId, message);
       if (success) {
         _messageController.clear();
       } else {
-        if (mounted) {
-          showCupertinoDialog(
-            context: context,
-            builder: (context) => CupertinoAlertDialog(
-              title: const Text('Erreur'),
-              content: const Text('Échec de l\'envoi du message'),
-              actions: [
-                CupertinoDialogAction(
-                  child: const Text('OK'),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-          );
-        }
+        if (mounted) _showError('Échec de l\'envoi du message');
       }
     } catch (e) {
       debugPrint('Erreur lors de l\'envoi du message: $e');
-      if (mounted) {
-        showCupertinoDialog(
-          context: context,
-          builder: (context) => CupertinoAlertDialog(
-            title: const Text('Erreur'),
-            content: Text('Erreur: $e'),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-        );
-      }
+      if (mounted) _showError('Erreur: $e');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isSending = false;
-        });
-      }
+      if (mounted) setState(() { _isSending = false; });
     }
+  }
+
+  void _showError(String msg) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Erreur'),
+        content: Text(msg),
+        actions: [TextButton(child: const Text('OK'), onPressed: () => Navigator.of(context).pop())],
+      ),
+    );
   }
 
   @override
@@ -167,56 +131,41 @@ class _IOSConversationDetailPageState extends State<IOSConversationDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return IOSScaffold(
-      navigationBar: IOSNavigationBar(
-        title: widget.conversationName,
+    return Scaffold(
+      backgroundColor: AppTheme.colors.background,
+      appBar: AppBar(
+        title: Text(widget.conversationName),
+        backgroundColor: AppTheme.colors.surface,
         actions: [
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: () async {
-              await _messagingService.loadMessages(widget.conversationId);
-            },
-            child: const Icon(
-              CupertinoIcons.refresh,
-              color: IOSTheme.primaryBlue,
-            ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => _messagingService.loadMessages(widget.conversationId),
           ),
         ],
       ),
       body: Column(
         children: [
-          // Messages
           Expanded(
             child: _isLoading
-                ? const Center(child: CupertinoActivityIndicator())
+                ? Center(child: CircularProgressIndicator(color: AppTheme.colors.primary, strokeWidth: 2))
                 : _error != null
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
-                              CupertinoIcons.exclamationmark_triangle,
-                              size: 64,
-                              color: IOSTheme.systemRed,
-                            ),
+                            Icon(Icons.warning_amber_rounded, size: 64, color: AppTheme.colors.error),
                             const SizedBox(height: 16),
-                            Text(
-                              'Erreur',
-                              style: IOSTheme.title2,
-                            ),
+                            Text('Erreur', style: AppTheme.typography.h3),
                             const SizedBox(height: 8),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 40),
-                              child: Text(
-                                _error!,
-                                style: IOSTheme.body,
-                                textAlign: TextAlign.center,
-                              ),
+                              child: Text(_error!, style: AppTheme.typography.bodyMedium, textAlign: TextAlign.center),
                             ),
                             const SizedBox(height: 24),
-                            CupertinoButton.filled(
+                            ElevatedButton(
                               onPressed: _initMessages,
-                              child: const Text('Réessayer'),
+                              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.colors.primary),
+                              child: const Text('Réessayer', style: TextStyle(color: Colors.white)),
                             ),
                           ],
                         ),
@@ -226,20 +175,13 @@ class _IOSConversationDetailPageState extends State<IOSConversationDetailPage> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(
-                                  CupertinoIcons.chat_bubble,
-                                  size: 64,
-                                  color: IOSTheme.systemGray3,
-                                ),
+                                Icon(Icons.chat_bubble_outline, size: 64, color: AppTheme.colors.textSecondary),
                                 const SizedBox(height: 16),
-                                Text(
-                                  'Aucun message',
-                                  style: IOSTheme.title2,
-                                ),
+                                Text('Aucun message', style: AppTheme.typography.h3),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Envoyez le premier message pour\ncommencer la conversation',
-                                  style: IOSTheme.footnote,
+                                  style: AppTheme.typography.bodySmall.copyWith(color: AppTheme.colors.textSecondary),
                                   textAlign: TextAlign.center,
                                 ),
                               ],
@@ -249,23 +191,14 @@ class _IOSConversationDetailPageState extends State<IOSConversationDetailPage> {
                             controller: _scrollController,
                             padding: const EdgeInsets.all(16),
                             itemCount: _messages.length,
-                            itemBuilder: (context, index) {
-                              return _buildMessageBubble(_messages[index]);
-                            },
+                            itemBuilder: (context, index) => _buildMessageBubble(_messages[index]),
                           ),
           ),
-          
-          // Zone de saisie
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: IOSTheme.systemBackground,
-              border: Border(
-                top: BorderSide(
-                  color: IOSTheme.separator,
-                  width: 0.5,
-                ),
-              ),
+            decoration: BoxDecoration(
+              color: AppTheme.colors.surface,
+              border: Border(top: BorderSide(color: AppTheme.colors.border, width: 0.5)),
             ),
             child: SafeArea(
               child: Row(
@@ -273,44 +206,36 @@ class _IOSConversationDetailPageState extends State<IOSConversationDetailPage> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: IOSTheme.systemGray6,
+                        color: AppTheme.colors.inputBackground,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: CupertinoTextField(
+                      child: TextField(
                         controller: _messageController,
-                        placeholder: 'Message...',
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
+                        decoration: const InputDecoration(
+                          hintText: 'Message...',
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          border: InputBorder.none,
                         ),
-                        decoration: const BoxDecoration(),
                         maxLines: null,
                         textInputAction: TextInputAction.send,
                         onSubmitted: (_) => _sendMessage(),
-                        style: IOSTheme.body,
+                        style: AppTheme.typography.bodyMedium,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    decoration: const BoxDecoration(
-                      color: IOSTheme.primaryBlue,
-                      shape: BoxShape.circle,
-                    ),
-                    child: CupertinoButton(
+                    decoration: BoxDecoration(color: AppTheme.colors.primary, shape: BoxShape.circle),
+                    child: IconButton(
                       padding: const EdgeInsets.all(8),
                       onPressed: _isSending ? null : _sendMessage,
-                      child: _isSending
+                      icon: _isSending
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CupertinoActivityIndicator(color: Colors.white),
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                             )
-                          : const Icon(
-                              CupertinoIcons.paperplane_fill,
-                              color: Colors.white,
-                              size: 20,
-                            ),
+                          : const Icon(Icons.send, color: Colors.white, size: 20),
                     ),
                   ),
                 ],
@@ -329,45 +254,28 @@ class _IOSConversationDetailPageState extends State<IOSConversationDetailPage> {
         ? DateTime.parse(message['created_at'])
         : DateTime.now();
     final bool isCurrentUser = senderId == SupabaseService.currentUser?.id;
-    
-    // Formatage de la date
     final formattedDate = DateFormat('HH:mm').format(createdAt);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment:
-            isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isCurrentUser) ...[
-            // Avatar pour les autres utilisateurs
             CircleAvatar(
               radius: 16,
-              backgroundColor: IOSTheme.systemGray,
-              child: const Icon(
-                CupertinoIcons.person_fill,
-                size: 16,
-                color: Colors.white,
-              ),
+              backgroundColor: AppTheme.colors.textSecondary,
+              child: const Icon(Icons.person, size: 16, color: Colors.white),
             ),
             const SizedBox(width: 8),
           ],
-          
-          // Bulle de message
           Flexible(
             child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.7,
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 10,
-              ),
+              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: isCurrentUser
-                    ? IOSTheme.primaryBlue
-                    : IOSTheme.systemGray6,
+                color: isCurrentUser ? AppTheme.colors.primary : AppTheme.colors.inputBackground,
                 borderRadius: BorderRadius.circular(18).copyWith(
                   bottomLeft: isCurrentUser ? const Radius.circular(18) : const Radius.circular(4),
                   bottomRight: isCurrentUser ? const Radius.circular(4) : const Radius.circular(18),
@@ -378,39 +286,33 @@ class _IOSConversationDetailPageState extends State<IOSConversationDetailPage> {
                 children: [
                   Text(
                     content,
-                    style: IOSTheme.body.copyWith(
-                      color: isCurrentUser ? Colors.white : IOSTheme.labelPrimary,
+                    style: AppTheme.typography.bodyMedium.copyWith(
+                      color: isCurrentUser ? Colors.white : AppTheme.colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     formattedDate,
-                    style: IOSTheme.caption2.copyWith(
+                    style: AppTheme.typography.caption.copyWith(
                       color: isCurrentUser
                           ? Colors.white.withOpacity(0.7)
-                          : IOSTheme.labelTertiary,
+                          : AppTheme.colors.textSecondary,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          
           if (isCurrentUser) ...[
             const SizedBox(width: 8),
-            // Avatar pour l'utilisateur courant
             CircleAvatar(
               radius: 16,
-              backgroundColor: IOSTheme.primaryBlue,
-              child: const Icon(
-                CupertinoIcons.person_fill,
-                size: 16,
-                color: Colors.white,
-              ),
+              backgroundColor: AppTheme.colors.primary,
+              child: const Icon(Icons.person, size: 16, color: Colors.white),
             ),
           ],
         ],
       ),
     );
   }
-} 
+}

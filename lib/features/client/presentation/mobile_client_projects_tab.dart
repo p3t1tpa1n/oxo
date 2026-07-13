@@ -4,14 +4,12 @@
 // Utilise STRICTEMENT AppTheme (pas IOSTheme)
 // ============================================================================
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
 import '../../../services/notification_service.dart';
-import '../../../utils/device_detector.dart';
 
 class MobileClientProjectsTab extends StatefulWidget {
   const MobileClientProjectsTab({Key? key}) : super(key: key);
@@ -76,44 +74,39 @@ class _MobileClientProjectsTabState extends State<MobileClientProjectsTab> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
+    return Scaffold(
       backgroundColor: AppTheme.colors.background,
-      child: DefaultTextStyle(
-        style: TextStyle(
-          decoration: TextDecoration.none,
-          color: AppTheme.colors.textPrimary,
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildFilterButtons(),
-              Expanded(
-                child: _isLoading
-                    ? Center(
-                        child: CupertinoActivityIndicator(
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            _buildFilterButtons(),
+            Expanded(
+              child: _isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.colors.primary,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : _filteredProjects.isEmpty
+                      ? _buildEmptyState()
+                      : RefreshIndicator(
+                          onRefresh: _loadData,
                           color: AppTheme.colors.primary,
-                        ),
-                      )
-                    : _filteredProjects.isEmpty
-                        ? _buildEmptyState()
-                        : RefreshIndicator(
-                            onRefresh: _loadData,
-                            color: AppTheme.colors.primary,
-                            child: ListView.builder(
-                              padding: EdgeInsets.all(AppTheme.spacing.md),
-                              itemCount: _filteredProjects.length,
-                              itemBuilder: (context, index) {
-                                return Padding(
-                                  padding: EdgeInsets.only(bottom: AppTheme.spacing.sm),
-                                  child: _buildProjectCard(_filteredProjects[index]),
-                                );
-                              },
-                            ),
+                          child: ListView.builder(
+                            padding: EdgeInsets.all(AppTheme.spacing.md),
+                            itemCount: _filteredProjects.length,
+                            itemBuilder: (context, index) {
+                              return Padding(
+                                padding: EdgeInsets.only(bottom: AppTheme.spacing.sm),
+                                child: _buildProjectCard(_filteredProjects[index]),
+                              );
+                            },
                           ),
-              ),
-            ],
-          ),
+                        ),
+            ),
+          ],
         ),
       ),
     );
@@ -137,16 +130,16 @@ class _MobileClientProjectsTabState extends State<MobileClientProjectsTab> {
             ),
           ),
           const Spacer(),
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/messaging');
             },
-            child: Stack(
+            icon: Stack(
               children: [
                 Icon(
-                  _getIconForPlatform(AppIcons.notifications, AppIcons.notificationsIOS),
+                  AppIcons.notifications,
                   color: AppTheme.colors.textPrimary,
                   size: 24,
                 ),
@@ -160,24 +153,21 @@ class _MobileClientProjectsTabState extends State<MobileClientProjectsTab> {
                         color: AppTheme.colors.error,
                         shape: BoxShape.circle,
                       ),
-                      constraints: const BoxConstraints(
-                        minWidth: 12,
-                        minHeight: 12,
-                      ),
+                      constraints: const BoxConstraints(minWidth: 12, minHeight: 12),
                     ),
                   ),
               ],
             ),
           ),
           SizedBox(width: AppTheme.spacing.sm),
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/profile');
             },
-            child: Icon(
-              _getIconForPlatform(AppIcons.settings, AppIcons.settingsIOS),
+            icon: Icon(
+              AppIcons.settings,
               color: AppTheme.colors.textPrimary,
               size: 24,
             ),
@@ -242,7 +232,7 @@ class _MobileClientProjectsTabState extends State<MobileClientProjectsTab> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            _getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS),
+            AppIcons.missions,
             size: 64,
             color: AppTheme.colors.textSecondary,
           ),
@@ -406,7 +396,7 @@ class _MobileClientProjectsTabState extends State<MobileClientProjectsTab> {
                   children: [
                     if (dateStr.isNotEmpty) ...[
                       Icon(
-                        CupertinoIcons.calendar,
+                        Icons.calendar_today,
                         size: 14,
                         color: AppTheme.colors.textSecondary,
                       ),
@@ -421,7 +411,7 @@ class _MobileClientProjectsTabState extends State<MobileClientProjectsTab> {
                     ],
                     const Spacer(),
                     Icon(
-                      CupertinoIcons.chevron_right,
+                      Icons.chevron_right,
                       size: 16,
                       color: AppTheme.colors.textSecondary,
                     ),
@@ -469,9 +459,6 @@ class _MobileClientProjectsTabState extends State<MobileClientProjectsTab> {
     }
   }
 
-  IconData _getIconForPlatform(IconData material, IconData cupertino) {
-    return DeviceDetector.shouldUseIOSInterface() ? cupertino : material;
-  }
 }
 
 

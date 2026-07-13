@@ -4,14 +4,12 @@
 // Utilise STRICTEMENT AppTheme (pas IOSTheme)
 // ============================================================================
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
 import '../../../services/notification_service.dart';
-import '../../../utils/device_detector.dart';
 
 class MobilePartnerAvailabilityTab extends StatefulWidget {
   const MobilePartnerAvailabilityTab({Key? key}) : super(key: key);
@@ -46,7 +44,7 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final partnerId = SupabaseService.currentUser?.id;
       if (partnerId == null) throw Exception('Utilisateur non connecté');
@@ -78,29 +76,24 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
+    return Scaffold(
       backgroundColor: AppTheme.colors.background,
-      child: DefaultTextStyle(
-        style: TextStyle(
-          decoration: TextDecoration.none,
-          color: AppTheme.colors.textPrimary,
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildMonthSelector(),
-              Expanded(
-                child: _isLoading
-                    ? Center(
-                        child: CupertinoActivityIndicator(
-                          color: AppTheme.colors.primary,
-                        ),
-                      )
-                    : _buildCalendarGrid(),
-              ),
-            ],
-          ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            _buildMonthSelector(),
+            Expanded(
+              child: _isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.colors.primary,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : _buildCalendarGrid(),
+            ),
+          ],
         ),
       ),
     );
@@ -124,16 +117,16 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
             ),
           ),
           const Spacer(),
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/messaging');
             },
-            child: Stack(
+            icon: Stack(
               children: [
                 Icon(
-                  _getIconForPlatform(AppIcons.notifications, AppIcons.notificationsIOS),
+                  AppIcons.notifications,
                   color: AppTheme.colors.textPrimary,
                   size: 24,
                 ),
@@ -147,24 +140,21 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
                         color: AppTheme.colors.error,
                         shape: BoxShape.circle,
                       ),
-                      constraints: const BoxConstraints(
-                        minWidth: 12,
-                        minHeight: 12,
-                      ),
+                      constraints: const BoxConstraints(minWidth: 12, minHeight: 12),
                     ),
                   ),
               ],
             ),
           ),
           SizedBox(width: AppTheme.spacing.sm),
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/profile');
             },
-            child: Icon(
-              _getIconForPlatform(AppIcons.settings, AppIcons.settingsIOS),
+            icon: Icon(
+              AppIcons.settings,
               color: AppTheme.colors.textPrimary,
               size: 24,
             ),
@@ -180,9 +170,8 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            child: Icon(CupertinoIcons.chevron_left, color: AppTheme.colors.primary),
+          IconButton(
+            icon: Icon(Icons.chevron_left, color: AppTheme.colors.primary),
             onPressed: () => _changeMonth(-1),
           ),
           SizedBox(width: AppTheme.spacing.md),
@@ -195,9 +184,8 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
             ),
           ),
           SizedBox(width: AppTheme.spacing.md),
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            child: Icon(CupertinoIcons.chevron_right, color: AppTheme.colors.primary),
+          IconButton(
+            icon: Icon(Icons.chevron_right, color: AppTheme.colors.primary),
             onPressed: () => _changeMonth(1),
           ),
         ],
@@ -233,7 +221,6 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
                 .toList(),
           ),
           SizedBox(height: AppTheme.spacing.sm),
-          // Grille du calendrier
           ...List.generate(6, (weekIndex) {
             return Padding(
               padding: EdgeInsets.only(bottom: AppTheme.spacing.xs),
@@ -243,18 +230,14 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
                   if (dayNumber < 1 || dayNumber > daysInMonth) {
                     return Expanded(child: Container());
                   }
-                  return Expanded(
-                    child: _buildDayCell(dayNumber),
-                  );
+                  return Expanded(child: _buildDayCell(dayNumber));
                 }),
               ),
             );
           }),
           SizedBox(height: AppTheme.spacing.lg),
-          // Légende
           _buildLegend(),
           SizedBox(height: AppTheme.spacing.lg),
-          // Bouton pour mettre à jour les disponibilités
           _buildUpdateButton(),
         ],
       ),
@@ -265,18 +248,17 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
     final date = DateTime(_selectedMonth.year, _selectedMonth.month, day);
     final isToday = DateUtils.isSameDay(date, DateTime.now());
     final isWeekend = date.weekday == 6 || date.weekday == 7;
-    
-    // Chercher la disponibilité pour ce jour
+
     final availability = _availabilities.firstWhere(
       (a) => DateUtils.isSameDay(DateTime.parse(a['date']), date),
       orElse: () => <String, dynamic>{},
     );
-    
+
     final status = availability['status'] as String?;
-    
+
     Color bgColor;
     Color textColor = AppTheme.colors.textPrimary;
-    
+
     if (status == 'available') {
       bgColor = AppTheme.colors.success.withOpacity(0.3);
     } else if (status == 'partial') {
@@ -372,82 +354,69 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
   }
 
   Widget _buildUpdateButton() {
-    return CupertinoButton(
-      color: AppTheme.colors.primary,
-      borderRadius: BorderRadius.circular(AppTheme.radius.medium),
-      onPressed: () {
-        // TODO: Ouvrir une page de mise à jour en masse
-        _showBulkUpdateDialog();
-      },
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(CupertinoIcons.calendar_badge_plus, color: Colors.white),
-          SizedBox(width: AppTheme.spacing.sm),
-          Text(
-            'Mettre à jour mes disponibilités',
-            style: AppTheme.typography.bodyMedium.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppTheme.colors.primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radius.medium)),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      ),
+      onPressed: _showBulkUpdateDialog,
+      icon: const Icon(Icons.calendar_today, color: Colors.white),
+      label: Text(
+        'Mettre à jour mes disponibilités',
+        style: AppTheme.typography.bodyMedium.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
 
   void _showAvailabilityPicker(DateTime date, String? currentStatus) {
-    showCupertinoModalPopup(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: Text('Disponibilité du ${DateFormat('dd/MM/yyyy').format(date)}'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _updateAvailability(date, 'available');
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.checkmark_circle, color: AppTheme.colors.success),
-                const SizedBox(width: 8),
-                const Text('Disponible'),
-              ],
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Disponibilité du ${DateFormat('dd/MM/yyyy').format(date)}',
+                style: AppTheme.typography.h4,
+              ),
             ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _updateAvailability(date, 'partial');
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.minus_circle, color: AppTheme.colors.warning),
-                const SizedBox(width: 8),
-                const Text('Partiellement disponible'),
-              ],
+            const Divider(height: 1),
+            ListTile(
+              leading: Icon(Icons.check_circle, color: AppTheme.colors.success),
+              title: const Text('Disponible'),
+              onTap: () {
+                Navigator.pop(context);
+                _updateAvailability(date, 'available');
+              },
             ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _updateAvailability(date, 'unavailable');
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.xmark_circle, color: AppTheme.colors.error),
-                const SizedBox(width: 8),
-                const Text('Indisponible'),
-              ],
+            ListTile(
+              leading: Icon(Icons.remove_circle, color: AppTheme.colors.warning),
+              title: const Text('Partiellement disponible'),
+              onTap: () {
+                Navigator.pop(context);
+                _updateAvailability(date, 'partial');
+              },
             ),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Annuler'),
+            ListTile(
+              leading: Icon(Icons.cancel, color: AppTheme.colors.error),
+              title: const Text('Indisponible'),
+              onTap: () {
+                Navigator.pop(context);
+                _updateAvailability(date, 'unavailable');
+              },
+            ),
+            ListTile(
+              title: const Text('Annuler'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
         ),
       ),
     );
@@ -477,207 +446,160 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
     DateTime endDate = DateTime.now().add(const Duration(days: 7));
     String selectedStatus = 'available';
 
-    showCupertinoModalPopup(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => Material(
-          color: Colors.transparent,
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.6,
-            decoration: const BoxDecoration(
-              color: CupertinoColors.systemBackground,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  // Handle
-                  Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.systemGrey3,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+        builder: (context, setDialogState) => Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Handle
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300]!,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                ),
+                // Header
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        child: Text('Annuler', style: TextStyle(color: AppTheme.colors.textSecondary, fontSize: 16)),
+                        onPressed: () => Navigator.pop(dialogContext),
+                      ),
+                      const Text(
+                        'Mise à jour en masse',
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                      ),
+                      TextButton(
+                        child: Text('Appliquer', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: AppTheme.colors.primary)),
+                        onPressed: () async {
+                          Navigator.pop(dialogContext);
+                          await _applyBulkUpdate(startDate, endDate, selectedStatus);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          child: const Text('Annuler'),
-                          onPressed: () => Navigator.pop(dialogContext),
-                        ),
-                        const Text(
-                          'Mise à jour en masse',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          child: const Text('Appliquer'),
-                          onPressed: () async {
-                            Navigator.pop(dialogContext);
-                            await _applyBulkUpdate(startDate, endDate, selectedStatus);
+                        // Date de début
+                        Text('Date de début', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.colors.textSecondary)),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: dialogContext,
+                              initialDate: startDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2030),
+                            );
+                            if (picked != null) setDialogState(() => startDate = picked);
                           },
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const Divider(height: 1),
-                  
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Date de début
-                          const Text(
-                            'Date de début',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: CupertinoColors.secondaryLabel,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          GestureDetector(
-                            onTap: () async {
-                              await showCupertinoModalPopup(
-                                context: dialogContext,
-                                builder: (context) => Container(
-                                  height: 250,
-                                  color: CupertinoColors.systemBackground,
-                                  child: CupertinoDatePicker(
-                                    initialDateTime: startDate,
-                                    mode: CupertinoDatePickerMode.date,
-                                    onDateTimeChanged: (date) {
-                                      setDialogState(() => startDate = date);
-                                    },
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: CupertinoColors.systemGrey6,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(CupertinoIcons.calendar, size: 18),
-                                  const SizedBox(width: 10),
-                                  Text(DateFormat('dd/MM/yyyy').format(startDate)),
-                                ],
-                              ),
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 20),
-                          
-                          // Date de fin
-                          const Text(
-                            'Date de fin',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: CupertinoColors.secondaryLabel,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          GestureDetector(
-                            onTap: () async {
-                              await showCupertinoModalPopup(
-                                context: dialogContext,
-                                builder: (context) => Container(
-                                  height: 250,
-                                  color: CupertinoColors.systemBackground,
-                                  child: CupertinoDatePicker(
-                                    initialDateTime: endDate,
-                                    mode: CupertinoDatePickerMode.date,
-                                    onDateTimeChanged: (date) {
-                                      setDialogState(() => endDate = date);
-                                    },
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: CupertinoColors.systemGrey6,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(CupertinoIcons.calendar, size: 18),
-                                  const SizedBox(width: 10),
-                                  Text(DateFormat('dd/MM/yyyy').format(endDate)),
-                                ],
-                              ),
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Statut
-                          const Text(
-                            'Disponibilité',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: CupertinoColors.secondaryLabel,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              _buildStatusButton('available', 'Dispo', selectedStatus, AppTheme.colors.success, (s) => setDialogState(() => selectedStatus = s)),
-                              const SizedBox(width: 8),
-                              _buildStatusButton('partial', 'Partiel', selectedStatus, AppTheme.colors.warning, (s) => setDialogState(() => selectedStatus = s)),
-                              const SizedBox(width: 8),
-                              _buildStatusButton('unavailable', 'Indispo', selectedStatus, AppTheme.colors.error, (s) => setDialogState(() => selectedStatus = s)),
-                            ],
-                          ),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Info
-                          Container(
-                            padding: const EdgeInsets.all(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: AppTheme.colors.info.withOpacity(0.1),
+                              color: AppTheme.colors.inputBackground,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(
                               children: [
-                                Icon(CupertinoIcons.info_circle, color: AppTheme.colors.info, size: 20),
+                                Icon(Icons.calendar_today, size: 18, color: AppTheme.colors.textSecondary),
                                 const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    'Cette action mettra à jour ${endDate.difference(startDate).inDays + 1} jours.',
-                                    style: TextStyle(fontSize: 13, color: AppTheme.colors.info),
-                                  ),
-                                ),
+                                Text(DateFormat('dd/MM/yyyy').format(startDate)),
                               ],
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Date de fin
+                        Text('Date de fin', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.colors.textSecondary)),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: dialogContext,
+                              initialDate: endDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2030),
+                            );
+                            if (picked != null) setDialogState(() => endDate = picked);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.colors.inputBackground,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.calendar_today, size: 18, color: AppTheme.colors.textSecondary),
+                                const SizedBox(width: 10),
+                                Text(DateFormat('dd/MM/yyyy').format(endDate)),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Statut
+                        Text('Disponibilité', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.colors.textSecondary)),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            _buildStatusButton('available', 'Dispo', selectedStatus, AppTheme.colors.success, (s) => setDialogState(() => selectedStatus = s)),
+                            const SizedBox(width: 8),
+                            _buildStatusButton('partial', 'Partiel', selectedStatus, AppTheme.colors.warning, (s) => setDialogState(() => selectedStatus = s)),
+                            const SizedBox(width: 8),
+                            _buildStatusButton('unavailable', 'Indispo', selectedStatus, AppTheme.colors.error, (s) => setDialogState(() => selectedStatus = s)),
+                          ],
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Info
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.colors.info.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, color: AppTheme.colors.info, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Cette action mettra à jour ${endDate.difference(startDate).inDays + 1} jours.',
+                                  style: TextStyle(fontSize: 13, color: AppTheme.colors.info),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -693,7 +615,7 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? color : CupertinoColors.systemGrey6,
+            color: isSelected ? color : AppTheme.colors.inputBackground,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Center(
@@ -702,7 +624,7 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : CupertinoColors.label,
+                color: isSelected ? Colors.white : AppTheme.colors.textPrimary,
               ),
             ),
           ),
@@ -716,10 +638,9 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
       final partnerId = SupabaseService.currentUser?.id;
       if (partnerId == null) return;
 
-      // Créer une liste de jours à mettre à jour
       final List<Map<String, dynamic>> updates = [];
       DateTime current = startDate;
-      
+
       while (!current.isAfter(endDate)) {
         updates.add({
           'partner_id': partnerId,
@@ -729,24 +650,22 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
         current = current.add(const Duration(days: 1));
       }
 
-      // Insérer/mettre à jour en masse
       for (final update in updates) {
         await SupabaseService.client
             .from('partner_availability')
             .upsert(update, onConflict: 'partner_id,date');
       }
 
-      // Recharger les données
       await _loadData();
-      
+
       if (mounted) {
-        showCupertinoDialog(
+        showDialog(
           context: context,
-          builder: (context) => CupertinoAlertDialog(
+          builder: (context) => AlertDialog(
             title: const Text('Mise à jour réussie'),
             content: Text('${updates.length} jours ont été mis à jour.'),
             actions: [
-              CupertinoDialogAction(
+              TextButton(
                 child: const Text('OK'),
                 onPressed: () => Navigator.pop(context),
               ),
@@ -757,13 +676,13 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
     } catch (e) {
       debugPrint('❌ Erreur mise à jour en masse: $e');
       if (mounted) {
-        showCupertinoDialog(
+        showDialog(
           context: context,
-          builder: (context) => CupertinoAlertDialog(
+          builder: (context) => AlertDialog(
             title: const Text('Erreur'),
             content: Text('Erreur lors de la mise à jour: $e'),
             actions: [
-              CupertinoDialogAction(
+              TextButton(
                 child: const Text('OK'),
                 onPressed: () => Navigator.pop(context),
               ),
@@ -773,9 +692,4 @@ class _MobilePartnerAvailabilityTabState extends State<MobilePartnerAvailability
       }
     }
   }
-
-  IconData _getIconForPlatform(IconData material, IconData cupertino) {
-    return DeviceDetector.shouldUseIOSInterface() ? cupertino : material;
-  }
 }
-

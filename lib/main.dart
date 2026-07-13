@@ -317,7 +317,7 @@ class _MainAppState extends State<MainApp> {
         ? const MobileShellProfessional(initialTab: 'messages')
         : _wrapDesktop('/messaging', const messaging.MessagingPage()),
       '/partner/proposed-missions': (context) => const ProposedMissionsPage(),
-      '/settings': (context) => const ProfilePage(),
+      '/settings': (context) => _wrapDesktop('/profile', const ProfilePage()),
       '/projects': (context) {
         // final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?; // Variable non utilisée
         return _isIOS() 
@@ -327,24 +327,31 @@ class _MainAppState extends State<MainApp> {
               child: const ProjectsPage(),
             );
       },
+      // La vue iOS ne doit s'afficher QUE sur iOS ; sur desktop on ouvre
+      // la vue détail intégrée de ProjectsPage (dans le shell).
       '/project_detail': (context) {
         final arguments = ModalRoute.of(context)?.settings.arguments;
-        if (arguments != null) {
-          return IOSProjectDetailPage(projectId: arguments.toString());
+        if (_isIOS()) {
+          return arguments != null
+              ? IOSProjectDetailPage(projectId: arguments.toString())
+              : const ProjectsPage();
         }
-        return const ProjectsPage();
+        return DesktopShell(
+          currentRoute: '/missions',
+          child: ProjectsPage(initialMissionId: arguments?.toString()),
+        );
       },
       '/mission_detail': (context) {
         final arguments = ModalRoute.of(context)?.settings.arguments;
-        if (arguments != null) {
-          return IOSProjectDetailPage(projectId: arguments.toString());
+        if (_isIOS()) {
+          return arguments != null
+              ? IOSProjectDetailPage(projectId: arguments.toString())
+              : const MobileShellProfessional();
         }
-        return _isIOS() 
-          ? const MobileShellProfessional() 
-          : DesktopShell(
-              currentRoute: '/missions',
-              child: const ProjectsPage(),
-            );
+        return DesktopShell(
+          currentRoute: '/missions',
+          child: ProjectsPage(initialMissionId: arguments?.toString()),
+        );
       },
       '/client/projects': (context) => const ClientDashboardPage(),
       '/client/tasks': (context) => const ClientDashboardPage(),

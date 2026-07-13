@@ -66,7 +66,7 @@ class MissionService {
           .from('missions')
           .select()
           .eq('partner_id', partnerId)
-          .inFilter('status', ['in_progress', 'pending', 'accepted']);
+          .inFilter('status', ['active', 'in_progress', 'pending', 'accepted']);
       
       missions = (response as List)
           .map((json) => Mission.fromJson(Map<String, dynamic>.from(json)))
@@ -84,7 +84,7 @@ class MissionService {
           .from('missions')
           .select()
           .eq('assigned_to', partnerId)
-          .inFilter('status', ['in_progress', 'pending', 'accepted']);
+          .inFilter('status', ['active', 'in_progress', 'pending', 'accepted']);
       
       missions = (response as List)
           .map((json) => Mission.fromJson(Map<String, dynamic>.from(json)))
@@ -96,27 +96,7 @@ class MissionService {
       debugPrint('⚠️ Query assigned_to échouée: $e');
     }
 
-    // Méthode 4: Récupérer toutes les missions actives (dernier recours)
-    try {
-      debugPrint('🔄 Dernier recours: toutes les missions actives');
-      final response = await SupabaseService.client
-          .from('missions')
-          .select()
-          .inFilter('status', ['in_progress', 'pending', 'accepted'])
-          .order('created_at', ascending: false)
-          .limit(100);
-      
-      missions = (response as List)
-          .map((json) => Mission.fromJson(Map<String, dynamic>.from(json)))
-          .toList();
-      
-      debugPrint('✅ Toutes missions actives: ${missions.length} missions');
-      return missions;
-    } catch (e) {
-      debugPrint('❌ Dernier recours échoué: $e');
-    }
-
-    debugPrint('❌ AUCUNE mission trouvée !');
+    debugPrint('❌ Aucune mission assignée trouvée pour $partnerId');
     return [];
   }
 

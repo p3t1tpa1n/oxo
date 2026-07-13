@@ -1,15 +1,13 @@
 // ============================================================================
 // MOBILE SHELL PROFESSIONAL - OXO TIME SHEETS
-// Shell iOS professionnel avec navigation stack par tab
+// Shell professionnel avec navigation stack par tab
 // Adapte les onglets selon le rôle de l'utilisateur
-// Utilise STRICTEMENT AppTheme (pas IOSTheme)
+// Utilise STRICTEMENT AppTheme
 // ============================================================================
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../../config/app_icons.dart';
-import '../../utils/device_detector.dart';
 import '../../services/supabase_service.dart';
 import '../../models/user_role.dart';
 
@@ -143,25 +141,16 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
 
   @override
   Widget build(BuildContext context) {
-    // Afficher un écran de chargement pendant le chargement du rôle
     if (_isLoading) {
-      return CupertinoPageScaffold(
+      return Scaffold(
         backgroundColor: AppTheme.colors.background,
-        child: Center(
+        body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CupertinoActivityIndicator(
-                radius: 16,
-                color: AppTheme.colors.primary,
-              ),
+              CircularProgressIndicator(color: AppTheme.colors.primary, strokeWidth: 2),
               SizedBox(height: AppTheme.spacing.md),
-              Text(
-                'Chargement...',
-                style: AppTheme.typography.bodyMedium.copyWith(
-                  color: AppTheme.colors.textSecondary,
-                ),
-              ),
+              Text('Chargement...', style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary)),
             ],
           ),
         ),
@@ -169,44 +158,30 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
     }
 
     if (_roleLoadError) {
-      return CupertinoPageScaffold(
+      return Scaffold(
         backgroundColor: AppTheme.colors.background,
-        child: Center(
+        body: Center(
           child: Padding(
             padding: EdgeInsets.all(AppTheme.spacing.xl),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  CupertinoIcons.wifi_exclamationmark,
-                  size: 56,
-                  color: AppTheme.colors.textSecondary,
-                ),
+                Icon(Icons.wifi_off, size: 56, color: AppTheme.colors.textSecondary),
                 SizedBox(height: AppTheme.spacing.md),
-                Text(
-                  'Impossible de charger votre profil.',
-                  textAlign: TextAlign.center,
-                  style: AppTheme.typography.bodyLarge,
-                ),
+                Text('Impossible de charger votre profil.', textAlign: TextAlign.center, style: AppTheme.typography.bodyLarge),
                 SizedBox(height: AppTheme.spacing.sm),
-                Text(
-                  'Vérifiez votre connexion internet puis réessayez.',
-                  textAlign: TextAlign.center,
-                  style: AppTheme.typography.bodyMedium.copyWith(
-                    color: AppTheme.colors.textSecondary,
-                  ),
-                ),
+                Text('Vérifiez votre connexion internet puis réessayez.', textAlign: TextAlign.center, style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary)),
                 SizedBox(height: AppTheme.spacing.lg),
-                CupertinoButton.filled(
+                ElevatedButton(
                   onPressed: _loadUserRole,
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.colors.primary),
                   child: const Text('Réessayer'),
                 ),
-                CupertinoButton(
+                TextButton(
                   onPressed: () async {
                     await SupabaseService.signOut();
                     if (context.mounted) {
-                      Navigator.of(context, rootNavigator: true)
-                          .pushNamedAndRemoveUntil('/login', (route) => false);
+                      Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil('/login', (route) => false);
                     }
                   },
                   child: const Text('Se déconnecter'),
@@ -218,29 +193,36 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
       );
     }
 
-    return CupertinoTabScaffold(
-      tabBar: CupertinoTabBar(
-        backgroundColor: AppTheme.colors.surface,
-        activeColor: AppTheme.colors.primary,
-        inactiveColor: AppTheme.colors.textSecondary,
-        items: _getTabItems(),
+    return Scaffold(
+      backgroundColor: AppTheme.colors.background,
+      body: IndexedStack(
+        index: _currentIndex,
+        children: List.generate(
+          _getTabCount(),
+          (index) => Navigator(
+            key: _navigatorKeys[index],
+            onGenerateRoute: (settings) => MaterialPageRoute(
+              builder: (context) => _buildTabContent(index),
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
+        backgroundColor: AppTheme.colors.surface,
+        selectedItemColor: AppTheme.colors.primary,
+        unselectedItemColor: AppTheme.colors.textSecondary,
+        type: BottomNavigationBarType.fixed,
+        selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(fontSize: 11),
+        items: _getTabItems(),
         onTap: (index) {
-          // Si on tape sur le même tab, retour à la racine
           if (_currentIndex == index) {
             _navigatorKeys[index].currentState?.popUntil((route) => route.isFirst);
           }
-          setState(() {
-            _currentIndex = index;
-          });
+          setState(() => _currentIndex = index);
         },
       ),
-      tabBuilder: (context, index) {
-        return CupertinoTabView(
-          navigatorKey: _navigatorKeys[index],
-          builder: (context) => _buildTabContent(index),
-        );
-      },
     );
   }
 
@@ -264,28 +246,28 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
   List<BottomNavigationBarItem> _getPartnerTabItems() {
     return [
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.timesheet, AppIcons.timesheetIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.timesheet, AppIcons.timesheetIOS)),
+        icon: Icon(AppIcons.timesheet),
+        activeIcon: Icon(AppIcons.timesheet),
         label: 'Timesheet',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
+        icon: Icon(AppIcons.missions),
+        activeIcon: Icon(AppIcons.missions),
         label: 'Missions',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.planning, AppIcons.planningIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.planning, AppIcons.planningIOS)),
+        icon: Icon(AppIcons.planning),
+        activeIcon: Icon(AppIcons.planning),
         label: 'Dispo',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
+        icon: Icon(AppIcons.messaging),
+        activeIcon: Icon(AppIcons.messaging),
         label: 'Messages',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.profile, AppIcons.profileIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.profile, AppIcons.profileIOS)),
+        icon: Icon(AppIcons.profile),
+        activeIcon: Icon(AppIcons.profile),
         label: 'Profil',
       ),
     ];
@@ -297,28 +279,28 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
   List<BottomNavigationBarItem> _getClientTabItems() {
     return [
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
+        icon: Icon(AppIcons.missions),
+        activeIcon: Icon(AppIcons.missions),
         label: 'Projets',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.reporting, AppIcons.reportingIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.reporting, AppIcons.reportingIOS)),
+        icon: Icon(AppIcons.reporting),
+        activeIcon: Icon(AppIcons.reporting),
         label: 'Factures',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.actions, AppIcons.actionsIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.actions, AppIcons.actionsIOS)),
+        icon: Icon(AppIcons.actions),
+        activeIcon: Icon(AppIcons.actions),
         label: 'Demandes',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
+        icon: Icon(AppIcons.messaging),
+        activeIcon: Icon(AppIcons.messaging),
         label: 'Messages',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.profile, AppIcons.profileIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.profile, AppIcons.profileIOS)),
+        icon: Icon(AppIcons.profile),
+        activeIcon: Icon(AppIcons.profile),
         label: 'Profil',
       ),
     ];
@@ -330,28 +312,28 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
   List<BottomNavigationBarItem> _getAdminTabItems() {
     return [
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.home, AppIcons.homeIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.home, AppIcons.homeIOS)),
+        icon: Icon(AppIcons.home),
+        activeIcon: Icon(AppIcons.home),
         label: 'Dashboard',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
+        icon: Icon(AppIcons.missions),
+        activeIcon: Icon(AppIcons.missions),
         label: 'Missions',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.admin, AppIcons.adminIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.admin, AppIcons.adminIOS)),
+        icon: Icon(AppIcons.admin),
+        activeIcon: Icon(AppIcons.admin),
         label: 'Admin',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
+        icon: Icon(AppIcons.messaging),
+        activeIcon: Icon(AppIcons.messaging),
         label: 'Messages',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.profile, AppIcons.profileIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.profile, AppIcons.profileIOS)),
+        icon: Icon(AppIcons.profile),
+        activeIcon: Icon(AppIcons.profile),
         label: 'Profil',
       ),
     ];
@@ -363,35 +345,31 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
   List<BottomNavigationBarItem> _getAssociateTabItems() {
     return [
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.timesheet, AppIcons.timesheetIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.timesheet, AppIcons.timesheetIOS)),
+        icon: Icon(AppIcons.timesheet),
+        activeIcon: Icon(AppIcons.timesheet),
         label: 'Timesheet',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS)),
+        icon: Icon(AppIcons.missions),
+        activeIcon: Icon(AppIcons.missions),
         label: 'Mission',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.reporting, AppIcons.reportingIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.reporting, AppIcons.reportingIOS)),
+        icon: Icon(AppIcons.reporting),
+        activeIcon: Icon(AppIcons.reporting),
         label: 'Reporting',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.partners, AppIcons.partnersIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.partners, AppIcons.partnersIOS)),
+        icon: Icon(AppIcons.partners),
+        activeIcon: Icon(AppIcons.partners),
         label: 'Clients',
       ),
       BottomNavigationBarItem(
-        icon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
-        activeIcon: Icon(_getIconForPlatform(AppIcons.messaging, AppIcons.messagingIOS)),
+        icon: Icon(AppIcons.messaging),
+        activeIcon: Icon(AppIcons.messaging),
         label: 'Messages',
       ),
     ];
-  }
-
-  IconData _getIconForPlatform(IconData material, IconData cupertino) {
-    return DeviceDetector.shouldUseIOSInterface() ? cupertino : material;
   }
 
   Widget _buildTabContent(int index) {
@@ -488,5 +466,3 @@ class _MobileShellProfessionalState extends State<MobileShellProfessional> {
     }
   }
 }
-
-

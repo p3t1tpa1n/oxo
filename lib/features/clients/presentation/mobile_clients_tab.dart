@@ -4,7 +4,7 @@
 // Utilise STRICTEMENT AppTheme
 // ============================================================================
 
-import 'package:flutter/cupertino.dart';
+
 import 'package:flutter/material.dart';
 import '../../../config/app_theme.dart';
 import '../../../config/app_icons.dart';
@@ -13,7 +13,7 @@ import '../../../pages/admin/ios_mobile_admin_clients_page.dart';
 import '../../../pages/admin/ios_mobile_client_requests_page.dart';
 import '../../../services/supabase_service.dart';
 import '../../../models/user_role.dart';
-import '../../../utils/device_detector.dart';
+
 
 class MobileClientsTab extends StatefulWidget {
   const MobileClientsTab({Key? key}) : super(key: key);
@@ -55,43 +55,34 @@ class _MobileClientsTabState extends State<MobileClientsTab> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
+    return Scaffold(
       backgroundColor: AppTheme.colors.background,
-      child: DefaultTextStyle(
-        style: TextStyle(
-          decoration: TextDecoration.none,
-          color: AppTheme.colors.textPrimary,
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header personnalisé
-              _buildHeader(),
-              
-              // Tabs (seulement si plusieurs onglets) - wrapped in Material
-              if (_getTabCount() > 1)
-                Material(
-                  color: AppTheme.colors.surface,
-                  child: TabBar(
-                    controller: _tabController,
-                    labelColor: AppTheme.colors.primary,
-                    unselectedLabelColor: AppTheme.colors.textSecondary,
-                    indicatorColor: AppTheme.colors.primary,
-                    tabs: _buildTabs(),
-                  ),
-                ),
-              
-              // Contenu
-              Expanded(
-                child: _getTabCount() > 1
-                  ? TabBarView(
-                      controller: _tabController,
-                      children: _buildTabViews(),
-                    )
-                  : _buildSingleView(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header personnalisé
+            _buildHeader(),
+
+            // Tabs (seulement si plusieurs onglets)
+            if (_getTabCount() > 1)
+              TabBar(
+                controller: _tabController,
+                labelColor: AppTheme.colors.primary,
+                unselectedLabelColor: AppTheme.colors.textSecondary,
+                indicatorColor: AppTheme.colors.primary,
+                tabs: _buildTabs(),
               ),
-            ],
-          ),
+
+            // Contenu
+            Expanded(
+              child: _getTabCount() > 1
+                ? TabBarView(
+                    controller: _tabController,
+                    children: _buildTabViews(),
+                  )
+                : _buildSingleView(),
+            ),
+          ],
         ),
       ),
     );
@@ -120,14 +111,14 @@ class _MobileClientsTabState extends State<MobileClientsTab> with SingleTickerPr
           ),
           SizedBox(width: 8),
           // Icône engrenage (paramètres)
-          CupertinoButton(
+          IconButton(
             padding: EdgeInsets.zero,
-            minSize: 0,
+            constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushNamed('/profile');
             },
-            child: Icon(
-              _getIconForPlatform(AppIcons.settings, AppIcons.settingsIOS),
+            icon: Icon(
+              AppIcons.settings,
               color: AppTheme.colors.textPrimary,
               size: 24,
             ),
@@ -148,7 +139,7 @@ class _MobileClientsTabState extends State<MobileClientsTab> with SingleTickerPr
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  _getIconForPlatform(AppIcons.partners, AppIcons.partnersIOS),
+                  AppIcons.partners,
                   size: 16,
                 ),
                 SizedBox(width: 4),
@@ -168,7 +159,7 @@ class _MobileClientsTabState extends State<MobileClientsTab> with SingleTickerPr
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  _getIconForPlatform(AppIcons.clients, AppIcons.clientsIOS),
+                  AppIcons.clients,
                   size: 16,
                 ),
                 SizedBox(width: 4),
@@ -188,7 +179,7 @@ class _MobileClientsTabState extends State<MobileClientsTab> with SingleTickerPr
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  _getIconForPlatform(AppIcons.requests, AppIcons.requestsIOS),
+                  AppIcons.requests,
                   size: 16,
                 ),
                 SizedBox(width: 4),
@@ -233,8 +224,5 @@ class _MobileClientsTabState extends State<MobileClientsTab> with SingleTickerPr
     }
   }
 
-  IconData _getIconForPlatform(IconData material, IconData cupertino) {
-    return DeviceDetector.shouldUseIOSInterface() ? cupertino : material;
-  }
 }
 

@@ -4,7 +4,6 @@
 // Utilise STRICTEMENT AppTheme
 // ============================================================================
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../config/app_theme.dart';
@@ -12,7 +11,6 @@ import '../../../config/app_icons.dart';
 import '../../../services/supabase_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../models/user_role.dart';
-import '../../../utils/device_detector.dart';
 import '../../../services/company_service.dart';
 
 class MobileMissionsTab extends StatefulWidget {
@@ -266,17 +264,12 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
+    return Scaffold(
       backgroundColor: AppTheme.colors.background,
-      child: DefaultTextStyle(
-        style: TextStyle(
-          decoration: TextDecoration.none,
-          color: AppTheme.colors.textPrimary,
-        ),
-        child: Stack(
-          children: [
-            SafeArea(
-              child: Column(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
                 children: [
                   // Header personnalisé
                   _buildHeader(),
@@ -291,8 +284,9 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
                   Expanded(
                   child: _isLoading
                     ? Center(
-                        child: CupertinoActivityIndicator(
+                        child: CircularProgressIndicator(
                           color: AppTheme.colors.primary,
+                          strokeWidth: 2,
                         ),
                       )
                     : _filteredMissions.isEmpty
@@ -301,7 +295,7 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                _getIconForPlatform(AppIcons.missions, AppIcons.missionsIOS),
+                                AppIcons.missions,
                                 size: 48,
                                 color: AppTheme.colors.textSecondary,
                               ),
@@ -346,10 +340,8 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
               Positioned(
                 right: AppTheme.spacing.md,
                 bottom: AppTheme.spacing.md + 60, // Au-dessus de la barre de navigation
-                child: CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: _showCreateMissionDialog,
-                  child: Container(
+                child: IconButton(
+                  icon: Container(
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
@@ -359,22 +351,24 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
                         BoxShadow(
                           color: AppTheme.colors.primary.withOpacity(0.3),
                           blurRadius: 8,
-                          offset: Offset(0, 4),
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
                     child: Icon(
-                      _getIconForPlatform(AppIcons.add, AppIcons.addIOS),
+                      AppIcons.add,
                       color: Colors.white,
                       size: 24,
                     ),
                   ),
+                  onPressed: _showCreateMissionDialog,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
               ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   String get _headerTitle {
@@ -406,16 +400,11 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
           ),
           Spacer(),
           // Icône cloche (notifications)
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            minSize: 0,
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).pushNamed('/messaging');
-            },
-            child: Stack(
+          IconButton(
+            icon: Stack(
               children: [
                 Icon(
-                  _getIconForPlatform(AppIcons.notifications, AppIcons.notificationsIOS),
+                  AppIcons.notifications,
                   color: AppTheme.colors.textPrimary,
                   size: 24,
                 ),
@@ -429,7 +418,7 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
                         color: AppTheme.colors.error,
                         shape: BoxShape.circle,
                       ),
-                      constraints: BoxConstraints(
+                      constraints: const BoxConstraints(
                         minWidth: 12,
                         minHeight: 12,
                       ),
@@ -437,20 +426,25 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
                   ),
               ],
             ),
+            onPressed: () {
+              Navigator.of(context, rootNavigator: true).pushNamed('/messaging');
+            },
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
           SizedBox(width: AppTheme.spacing.sm),
           // Icône engrenage (paramètres)
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            minSize: 0,
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).pushNamed('/profile');
-            },
-            child: Icon(
-              _getIconForPlatform(AppIcons.settings, AppIcons.settingsIOS),
+          IconButton(
+            icon: Icon(
+              AppIcons.settings,
               color: AppTheme.colors.textPrimary,
               size: 24,
             ),
+            onPressed: () {
+              Navigator.of(context, rootNavigator: true).pushNamed('/profile');
+            },
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
@@ -460,19 +454,18 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
   Widget _buildSearchBar() {
     return Container(
       margin: EdgeInsets.all(AppTheme.spacing.md),
-      child: CupertinoSearchTextField(
+      child: TextField(
         controller: _searchController,
-        placeholder: 'Rechercher une mission...',
-        style: AppTheme.typography.bodyMedium.copyWith(
-          decoration: TextDecoration.none,
-        ),
-        placeholderStyle: AppTheme.typography.bodyMedium.copyWith(
-          color: AppTheme.colors.textSecondary,
-          decoration: TextDecoration.none,
-        ),
-        decoration: BoxDecoration(
-          color: AppTheme.colors.inputBackground,
-          borderRadius: BorderRadius.circular(AppTheme.radius.medium),
+        decoration: InputDecoration(
+          hintText: 'Rechercher une mission...',
+          prefixIcon: Icon(Icons.search, color: AppTheme.colors.textSecondary),
+          filled: true,
+          fillColor: AppTheme.colors.inputBackground,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radius.medium),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 8),
         ),
       ),
     );
@@ -556,7 +549,7 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
             ),
             SizedBox(width: 4),
             Icon(
-              _getIconForPlatform(AppIcons.next, AppIcons.nextIOS),
+              AppIcons.next,
               size: 14,
               color: AppTheme.colors.textSecondary,
             ),
@@ -675,7 +668,7 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
                     // Date avec icône calendrier
                     if (dateStr.isNotEmpty) ...[
                       Icon(
-                        _getIconForPlatform(AppIcons.planning, AppIcons.planningIOS),
+                        AppIcons.planning,
                         size: 14,
                         color: AppTheme.colors.textSecondary,
                       ),
@@ -709,49 +702,53 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
   }
 
   void _showSortDialog() {
-    showCupertinoModalPopup(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: Text('Trier par'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              setState(() {
-                _filteredMissions.sort((a, b) {
-                  final dateA = a['start_date'];
-                  final dateB = b['start_date'];
-                  if (dateA == null || dateB == null) return 0;
-                  try {
-                    final dA = dateA is String ? DateTime.parse(dateA) : dateA as DateTime;
-                    final dB = dateB is String ? DateTime.parse(dateB) : dateB as DateTime;
-                    return dB.compareTo(dA); // Plus récent en premier
-                  } catch (e) {
-                    return 0;
-                  }
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Trier par', style: AppTheme.typography.h4),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              title: const Text('Date (plus récent)'),
+              onTap: () {
+                setState(() {
+                  _filteredMissions.sort((a, b) {
+                    final dateA = a['start_date'];
+                    final dateB = b['start_date'];
+                    if (dateA == null || dateB == null) return 0;
+                    try {
+                      final dA = dateA is String ? DateTime.parse(dateA) : dateA as DateTime;
+                      final dB = dateB is String ? DateTime.parse(dateB) : dateB as DateTime;
+                      return dB.compareTo(dA);
+                    } catch (e) {
+                      return 0;
+                    }
+                  });
                 });
-              });
-              Navigator.pop(context);
-            },
-            child: Text('Date (plus récent)'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              setState(() {
-                _filteredMissions.sort((a, b) {
-                  final titleA = (a['title'] ?? '').toString().toLowerCase();
-                  final titleB = (b['title'] ?? '').toString().toLowerCase();
-                  return titleA.compareTo(titleB);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              title: const Text('Titre (A-Z)'),
+              onTap: () {
+                setState(() {
+                  _filteredMissions.sort((a, b) {
+                    final titleA = (a['title'] ?? '').toString().toLowerCase();
+                    final titleB = (b['title'] ?? '').toString().toLowerCase();
+                    return titleA.compareTo(titleB);
+                  });
                 });
-              });
-              Navigator.pop(context);
-            },
-            child: Text('Titre (A-Z)'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDestructiveAction: true,
-          onPressed: () => Navigator.pop(context),
-          child: Text('Annuler'),
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(title: const Text('Annuler'), onTap: () => Navigator.pop(context)),
+          ],
         ),
       ),
     );
@@ -806,10 +803,6 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
     }
   }
 
-  IconData _getIconForPlatform(IconData material, IconData cupertino) {
-    return DeviceDetector.shouldUseIOSInterface() ? cupertino : material;
-  }
-
   void _showCreateMissionDialog() {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
@@ -817,286 +810,207 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
     DateTime? startDate;
     String priority = 'medium';
 
-    showCupertinoModalPopup(
+    showModalBottomSheet(
       context: context,
-      // Un tap hors de la feuille ne doit pas jeter la saisie en cours
-      barrierDismissible: false,
+      isScrollControlled: true,
+      isDismissible: false,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => Material(
-          color: Colors.transparent,
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.75,
-            decoration: const BoxDecoration(
-              color: CupertinoColors.systemBackground,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  // Handle
-                  Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.systemGrey3,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+        builder: (context, setDialogState) => Container(
+          height: MediaQuery.of(context).size.height * 0.75,
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Handle
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300]!,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                ),
+
+                // Header
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        child: Text('Annuler', style: TextStyle(color: AppTheme.colors.textSecondary, fontSize: 16)),
+                        onPressed: () => Navigator.pop(dialogContext),
+                      ),
+                      Text(
+                        'Nouvelle mission',
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: AppTheme.colors.textPrimary),
+                      ),
+                      TextButton(
+                        child: Text('Créer', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: AppTheme.colors.primary)),
+                        onPressed: () async {
+                          if (titleController.text.isEmpty) {
+                            _showMessage('Le titre est requis', isError: true);
+                            return;
+                          }
+                          if (selectedCompany == null) {
+                            _showMessage('Veuillez sélectionner un client', isError: true);
+                            return;
+                          }
+
+                          try {
+                            await SupabaseService.createMission({
+                              'title': titleController.text,
+                              'description': descriptionController.text,
+                              'company_id': selectedCompany!['id'],
+                              'start_date': startDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+                              'priority': priority,
+                              'status': 'pending',
+                              'progress_status': 'à_assigner',
+                            });
+
+                            Navigator.pop(dialogContext);
+                            _showMessage('Mission créée avec succès');
+                            _loadMissions();
+                          } catch (e) {
+                            _showMessage('Erreur: $e', isError: true);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Divider(height: 1),
+
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          child: Text(
-                            'Annuler',
-                            style: TextStyle(
-                              color: CupertinoColors.secondaryLabel,
-                              fontSize: 16,
+                        // Titre
+                        Text('Titre', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.colors.textSecondary, letterSpacing: 0.5)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: titleController,
+                          decoration: InputDecoration(
+                            hintText: 'Nom de la mission',
+                            filled: true,
+                            fillColor: AppTheme.colors.inputBackground,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[400]!)),
+                            contentPadding: const EdgeInsets.all(14),
+                          ),
+                          style: const TextStyle(fontSize: 16),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Client
+                        Text('Client', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.colors.textSecondary, letterSpacing: 0.5)),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () => _showCompanyPickerForMission(dialogContext, (company) {
+                            setDialogState(() => selectedCompany = company);
+                          }),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.colors.inputBackground,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.grey[400]!),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    selectedCompany?['name'] ?? 'Sélectionner un client',
+                                    style: TextStyle(fontSize: 16, color: selectedCompany != null ? AppTheme.colors.textPrimary : AppTheme.colors.textSecondary),
+                                  ),
+                                ),
+                                Icon(Icons.keyboard_arrow_down, size: 16, color: AppTheme.colors.textSecondary),
+                              ],
                             ),
                           ),
-                          onPressed: () => Navigator.pop(dialogContext),
                         ),
-                        const Text(
-                          'Nouvelle mission',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: CupertinoColors.label,
+
+                        const SizedBox(height: 20),
+
+                        // Description
+                        Text('Description', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.colors.textSecondary, letterSpacing: 0.5)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: descriptionController,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            hintText: 'Description de la mission (optionnel)',
+                            filled: true,
+                            fillColor: AppTheme.colors.inputBackground,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[400]!)),
+                            contentPadding: const EdgeInsets.all(14),
                           ),
+                          style: const TextStyle(fontSize: 16),
                         ),
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          child: Text(
-                            'Créer',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                              color: CupertinoColors.systemBlue,
-                            ),
-                          ),
-                          onPressed: () async {
-                            if (titleController.text.isEmpty) {
-                              _showMessage('Le titre est requis', isError: true);
-                              return;
-                            }
-                            if (selectedCompany == null) {
-                              _showMessage('Veuillez sélectionner un client', isError: true);
-                              return;
-                            }
-                            
-                            try {
-                              await SupabaseService.createMission({
-                                'title': titleController.text,
-                                'description': descriptionController.text,
-                                'company_id': selectedCompany!['id'],
-                                'start_date': startDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
-                                'priority': priority,
-                                'status': 'pending',
-                                'progress_status': 'à_assigner',
-                              });
-                              
-                              Navigator.pop(dialogContext);
-                              _showMessage('Mission créée avec succès');
-                              _loadMissions();
-                            } catch (e) {
-                              _showMessage('Erreur: $e', isError: true);
+
+                        const SizedBox(height: 20),
+
+                        // Date de début
+                        Text('Date de début', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.colors.textSecondary, letterSpacing: 0.5)),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: dialogContext,
+                              initialDate: startDate ?? DateTime.now(),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2030),
+                            );
+                            if (picked != null) {
+                              setDialogState(() => startDate = picked);
                             }
                           },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.colors.inputBackground,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.grey[400]!),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.calendar_today, size: 18, color: AppTheme.colors.textSecondary),
+                                const SizedBox(width: 10),
+                                Text(
+                                  startDate != null ? DateFormat('dd/MM/yyyy').format(startDate!) : 'Sélectionner une date',
+                                  style: TextStyle(fontSize: 16, color: startDate != null ? AppTheme.colors.textPrimary : AppTheme.colors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Priorité
+                        Text('Priorité', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.colors.textSecondary, letterSpacing: 0.5)),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            _buildPriorityButton('low', 'Basse', priority, (p) => setDialogState(() => priority = p)),
+                            const SizedBox(width: 8),
+                            _buildPriorityButton('medium', 'Moyenne', priority, (p) => setDialogState(() => priority = p)),
+                            const SizedBox(width: 8),
+                            _buildPriorityButton('high', 'Haute', priority, (p) => setDialogState(() => priority = p)),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  
-                  const Divider(height: 1),
-                  
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Titre
-                          Text(
-                            'Titre',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: CupertinoColors.secondaryLabel,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          CupertinoTextField(
-                            controller: titleController,
-                            placeholder: 'Nom de la mission',
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: CupertinoColors.systemGrey6,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: CupertinoColors.systemGrey4),
-                            ),
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          
-                          const SizedBox(height: 20),
-                          
-                          // Client
-                          Text(
-                            'Client',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: CupertinoColors.secondaryLabel,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          GestureDetector(
-                            onTap: () => _showCompanyPickerForMission(dialogContext, (company) {
-                              setDialogState(() => selectedCompany = company);
-                            }),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                              decoration: BoxDecoration(
-                                color: CupertinoColors.systemGrey6,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: CupertinoColors.systemGrey4),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      selectedCompany?['name'] ?? 'Sélectionner un client',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: selectedCompany != null 
-                                          ? CupertinoColors.label 
-                                          : CupertinoColors.tertiaryLabel,
-                                      ),
-                                    ),
-                                  ),
-                                  const Icon(CupertinoIcons.chevron_down, size: 16, color: CupertinoColors.secondaryLabel),
-                                ],
-                              ),
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 20),
-                          
-                          // Description
-                          Text(
-                            'Description',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: CupertinoColors.secondaryLabel,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          CupertinoTextField(
-                            controller: descriptionController,
-                            placeholder: 'Description de la mission (optionnel)',
-                            maxLines: 3,
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: CupertinoColors.systemGrey6,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: CupertinoColors.systemGrey4),
-                            ),
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          
-                          const SizedBox(height: 20),
-                          
-                          // Date de début
-                          Text(
-                            'Date de début',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: CupertinoColors.secondaryLabel,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          GestureDetector(
-                            onTap: () async {
-                              await showCupertinoModalPopup(
-                                context: dialogContext,
-                                builder: (context) => Container(
-                                  height: 250,
-                                  color: CupertinoColors.systemBackground,
-                                  child: CupertinoDatePicker(
-                                    initialDateTime: startDate ?? DateTime.now(),
-                                    mode: CupertinoDatePickerMode.date,
-                                    onDateTimeChanged: (date) {
-                                      setDialogState(() => startDate = date);
-                                    },
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                              decoration: BoxDecoration(
-                                color: CupertinoColors.systemGrey6,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: CupertinoColors.systemGrey4),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(CupertinoIcons.calendar, size: 18, color: CupertinoColors.secondaryLabel),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    startDate != null 
-                                      ? DateFormat('dd/MM/yyyy').format(startDate!)
-                                      : 'Sélectionner une date',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: startDate != null 
-                                        ? CupertinoColors.label 
-                                        : CupertinoColors.tertiaryLabel,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 20),
-                          
-                          // Priorité
-                          Text(
-                            'Priorité',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: CupertinoColors.secondaryLabel,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              _buildPriorityButton('low', 'Basse', priority, (p) => setDialogState(() => priority = p)),
-                              const SizedBox(width: 8),
-                              _buildPriorityButton('medium', 'Moyenne', priority, (p) => setDialogState(() => priority = p)),
-                              const SizedBox(width: 8),
-                              _buildPriorityButton('high', 'Haute', priority, (p) => setDialogState(() => priority = p)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1109,25 +1023,25 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
     Color color;
     switch (value) {
       case 'high':
-        color = CupertinoColors.systemRed;
+        color = AppTheme.colors.error;
         break;
       case 'medium':
-        color = CupertinoColors.systemOrange;
+        color = AppTheme.colors.warning;
         break;
       default:
-        color = CupertinoColors.systemGreen;
+        color = AppTheme.colors.success;
     }
-    
+
     return Expanded(
       child: GestureDetector(
         onTap: () => onSelect(value),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? color : CupertinoColors.systemGrey6,
+            color: isSelected ? color : AppTheme.colors.inputBackground,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected ? color : CupertinoColors.systemGrey4,
+              color: isSelected ? color : Colors.grey[400]!,
             ),
           ),
           child: Center(
@@ -1136,7 +1050,7 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? CupertinoColors.white : CupertinoColors.label,
+                color: isSelected ? Colors.white : AppTheme.colors.textPrimary,
               ),
             ),
           ),
@@ -1146,76 +1060,58 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
   }
 
   void _showCompanyPickerForMission(BuildContext parentContext, Function(Map<String, dynamic>) onSelect) {
-    showCupertinoModalPopup(
+    showModalBottomSheet(
       context: parentContext,
-      builder: (context) => Material(
-        color: Colors.transparent,
-        child: Container(
-          height: MediaQuery.of(context).size.height * 0.5,
-          decoration: const BoxDecoration(
-            color: CupertinoColors.systemBackground,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: SafeArea(
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.systemGrey3,
-                    borderRadius: BorderRadius.circular(2),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.5,
+        child: SafeArea(
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300]!,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Sélectionner un client',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.colors.textPrimary,
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    'Sélectionner un client',
-                    style: TextStyle(
-                      fontSize: 17, 
-                      fontWeight: FontWeight.w600,
-                      color: CupertinoColors.label,
-                    ),
-                  ),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: _companies.isEmpty
-                    ? Center(
-                        child: Text(
-                          'Aucun client disponible',
-                          style: TextStyle(color: CupertinoColors.secondaryLabel),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _companies.length,
-                        itemBuilder: (context, index) {
-                          final company = _companies[index];
-                          return GestureDetector(
-                            onTap: () {
-                              onSelect(company);
-                              Navigator.pop(context);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              decoration: const BoxDecoration(
-                                border: Border(bottom: BorderSide(color: CupertinoColors.separator)),
-                              ),
-                              child: Text(
-                                company['name'] ?? 'Client',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: CupertinoColors.label,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: _companies.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Aucun client disponible',
+                        style: TextStyle(color: AppTheme.colors.textSecondary),
                       ),
-                ),
-              ],
-            ),
+                    )
+                  : ListView.builder(
+                      itemCount: _companies.length,
+                      itemBuilder: (context, index) {
+                        final company = _companies[index];
+                        return ListTile(
+                          title: Text(company['name'] ?? 'Client'),
+                          onTap: () {
+                            onSelect(company);
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1226,7 +1122,7 @@ class _MobileMissionsTabState extends State<MobileMissionsTab> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? CupertinoColors.systemRed : CupertinoColors.systemGreen,
+        backgroundColor: isError ? AppTheme.colors.error : AppTheme.colors.success,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(20),

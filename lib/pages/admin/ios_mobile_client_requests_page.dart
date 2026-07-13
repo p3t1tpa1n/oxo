@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:oxo/services/supabase_service.dart';
 import 'package:oxo/services/project_proposal_service.dart';
@@ -24,13 +23,13 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final proposalsFuture = ProjectProposalService.getProjectProposals();
       final extensionsFuture = ProjectProposalService.getTimeExtensionRequests();
-      
+
       final results = await Future.wait([proposalsFuture, extensionsFuture]);
-      
+
       if (mounted) {
         setState(() {
           _projectProposals = List<Map<String, dynamic>>.from(results[0]);
@@ -54,7 +53,7 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
       child: Container(
         color: AppTheme.colors.background,
         child: _isLoading
-            ? const Center(child: CupertinoActivityIndicator())
+            ? const Center(child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2)))
             : SingleChildScrollView(
                 padding: EdgeInsets.all(AppTheme.spacing.md),
                 child: Column(
@@ -72,17 +71,17 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
                       ),
                     ),
                     SizedBox(height: AppTheme.spacing.lg),
-                    
+
                     // Compteurs
                     _buildCounters(),
                     SizedBox(height: AppTheme.spacing.lg),
-                    
+
                     // Liste des propositions
                     ..._projectProposals.map((proposal) => _buildProposalCard(proposal)),
-                    
+
                     // Liste des extensions
                     ..._timeExtensionRequests.map((request) => _buildExtensionCard(request)),
-                    
+
                     // État vide si aucune demande
                     if (_projectProposals.isEmpty && _timeExtensionRequests.isEmpty)
                       _buildEmptyState(),
@@ -131,7 +130,7 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
 
   Widget _buildProposalCard(Map<String, dynamic> proposal) {
     final status = proposal['status'] ?? 'pending';
-    
+
     return Container(
       margin: EdgeInsets.only(bottom: AppTheme.spacing.md),
       padding: EdgeInsets.all(AppTheme.spacing.md),
@@ -159,7 +158,7 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
             ),
           ),
           SizedBox(height: AppTheme.spacing.xs),
-          
+
           // Client
           Text(
             'Client: ${proposal['client_name'] ?? 'Inconnu'}',
@@ -169,7 +168,7 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
             ),
           ),
           SizedBox(height: AppTheme.spacing.sm),
-          
+
           // Description
           Text(
             proposal['description'] ?? 'Aucune description',
@@ -181,14 +180,14 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
             overflow: TextOverflow.ellipsis,
           ),
           SizedBox(height: AppTheme.spacing.md),
-          
+
           // Boutons d'action
           if (status == 'pending')
             _buildActionButtons(
               onApprove: () => _updateStatus('project_proposals', proposal['id'], 'approved'),
               onReject: () => _updateStatus('project_proposals', proposal['id'], 'rejected'),
             ),
-          
+
           // Badge de statut si déjà traité
           if (status != 'pending')
             _buildStatusBadge(status),
@@ -199,7 +198,7 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
 
   Widget _buildExtensionCard(Map<String, dynamic> request) {
     final status = request['status'] ?? 'pending';
-    
+
     return Container(
       margin: EdgeInsets.only(bottom: AppTheme.spacing.md),
       padding: EdgeInsets.all(AppTheme.spacing.md),
@@ -227,7 +226,7 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
             ),
           ),
           SizedBox(height: AppTheme.spacing.xs),
-          
+
           // Mission
           Text(
             'Mission: ${request['mission_name'] ?? request['mission_title'] ?? 'Inconnue'}',
@@ -237,7 +236,7 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
             ),
           ),
           SizedBox(height: AppTheme.spacing.xs),
-          
+
           // Client
           Text(
             'Client: ${request['client_name'] ?? 'Inconnu'}',
@@ -247,7 +246,7 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
             ),
           ),
           SizedBox(height: AppTheme.spacing.sm),
-          
+
           // Jours demandés
           Text(
             'Jours demandés: ${request['days_requested'] ?? 0}',
@@ -258,7 +257,7 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
             ),
           ),
           SizedBox(height: AppTheme.spacing.xs),
-          
+
           // Raison
           Text(
             request['reason'] ?? 'Aucune raison spécifiée',
@@ -270,14 +269,14 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
             overflow: TextOverflow.ellipsis,
           ),
           SizedBox(height: AppTheme.spacing.md),
-          
+
           // Boutons d'action
           if (status == 'pending')
             _buildActionButtons(
               onApprove: () => _updateStatus('time_extension_requests', request['id'], 'approved'),
               onReject: () => _updateStatus('time_extension_requests', request['id'], 'rejected'),
             ),
-          
+
           // Badge de statut si déjà traité
           if (status != 'pending')
             _buildStatusBadge(status),
@@ -285,15 +284,18 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
       ),
     );
   }
-  
+
   Widget _buildActionButtons({required VoidCallback onApprove, required VoidCallback onReject}) {
     return Row(
       children: [
         Expanded(
-          child: CupertinoButton(
-            color: const Color(0xFF34C759), // Vert iOS
-            borderRadius: BorderRadius.circular(8),
-            padding: const EdgeInsets.symmetric(vertical: 12),
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF34C759),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
             onPressed: onApprove,
             child: Text(
               'Approuver',
@@ -307,10 +309,13 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
         ),
         SizedBox(width: AppTheme.spacing.sm),
         Expanded(
-          child: CupertinoButton(
-            color: const Color(0xFFFF3B30), // Rouge iOS
-            borderRadius: BorderRadius.circular(8),
-            padding: const EdgeInsets.symmetric(vertical: 12),
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF3B30),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
             onPressed: onReject,
             child: Text(
               'Rejeter',
@@ -329,7 +334,7 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
   Widget _buildStatusBadge(String status) {
     Color badgeColor;
     String label;
-    
+
     switch (status) {
       case 'approved':
         badgeColor = const Color(0xFF34C759);
@@ -343,7 +348,7 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
         badgeColor = Colors.grey;
         label = status;
     }
-    
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: AppTheme.spacing.sm,
@@ -372,7 +377,7 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              CupertinoIcons.doc_text,
+              Icons.description,
               size: 48,
               color: AppTheme.colors.textSecondary,
             ),
@@ -402,7 +407,7 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
     try {
       await SupabaseService.client.from(table).update({'status': newStatus}).eq('id', id);
       _loadData(); // Recharger les données
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -410,8 +415,8 @@ class _IOSMobileClientRequestsPageState extends State<IOSMobileClientRequestsPag
               'Demande ${newStatus == 'approved' ? 'approuvée' : 'rejetée'}',
               style: const TextStyle(decoration: TextDecoration.none),
             ),
-            backgroundColor: newStatus == 'approved' 
-                ? const Color(0xFF34C759) 
+            backgroundColor: newStatus == 'approved'
+                ? const Color(0xFF34C759)
                 : const Color(0xFFFF3B30),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

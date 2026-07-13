@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/invoice_service.dart';
 import '../../widgets/load_error_view.dart';
@@ -119,7 +120,7 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FA),
+      backgroundColor: AppTheme.colors.background,
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
@@ -154,7 +155,8 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'fab_client_invoices',
-        backgroundColor: const Color(0xFF16283C),
+        backgroundColor: AppTheme.colors.secondary,
+        elevation: 1,
         onPressed: () => Navigator.of(context).pushNamed('/messaging'),
         child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
       ),
@@ -163,24 +165,58 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
 
   Widget _buildSidebar() {
     return Container(
-      width: 240,
-      color: const Color(0xFF16283C),
+      width: 250,
+      color: AppTheme.colors.primary,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 32),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24),
+          // Marque, alignée sur la sidebar principale de l'app
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: AppTheme.colors.secondary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'OX',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'OXO',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 16, 6),
             child: Text(
-              'Espace Client',
+              'ESPACE CLIENT',
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+                color: Colors.white.withAlpha(102),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.8,
               ),
             ),
           ),
-          const SizedBox(height: 32),
           _buildSidebarItem(
             icon: Icons.dashboard_outlined,
             label: 'Tableau de bord',
@@ -215,23 +251,79 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
             },
           ),
           const Spacer(),
+          // Carte utilisateur + déconnexion
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextButton.icon(
-              onPressed: () async {
-                await SupabaseService.signOut();
-                if (mounted) {
-                  Navigator.of(context).pushReplacementNamed('/login');
-                }
-              },
-              icon: const Icon(Icons.logout, size: 18, color: Colors.white70),
-              label: const Text(
-                'Déconnexion',
-                style: TextStyle(color: Colors.white70),
+            padding: const EdgeInsets.all(12),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(20),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 15,
+                    backgroundColor: AppTheme.colors.secondaryLight,
+                    child: Text(
+                      (_clientInfo?['name'] ?? 'E')
+                          .substring(0, 1)
+                          .toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _clientInfo?['name'] ?? 'Entreprise',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          'Client',
+                          style: TextStyle(
+                            color: Colors.white.withAlpha(153),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () async {
+                      await SupabaseService.signOut();
+                      if (mounted) {
+                        Navigator.of(context)
+                            .pushReplacementNamed('/login');
+                      }
+                    },
+                    icon: Icon(
+                      Icons.logout,
+                      color: Colors.white.withAlpha(191),
+                      size: 18,
+                    ),
+                    tooltip: 'Déconnexion',
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
         ],
       ),
     );
@@ -243,106 +335,82 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withOpacity(0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          hoverColor: Colors.white.withAlpha(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            decoration: BoxDecoration(
+              color:
+                  isSelected ? Colors.white.withAlpha(31) : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
             ),
-            if (isSelected) ...[
-              const Spacer(),
-              Container(
-                width: 6,
-                height: 6,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
+            child: Row(
+              children: [
+                Container(
+                  width: 3,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppTheme.colors.sidebarAccent
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-            ],
-          ],
+                const SizedBox(width: 10),
+                Icon(icon,
+                    color: Colors.white.withAlpha(isSelected ? 255 : 191),
+                    size: 19),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(isSelected ? 255 : 204),
+                      fontSize: 13.5,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildHeader() {
-    final formattedDate = DateFormat('d MMMM yyyy', 'fr_FR').format(DateTime.now());
-    final firstLetter = (_clientInfo?['name'] ?? 'E').substring(0, 1).toUpperCase();
+    final formattedDate =
+        DateFormat('d MMMM yyyy', 'fr_FR').format(DateTime.now());
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Cercle avec initiale
-        Container(
-          width: 64,
-          height: 64,
-          decoration: const BoxDecoration(
-            color: Color(0xFF16283C),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              firstLetter,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 20),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Mes Factures',
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF16283C),
-                ),
-              ),
+              Text('Mes factures', style: AppTheme.typography.h2),
               const SizedBox(height: 4),
               Text(
-                'Facturation - $formattedDate',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
+                '${_clientInfo?['name'] ?? 'Entreprise'} — $formattedDate',
+                style: AppTheme.typography.bodySmall,
               ),
             ],
           ),
         ),
-        // Icônes en haut à droite
-        IconButton(
-          onPressed: () => Navigator.of(context).pushNamed('/dashboard'),
-          icon: const Icon(Icons.home_outlined, color: Color(0xFF16283C)),
-        ),
         IconButton(
           onPressed: () => Navigator.of(context).pushNamed('/profile'),
-          icon: const Icon(Icons.settings_outlined, color: Color(0xFF16283C)),
-        ),
-        IconButton(
-          onPressed: () => Navigator.of(context).pushNamed('/profile'),
-          icon: const Icon(Icons.person_outline, color: Color(0xFF16283C)),
+          icon: Icon(Icons.person_outline, color: AppTheme.colors.primary),
+          tooltip: 'Profil',
         ),
       ],
     );
@@ -368,25 +436,25 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
                 value: '${_totalBilled.toStringAsFixed(2)} €',
                 label: 'Total facturé',
                 icon: Icons.receipt_long_outlined,
-                color: const Color(0xFF3B82F6),
+                color: AppTheme.colors.secondary,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildSummaryCard(
                 value: '${_pendingAmount.toStringAsFixed(2)} €',
                 label: 'En attente',
                 icon: Icons.hourglass_empty_outlined,
-                color: const Color(0xFFF59E0B),
+                color: AppTheme.colors.warning,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildSummaryCard(
                 value: '${_paidAmount.toStringAsFixed(2)} €',
                 label: 'Payé',
                 icon: Icons.check_circle_outline,
-                color: const Color(0xFF10B981),
+                color: AppTheme.colors.success,
               ),
             ),
           ],
@@ -402,31 +470,48 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: AppTheme.colors.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radius.medium),
+        border: Border.all(color: AppTheme.colors.border, width: 0.5),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: color,
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(AppTheme.radius.small),
             ),
+            child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF16283C),
-              fontWeight: FontWeight.w500,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.colors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.colors.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ],
@@ -463,18 +548,11 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
         const SizedBox(height: 16),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            color: AppTheme.colors.surface,
+            borderRadius: BorderRadius.circular(AppTheme.radius.medium),
+            border: Border.all(color: AppTheme.colors.border, width: 0.5),
           ),
           child: _invoices.isEmpty
               ? const Center(
@@ -507,11 +585,11 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
     final status = invoice['status'] as String;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        color: AppTheme.colors.surfaceVariant,
+        borderRadius: BorderRadius.circular(AppTheme.radius.medium),
+        border: Border.all(color: AppTheme.colors.borderLight, width: 0.5),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -584,13 +662,13 @@ class _ClientInvoicesPageState extends State<ClientInvoicesPage> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'paid':
-        return const Color(0xFF10B981);
+        return AppTheme.colors.success;
       case 'pending':
-        return const Color(0xFFF59E0B);
+        return AppTheme.colors.warning;
       case 'overdue':
-        return Colors.red;
+        return AppTheme.colors.error;
       default:
-        return Colors.grey;
+        return AppTheme.colors.statusCancelled;
     }
   }
 

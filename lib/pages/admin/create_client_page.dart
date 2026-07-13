@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../config/ios_theme.dart';
+import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
 
 class CreateClientPage extends StatefulWidget {
@@ -17,7 +17,7 @@ class _CreateClientPageState extends State<CreateClientPage> {
   final _companyController = TextEditingController();
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
-  
+
   bool _isLoading = false;
   bool _isExpanded = false;
 
@@ -101,11 +101,11 @@ class _CreateClientPageState extends State<CreateClientPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: IOSTheme.systemGroupedBackground,
+      backgroundColor: AppTheme.colors.background,
       appBar: AppBar(
         title: const Text('Nouveau Client'),
-        backgroundColor: IOSTheme.systemBackground,
-        foregroundColor: IOSTheme.labelPrimary,
+        backgroundColor: AppTheme.colors.surface,
+        foregroundColor: AppTheme.colors.textPrimary,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -142,7 +142,7 @@ class _CreateClientPageState extends State<CreateClientPage> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: IOSTheme.systemBackground,
+        color: AppTheme.colors.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -158,12 +158,12 @@ class _CreateClientPageState extends State<CreateClientPage> {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: IOSTheme.primaryBlue.withOpacity(0.15),
+              color: AppTheme.colors.primary.withOpacity(0.15),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.person_add,
-              color: IOSTheme.primaryBlue,
+              color: AppTheme.colors.primary,
               size: 28,
             ),
           ),
@@ -174,12 +174,12 @@ class _CreateClientPageState extends State<CreateClientPage> {
               children: [
                 Text(
                   'Créer un nouveau client',
-                  style: IOSTheme.title2.copyWith(fontWeight: FontWeight.w700),
+                  style: AppTheme.typography.h3.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Ajoutez les informations du client dans le formulaire ci-dessous',
-                  style: IOSTheme.body.copyWith(color: IOSTheme.labelSecondary),
+                  style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary),
                 ),
               ],
             ),
@@ -193,7 +193,7 @@ class _CreateClientPageState extends State<CreateClientPage> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: IOSTheme.systemBackground,
+        color: AppTheme.colors.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -208,14 +208,14 @@ class _CreateClientPageState extends State<CreateClientPage> {
         children: [
           Text(
             'Informations principales',
-            style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600),
+            style: AppTheme.typography.h4.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 20),
-          
+
           // Nom
           Text(
             'Nom complet *',
-            style: IOSTheme.footnote.copyWith(fontWeight: FontWeight.w600),
+            style: AppTheme.typography.bodySmall.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           TextFormField(
@@ -224,11 +224,11 @@ class _CreateClientPageState extends State<CreateClientPage> {
               hintText: 'Ex: Jean Dupont',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: IOSTheme.systemGray4),
+                borderSide: BorderSide(color: AppTheme.colors.border),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: IOSTheme.primaryBlue),
+                borderSide: BorderSide(color: AppTheme.colors.primary),
               ),
             ),
             validator: (value) {
@@ -239,11 +239,11 @@ class _CreateClientPageState extends State<CreateClientPage> {
             },
           ),
           const SizedBox(height: 20),
-          
+
           // Email
           Text(
             'Adresse email *',
-            style: IOSTheme.footnote.copyWith(fontWeight: FontWeight.w600),
+            style: AppTheme.typography.bodySmall.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           TextFormField(
@@ -253,11 +253,11 @@ class _CreateClientPageState extends State<CreateClientPage> {
               hintText: 'Ex: jean.dupont@email.com',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: IOSTheme.systemGray4),
+                borderSide: BorderSide(color: AppTheme.colors.border),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: IOSTheme.primaryBlue),
+                borderSide: BorderSide(color: AppTheme.colors.primary),
               ),
             ),
             validator: (value) {
@@ -271,11 +271,11 @@ class _CreateClientPageState extends State<CreateClientPage> {
             },
           ),
           const SizedBox(height: 20),
-          
+
           // Téléphone
           Text(
             'Téléphone',
-            style: IOSTheme.footnote.copyWith(fontWeight: FontWeight.w600),
+            style: AppTheme.typography.bodySmall.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           TextFormField(
@@ -285,11 +285,11 @@ class _CreateClientPageState extends State<CreateClientPage> {
               hintText: 'Ex: 01 23 45 67 89',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: IOSTheme.systemGray4),
+                borderSide: BorderSide(color: AppTheme.colors.border),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: IOSTheme.primaryBlue),
+                borderSide: BorderSide(color: AppTheme.colors.primary),
               ),
             ),
           ),
@@ -302,7 +302,7 @@ class _CreateClientPageState extends State<CreateClientPage> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: IOSTheme.systemBackground,
+        color: AppTheme.colors.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -320,7 +320,7 @@ class _CreateClientPageState extends State<CreateClientPage> {
               Expanded(
                 child: Text(
                   'Informations complémentaires',
-                  style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600),
+                  style: AppTheme.typography.h4.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
               TextButton.icon(
@@ -329,23 +329,23 @@ class _CreateClientPageState extends State<CreateClientPage> {
                 },
                 icon: Icon(
                   _isExpanded ? Icons.expand_less : Icons.expand_more,
-                  color: IOSTheme.primaryBlue,
+                  color: AppTheme.colors.primary,
                 ),
                 label: Text(
                   _isExpanded ? 'Masquer' : 'Afficher',
-                  style: TextStyle(color: IOSTheme.primaryBlue),
+                  style: TextStyle(color: AppTheme.colors.primary),
                 ),
               ),
             ],
           ),
-          
+
           if (_isExpanded) ...[
             const SizedBox(height: 20),
-            
+
             // Entreprise
             Text(
               'Entreprise',
-              style: IOSTheme.footnote.copyWith(fontWeight: FontWeight.w600),
+              style: AppTheme.typography.bodySmall.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             TextFormField(
@@ -354,20 +354,20 @@ class _CreateClientPageState extends State<CreateClientPage> {
                 hintText: 'Ex: Acme Corporation',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: IOSTheme.systemGray4),
+                  borderSide: BorderSide(color: AppTheme.colors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: IOSTheme.primaryBlue),
+                  borderSide: BorderSide(color: AppTheme.colors.primary),
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // Adresse
             Text(
               'Adresse',
-              style: IOSTheme.footnote.copyWith(fontWeight: FontWeight.w600),
+              style: AppTheme.typography.bodySmall.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             TextFormField(
@@ -376,20 +376,20 @@ class _CreateClientPageState extends State<CreateClientPage> {
                 hintText: 'Ex: 123 Rue de la Paix, 75001 Paris',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: IOSTheme.systemGray4),
+                  borderSide: BorderSide(color: AppTheme.colors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: IOSTheme.primaryBlue),
+                  borderSide: BorderSide(color: AppTheme.colors.primary),
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // Notes
             Text(
               'Notes',
-              style: IOSTheme.footnote.copyWith(fontWeight: FontWeight.w600),
+              style: AppTheme.typography.bodySmall.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             TextFormField(
@@ -399,11 +399,11 @@ class _CreateClientPageState extends State<CreateClientPage> {
                 hintText: 'Informations supplémentaires...',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: IOSTheme.systemGray4),
+                  borderSide: BorderSide(color: AppTheme.colors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: IOSTheme.primaryBlue),
+                  borderSide: BorderSide(color: AppTheme.colors.primary),
                 ),
               ),
             ),
@@ -419,7 +419,7 @@ class _CreateClientPageState extends State<CreateClientPage> {
       child: ElevatedButton(
         onPressed: _isLoading ? null : _createClient,
         style: ElevatedButton.styleFrom(
-          backgroundColor: IOSTheme.primaryBlue,
+          backgroundColor: AppTheme.colors.primary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
@@ -438,7 +438,7 @@ class _CreateClientPageState extends State<CreateClientPage> {
               )
             : Text(
                 'Créer le client',
-                style: IOSTheme.body.copyWith(
+                style: AppTheme.typography.bodyMedium.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),
@@ -447,5 +447,3 @@ class _CreateClientPageState extends State<CreateClientPage> {
     );
   }
 }
-
-

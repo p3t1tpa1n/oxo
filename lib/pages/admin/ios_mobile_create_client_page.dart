@@ -1,7 +1,5 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../../config/ios_theme.dart';
-import '../../widgets/ios_widgets.dart';
+import '../../config/app_theme.dart';
 import '../../services/supabase_service.dart';
 
 class IOSMobileCreateClientPage extends StatefulWidget {
@@ -19,7 +17,7 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
   final _companyController = TextEditingController();
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
-  
+
   bool _isLoading = false;
   bool _isExpanded = false;
 
@@ -45,7 +43,7 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
       print('🔍 Tentative de création du client...');
       print('📝 Nom: ${_nameController.text.trim()}');
       print('📧 Email: ${_emailController.text.trim()}');
-      
+
       final client = await SupabaseService.createClient(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
@@ -75,19 +73,18 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
   }
 
   void _showSuccessDialog() {
-    showCupertinoDialog(
+    showDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Succès'),
         content: const Text('Le client a été créé avec succès.'),
         actions: [
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            child: const Text('OK'),
+          TextButton(
             onPressed: () {
               Navigator.of(context).pop(); // Fermer le dialogue
               Navigator.of(context).pop(); // Retourner à la page précédente
             },
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -95,15 +92,15 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
   }
 
   void _showErrorDialog(String message) {
-    showCupertinoDialog(
+    showDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Erreur'),
         content: Text(message),
         actions: [
-          CupertinoDialogAction(
-            child: const Text('OK'),
+          TextButton(
             onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -112,16 +109,17 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
 
   @override
   Widget build(BuildContext context) {
-    return IOSScaffold(
-      navigationBar: IOSNavigationBar(
-        title: "Nouveau Client",
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Icon(
-            CupertinoIcons.back,
-            color: IOSTheme.primaryBlue,
-          ),
+    return Scaffold(
+      backgroundColor: AppTheme.colors.background,
+      appBar: AppBar(
+        backgroundColor: AppTheme.colors.surface,
+        elevation: 0,
+        iconTheme: IconThemeData(color: AppTheme.colors.textPrimary),
+        titleTextStyle: AppTheme.typography.h4.copyWith(color: AppTheme.colors.textPrimary),
+        title: const Text('Nouveau Client'),
+        leading: GestureDetector(
+          onTap: () => Navigator.of(context).pop(),
+          child: const Icon(Icons.arrow_back),
         ),
       ),
       body: Form(
@@ -149,9 +147,9 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: IOSTheme.systemBackground,
+        color: AppTheme.colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: IOSTheme.systemGray5, width: 1),
+        border: Border.all(color: AppTheme.colors.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,12 +160,12 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: IOSTheme.primaryBlue.withOpacity(0.15),
+                  color: AppTheme.colors.primary.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  CupertinoIcons.person_add,
-                  color: IOSTheme.primaryBlue,
+                child: Icon(
+                  Icons.person_add,
+                  color: AppTheme.colors.primary,
                   size: 24,
                 ),
               ),
@@ -178,12 +176,12 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
                   children: [
                     Text(
                       'Créer un nouveau client',
-                      style: IOSTheme.title2.copyWith(fontWeight: FontWeight.w700),
+                      style: AppTheme.typography.h3.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Ajoutez les informations du client',
-                      style: IOSTheme.body.copyWith(color: IOSTheme.labelSecondary),
+                      style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.textSecondary),
                     ),
                   ],
                 ),
@@ -199,69 +197,63 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: IOSTheme.systemBackground,
+        color: AppTheme.colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: IOSTheme.systemGray5, width: 1),
+        border: Border.all(color: AppTheme.colors.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Informations principales',
-            style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600),
+            style: AppTheme.typography.h4.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 16),
-          
+
           // Nom
           Text(
             'Nom complet *',
-            style: IOSTheme.footnote.copyWith(fontWeight: FontWeight.w600),
+            style: AppTheme.typography.bodySmall.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          IOSTextField(
+          TextField(
             controller: _nameController,
-            placeholder: 'Ex: Jean Dupont',
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Le nom est requis';
-              }
-              return null;
-            },
+            decoration: InputDecoration(
+              hintText: 'Ex: Jean Dupont',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
           ),
           const SizedBox(height: 16),
-          
+
           // Email
           Text(
             'Adresse email *',
-            style: IOSTheme.footnote.copyWith(fontWeight: FontWeight.w600),
+            style: AppTheme.typography.bodySmall.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          IOSTextField(
+          TextField(
             controller: _emailController,
-            placeholder: 'Ex: jean.dupont@email.com',
             keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'L\'email est requis';
-              }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                return 'Format d\'email invalide';
-              }
-              return null;
-            },
+            decoration: InputDecoration(
+              hintText: 'Ex: jean.dupont@email.com',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
           ),
           const SizedBox(height: 16),
-          
+
           // Téléphone
           Text(
             'Téléphone',
-            style: IOSTheme.footnote.copyWith(fontWeight: FontWeight.w600),
+            style: AppTheme.typography.bodySmall.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          IOSTextField(
+          TextField(
             controller: _phoneController,
-            placeholder: 'Ex: 01 23 45 67 89',
             keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              hintText: 'Ex: 01 23 45 67 89',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
           ),
         ],
       ),
@@ -272,9 +264,9 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: IOSTheme.systemBackground,
+        color: AppTheme.colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: IOSTheme.systemGray5, width: 1),
+        border: Border.all(color: AppTheme.colors.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,12 +276,11 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
               Expanded(
                 child: Text(
                   'Informations complémentaires',
-                  style: IOSTheme.title3.copyWith(fontWeight: FontWeight.w600),
+                  style: AppTheme.typography.h4.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
-              CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: () {
+              GestureDetector(
+                onTap: () {
                   setState(() => _isExpanded = !_isExpanded);
                 },
                 child: Row(
@@ -297,12 +288,12 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
                   children: [
                     Text(
                       _isExpanded ? 'Masquer' : 'Afficher',
-                      style: IOSTheme.body.copyWith(color: IOSTheme.primaryBlue),
+                      style: AppTheme.typography.bodyMedium.copyWith(color: AppTheme.colors.primary),
                     ),
                     const SizedBox(width: 4),
                     Icon(
-                      _isExpanded ? CupertinoIcons.chevron_up : CupertinoIcons.chevron_down,
-                      color: IOSTheme.primaryBlue,
+                      _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      color: AppTheme.colors.primary,
                       size: 16,
                     ),
                   ],
@@ -310,43 +301,52 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
               ),
             ],
           ),
-          
+
           if (_isExpanded) ...[
             const SizedBox(height: 16),
-            
+
             // Entreprise
             Text(
               'Entreprise',
-              style: IOSTheme.footnote.copyWith(fontWeight: FontWeight.w600),
+              style: AppTheme.typography.bodySmall.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            IOSTextField(
+            TextField(
               controller: _companyController,
-              placeholder: 'Ex: Acme Corporation',
+              decoration: InputDecoration(
+                hintText: 'Ex: Acme Corporation',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             ),
             const SizedBox(height: 16),
-            
+
             // Adresse
             Text(
               'Adresse',
-              style: IOSTheme.footnote.copyWith(fontWeight: FontWeight.w600),
+              style: AppTheme.typography.bodySmall.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            IOSTextField(
+            TextField(
               controller: _addressController,
-              placeholder: 'Ex: 123 Rue de la Paix, 75001 Paris',
+              decoration: InputDecoration(
+                hintText: 'Ex: 123 Rue de la Paix, 75001 Paris',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             ),
             const SizedBox(height: 16),
-            
+
             // Notes
             Text(
               'Notes',
-              style: IOSTheme.footnote.copyWith(fontWeight: FontWeight.w600),
+              style: AppTheme.typography.bodySmall.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            IOSTextField(
+            TextField(
               controller: _notesController,
-              placeholder: 'Informations supplémentaires...',
+              decoration: InputDecoration(
+                hintText: 'Informations supplémentaires...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             ),
           ],
         ],
@@ -355,13 +355,18 @@ class _IOSMobileCreateClientPageState extends State<IOSMobileCreateClientPage> {
   }
 
   Widget _buildSubmitButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: IOSPrimaryButton(
-        text: _isLoading ? 'Création...' : 'Créer le client',
-        onPressed: _isLoading ? null : _createClient,
-        isLoading: _isLoading,
+    return ElevatedButton(
+      onPressed: _isLoading ? null : _createClient,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppTheme.colors.primary,
+        minimumSize: const Size(double.infinity, 50),
       ),
+      child: _isLoading
+          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          : Text(
+              'Créer le client',
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+            ),
     );
   }
 }

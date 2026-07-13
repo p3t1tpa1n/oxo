@@ -9,6 +9,7 @@ import '../../config/app_theme.dart';
 import '../../config/app_icons.dart';
 import '../../services/notification_service.dart';
 import '../../services/supabase_service.dart';
+import '../../widgets/breadcrumbs_widget.dart';
 import '../../widgets/side_menu.dart';
 
 class DesktopShell extends StatefulWidget {
@@ -152,6 +153,9 @@ class _DesktopShellState extends State<DesktopShell> {
   }
 
   Widget _buildTopBar() {
+    final breadcrumbs =
+        BreadcrumbsHelper.fromRoute(context, widget.currentRoute);
+
     return Container(
       height: 60,
       decoration: BoxDecoration(
@@ -159,55 +163,56 @@ class _DesktopShellState extends State<DesktopShell> {
         border: Border(
           bottom: BorderSide(
             color: AppTheme.colors.border,
-            width: 1,
+            width: 0.5,
           ),
         ),
       ),
       padding: EdgeInsets.symmetric(horizontal: AppTheme.spacing.lg),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Retour + titre de page
-          Row(
-            children: [
-              if (Navigator.of(context).canPop()) ...[
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  tooltip: 'Retour',
-                  onPressed: () => Navigator.of(context).pop(),
+          if (Navigator.of(context).canPop()) ...[
+            IconButton(
+              icon: const Icon(Icons.arrow_back, size: 20),
+              tooltip: 'Retour',
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            SizedBox(width: AppTheme.spacing.sm),
+          ],
+          // Titre + fil d'Ariane compacts
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _getPageTitle(),
+                  style: AppTheme.typography.h4,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(width: AppTheme.spacing.sm),
+                if (breadcrumbs.length > 1)
+                  BreadcrumbsWidget(items: breadcrumbs),
               ],
-              Text(
-                _getPageTitle(),
-                style: AppTheme.typography.h3,
-              ),
-            ],
+            ),
           ),
-          
           // Actions rapides
-          Row(
-            children: [
-              Builder(
-                builder: (buttonContext) => Badge(
-                  isLabelVisible: _unreadCount > 0,
-                  label: Text('$_unreadCount'),
-                  child: IconButton(
-                    icon: Icon(AppIcons.notifications),
-                    tooltip: 'Notifications',
-                    onPressed: () => _showNotifications(buttonContext),
-                  ),
-                ),
+          Builder(
+            builder: (buttonContext) => Badge(
+              isLabelVisible: _unreadCount > 0,
+              label: Text('$_unreadCount'),
+              child: IconButton(
+                icon: Icon(AppIcons.notifications, size: 21),
+                tooltip: 'Notifications',
+                onPressed: () => _showNotifications(buttonContext),
               ),
-              SizedBox(width: AppTheme.spacing.sm),
-              IconButton(
-                icon: Icon(AppIcons.settings),
-                tooltip: 'Paramètres',
-                onPressed: () {
-                  Navigator.of(context).pushNamed('/profile');
-                },
-              ),
-            ],
+            ),
+          ),
+          SizedBox(width: AppTheme.spacing.sm),
+          IconButton(
+            icon: Icon(AppIcons.profile, size: 21),
+            tooltip: 'Profil',
+            onPressed: () {
+              Navigator.of(context).pushNamed('/profile');
+            },
           ),
         ],
       ),

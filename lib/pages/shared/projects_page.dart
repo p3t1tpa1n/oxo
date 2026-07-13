@@ -8,7 +8,11 @@ import '../../models/user_role.dart';
 import '../../config/app_theme.dart';
 
 class ProjectsPage extends StatefulWidget {
-  const ProjectsPage({super.key});
+  /// Si fourni, ouvre directement la vue détail de cette mission
+  /// (utilisé par les routes /mission_detail et /project_detail sur desktop).
+  final String? initialMissionId;
+
+  const ProjectsPage({super.key, this.initialMissionId});
 
   @override
   State<ProjectsPage> createState() => _ProjectsPageState();
@@ -55,6 +59,17 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
       });
 
       _applyFiltersAndSort();
+
+      // Ouverture directe du détail si un id de mission a été passé en route
+      if (widget.initialMissionId != null && _currentView == 'grid') {
+        final target = _missions.firstWhere(
+          (m) => m['id']?.toString() == widget.initialMissionId,
+          orElse: () => <String, dynamic>{},
+        );
+        if (target.isNotEmpty) {
+          _showMissionDetails(target);
+        }
+      }
     } catch (e) {
       debugPrint('Erreur lors du chargement des données: $e');
       setState(() {
@@ -284,8 +299,10 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
               heroTag: 'fab_projects',
               onPressed: _showCreateMissionDialog,
               icon: const Icon(Icons.add),
-              label: const Text('Nouvelle Mission'),
-              backgroundColor: const Color(0xFF16283C),
+              label: const Text('Nouvelle mission'),
+              backgroundColor: AppTheme.colors.primary,
+              foregroundColor: Colors.white,
+              elevation: 1,
             )
           : null,
     );
@@ -312,8 +329,6 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
 
   Widget _buildMissionFilters() {
     return Card(
-      elevation: 2,
-      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -324,19 +339,9 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                   child: TextField(
                     decoration: InputDecoration(
                       hintText: 'Rechercher une mission...',
-                      prefixIcon: const Icon(Icons.search, color: Color(0xFF16283C)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF16283C)),
-                      ),
+                      prefixIcon: Icon(Icons.search,
+                          size: 20, color: AppTheme.colors.textSecondary),
+                      isDense: true,
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -402,24 +407,21 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
         children: [
           Icon(
             Icons.assignment_outlined,
-            size: 80,
-            color: Colors.grey[400],
+            size: 64,
+            color: AppTheme.colors.textDisabled,
           ),
           const SizedBox(height: 20),
           Text(
             'Aucune mission',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
-            ),
+            style: AppTheme.typography.h3
+                .copyWith(color: AppTheme.colors.textSecondary),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             'Créez votre première mission pour commencer.',
             style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
+              fontSize: 14,
+              color: AppTheme.colors.textSecondary,
             ),
           ),
         ],
@@ -428,10 +430,12 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
   }
 
   Widget _buildMissionsGrid() {
+    // Grille responsive : le nombre de colonnes s'adapte à la largeur
+    // de la fenêtre au lieu d'être figé à 3.
     return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 1.2,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 380,
+        childAspectRatio: 1.35,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
@@ -455,13 +459,13 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
       if (isProposal && proposalStatus == 'pending') {
         // Proposition en attente
         progressStatusLabel = 'Proposition en attente';
-        progressStatusColor = const Color(0xFFFF9800);
-        badgeText = 'NOUVELLE PROPOSITION';
+        progressStatusColor = AppTheme.colors.statusPending;
+        badgeText = 'Nouvelle proposition';
       } else if (isProposal && proposalStatus == 'accepted') {
         // Proposition acceptée
         progressStatusLabel = 'Acceptée';
-        progressStatusColor = const Color(0xFF4CAF50);
-        badgeText = 'PROPOSITION ACCEPTÉE';
+        progressStatusColor = AppTheme.colors.statusCompleted;
+        badgeText = 'Proposition acceptée';
       } else if (isAssigned || (isProposal && proposalStatus == 'accepted')) {
         // Mission assignée
         final status = mission['progress_status']?.toString() ?? 'en_cours';
@@ -470,7 +474,7 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
         badgeText = null;
       } else {
         progressStatusLabel = 'En attente';
-        progressStatusColor = Colors.grey;
+        progressStatusColor = AppTheme.colors.statusCancelled;
         badgeText = null;
       }
     } else {
@@ -482,37 +486,40 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     }
 
     return Card(
-      elevation: 2,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: InkWell(
         onTap: () => _showMissionDetails(mission),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppTheme.radius.medium),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Badge "NOUVELLE PROPOSITION" si c'est une proposition en attente
+              // Bandeau proposition (partenaires)
               if (badgeText != null) ...[
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF9800).withOpacity(0.1),
+                    color: progressStatusColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFFFF9800).withOpacity(0.3)),
+                    border: Border.all(
+                        color: progressStatusColor.withOpacity(0.3),
+                        width: 0.5),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.notifications_active, size: 14, color: const Color(0xFFFF9800)),
+                      Icon(Icons.notifications_active_outlined,
+                          size: 14, color: progressStatusColor),
                       const SizedBox(width: 6),
-                      Text(
-                        badgeText,
-                        style: const TextStyle(
-                          color: Color(0xFFFF9800),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 11,
+                      Expanded(
+                        child: Text(
+                          badgeText,
+                          style: TextStyle(
+                            color: progressStatusColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -521,95 +528,121 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                 const SizedBox(height: 8),
               ],
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          mission['title'] ?? mission['name'] ?? 'Mission sans nom',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF16283C),
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (isPartner && isProposal && proposalStatus == 'pending') ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            '📩 Proposition reçue - Cliquez pour voir les détails',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[600],
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      ],
+                    child: Text(
+                      mission['title'] ?? mission['name'] ?? 'Mission sans nom',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.colors.textPrimary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: progressStatusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: progressStatusColor.withOpacity(0.3)),
+                      borderRadius: BorderRadius.circular(999),
                     ),
-                    child: Text(
-                      progressStatusLabel,
-                      style: TextStyle(
-                        color: progressStatusColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.circle, size: 7, color: progressStatusColor),
+                        const SizedBox(width: 5),
+                        Text(
+                          progressStatusLabel,
+                          style: TextStyle(
+                            color: progressStatusColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               if (mission['description'] != null)
                 Expanded(
                   child: Text(
                     mission['description'],
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey[600],
+                      height: 1.4,
+                      color: AppTheme.colors.textSecondary,
                     ),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               const Spacer(),
-              const Divider(),
+              Divider(color: AppTheme.colors.borderLight),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   if (mission['start_date'] != null)
                     Row(
                       children: [
-                        Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
+                        Icon(Icons.calendar_today_outlined,
+                            size: 13, color: AppTheme.colors.textSecondary),
                         const SizedBox(width: 4),
                         Text(
-                          DateFormat('dd/MM/yyyy').format(DateTime.parse(mission['start_date'])),
-                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          DateFormat('dd/MM/yyyy').format(
+                              DateTime.parse(mission['start_date'])),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.colors.textSecondary),
                         ),
                       ],
                     ),
                   if (mission['priority'] != null)
-                    Text(
-                      mission['priority'].toString().toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[700],
-                      ),
-                    ),
+                    _buildPriorityChip(mission['priority'].toString()),
                 ],
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPriorityChip(String priority) {
+    final Color color;
+    final String label;
+    switch (priority.toLowerCase()) {
+      case 'high':
+      case 'haute':
+        color = AppTheme.colors.error;
+        label = 'Haute';
+        break;
+      case 'low':
+      case 'basse':
+        color = AppTheme.colors.textSecondary;
+        label = 'Basse';
+        break;
+      default:
+        color = AppTheme.colors.warning;
+        label = 'Moyenne';
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
         ),
       ),
     );
@@ -631,13 +664,13 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
   Color _getProgressStatusColor(String status) {
     switch (status) {
       case 'à_assigner':
-        return const Color(0xFFFF9800);
+        return AppTheme.colors.statusPending;
       case 'en_cours':
-        return const Color(0xFF2196F3);
+        return AppTheme.colors.statusInProgress;
       case 'fait':
-        return const Color(0xFF4CAF50);
+        return AppTheme.colors.statusCompleted;
       default:
-        return Colors.grey;
+        return AppTheme.colors.statusCancelled;
     }
   }
 
@@ -657,13 +690,13 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
   Color _getProposalStatusColor(String status) {
     switch (status) {
       case 'pending':
-        return const Color(0xFFFF9800);
+        return AppTheme.colors.statusPending;
       case 'accepted':
-        return const Color(0xFF4CAF50);
+        return AppTheme.colors.statusCompleted;
       case 'rejected':
-        return Colors.red;
+        return AppTheme.colors.error;
       default:
-        return Colors.grey;
+        return AppTheme.colors.statusCancelled;
     }
   }
 
@@ -698,58 +731,57 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
   
   Widget _buildProposalActions() {
     return Card(
-      elevation: 2,
-      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Proposition de mission',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF16283C),
-              ),
+            Row(
+              children: [
+                Icon(Icons.mail_outline,
+                    size: 20, color: AppTheme.colors.statusPending),
+                const SizedBox(width: 8),
+                Text('Proposition de mission', style: AppTheme.typography.h4),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
               'Vous avez reçu une proposition de mission. Acceptez-la ou refusez-la.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: AppTheme.typography.bodyMedium
+                  .copyWith(color: AppTheme.colors.textSecondary),
             ),
             if (_selectedMission!['proposed_at'] != null) ...[
               const SizedBox(height: 8),
               Text(
-                'Proposée le: ${DateFormat('dd/MM/yyyy à HH:mm').format(DateTime.parse(_selectedMission!['proposed_at'].toString()))}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[500],
-                ),
+                'Proposée le ${DateFormat('dd/MM/yyyy à HH:mm').format(DateTime.parse(_selectedMission!['proposed_at'].toString()))}',
+                style: AppTheme.typography.caption,
               ),
             ],
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton.icon(
+                OutlinedButton.icon(
                   onPressed: () => _rejectMissionProposal(),
-                  icon: const Icon(Icons.close, color: Colors.red),
-                  label: const Text(
+                  icon: Icon(Icons.close, size: 18, color: AppTheme.colors.error),
+                  label: Text(
                     'Refuser',
-                    style: TextStyle(color: Colors.red),
+                    style: TextStyle(color: AppTheme.colors.error),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                        color: AppTheme.colors.error.withOpacity(0.5)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 ElevatedButton.icon(
                   onPressed: () => _acceptMissionProposal(),
-                  icon: const Icon(Icons.check),
+                  icon: const Icon(Icons.check, size: 18),
                   label: const Text('Accepter'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D5B),
+                    backgroundColor: AppTheme.colors.success,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   ),
@@ -786,9 +818,9 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Mission acceptée avec succès'),
-            backgroundColor: const Color(0xFF2E7D5B),
+          SnackBar(
+            content: const Text('Mission acceptée'),
+            backgroundColor: AppTheme.colors.success,
           ),
         );
         _loadData();
@@ -838,7 +870,10 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.colors.error,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Refuser'),
           ),
         ],
@@ -886,15 +921,13 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     final progressStatusColor = _getProgressStatusColor(progressStatus);
 
     return Card(
-      elevation: 2,
-      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Row(
           children: [
             IconButton(
               onPressed: _backToGrid,
-              icon: const Icon(Icons.arrow_back, color: Color(0xFF16283C)),
+              icon: Icon(Icons.arrow_back, color: AppTheme.colors.primary),
               tooltip: 'Retour aux missions',
             ),
             const SizedBox(width: 16),
@@ -904,46 +937,47 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                 children: [
                   Text(
                     mission['title'] ?? mission['name'] ?? 'Mission sans nom',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF16283C),
-                    ),
+                    style: AppTheme.typography.h2,
                   ),
                   if (mission['description'] != null) ...[
                     const SizedBox(height: 8),
                     Text(
                       mission['description'],
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey[700],
-                      ),
+                      style: AppTheme.typography.bodyMedium
+                          .copyWith(color: AppTheme.colors.textSecondary),
                     ),
                   ],
                 ],
               ),
             ),
-            if (progressStatus == 'à_assigner')
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: progressStatusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: progressStatusColor.withOpacity(0.3)),
-                ),
-                child: Text(
-                  progressStatusLabel,
-                  style: TextStyle(
-                    color: progressStatusColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
+            // Pastille de statut, visible quel que soit le statut
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: progressStatusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(999),
               ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.circle, size: 8, color: progressStatusColor),
+                  const SizedBox(width: 6),
+                  Text(
+                    progressStatusLabel,
+                    style: TextStyle(
+                      color: progressStatusColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(width: 16),
             PopupMenuButton<String>(
               onSelected: (value) => _handleMissionAction(mission, value),
-              icon: const Icon(Icons.more_vert, color: Color(0xFF16283C)),
+              icon: Icon(Icons.more_vert, color: AppTheme.colors.primary),
               itemBuilder: (context) => [
                 const PopupMenuItem(value: 'edit', child: Text('Modifier la mission')),
                 const PopupMenuItem(value: 'delete', child: Text('Supprimer la mission')),
@@ -1017,15 +1051,20 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
         // Nom du partenaire en plus grand et visible
         Row(
           children: [
-            Icon(Icons.person, size: 18, color: const Color(0xFF16283C)),
-            const SizedBox(width: 8),
+            CircleAvatar(
+              radius: 14,
+              backgroundColor: AppTheme.colors.secondary.withOpacity(0.15),
+              child: Icon(Icons.person_outline,
+                  size: 16, color: AppTheme.colors.secondary),
+            ),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 partnerName,
-                style: const TextStyle(
-                  fontSize: 16,
+                style: TextStyle(
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF16283C),
+                  color: AppTheme.colors.textPrimary,
                 ),
               ),
             ),
@@ -1043,23 +1082,31 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
+        color: AppTheme.colors.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radius.medium),
+        border: Border.all(color: AppTheme.colors.border, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: const Color(0xFF16283C)),
-              const SizedBox(width: 8),
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: AppTheme.colors.secondary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppTheme.radius.small),
+                ),
+                child: Icon(icon, size: 16, color: AppTheme.colors.secondary),
+              ),
+              const SizedBox(width: 10),
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 15,
+                style: TextStyle(
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF16283C),
+                  color: AppTheme.colors.textPrimary,
                 ),
               ),
             ],
@@ -1153,10 +1200,9 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
     final isLate = now.isAfter(endDate);
     final daysLate = isLate ? now.difference(endDate).inDays : 0;
     
-    final Color barColor = isLate 
-        ? const Color(0xFFD32F2F)
-        : const Color(0xFF16283C);
-    
+    final Color barColor =
+        isLate ? AppTheme.colors.error : AppTheme.colors.secondary;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1167,28 +1213,30 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
               'Temps écoulé',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[700],
+                color: AppTheme.colors.textSecondary,
               ),
             ),
             Text(
-              isLate 
+              isLate
                   ? 'En retard de $daysLate jour${daysLate > 1 ? 's' : ''}'
-                  : '$percentage%',
+                  : '$percentage %',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isLate ? const Color(0xFFD32F2F) : const Color(0xFF16283C),
+                color: isLate
+                    ? AppTheme.colors.error
+                    : AppTheme.colors.textPrimary,
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
         ClipRRect(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(999),
           child: LinearProgressIndicator(
             value: isLate ? 1.0 : percentage / 100,
-            minHeight: 10,
-            backgroundColor: Colors.grey[300],
+            minHeight: 6,
+            backgroundColor: AppTheme.colors.borderLight,
             valueColor: AlwaysStoppedAnimation<Color>(barColor),
           ),
         ),
@@ -1200,14 +1248,14 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
               DateFormat('dd/MM/yyyy').format(startDate),
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: AppTheme.colors.textSecondary,
               ),
             ),
             Text(
               DateFormat('dd/MM/yyyy').format(endDate),
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: AppTheme.colors.textSecondary,
               ),
             ),
           ],
@@ -1222,25 +1270,31 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
       children: [
         if (mission['notes'] != null) ...[
           const Text(
-            'Notes générales:',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            'Notes générales',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             mission['notes'],
-            style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+            style: TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: AppTheme.colors.textSecondary),
           ),
           if (mission['completion_notes'] != null) const SizedBox(height: 16),
         ],
         if (mission['completion_notes'] != null) ...[
           const Text(
-            'Notes de complétion:',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            'Notes de complétion',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             mission['completion_notes'],
-            style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+            style: TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: AppTheme.colors.textSecondary),
           ),
         ],
       ],
@@ -1257,8 +1311,8 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
+              fontSize: 13,
+              color: AppTheme.colors.textSecondary,
             ),
           ),
         ),
@@ -1266,10 +1320,10 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
           flex: 3,
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF16283C),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.colors.textPrimary,
             ),
             textAlign: TextAlign.right,
           ),
@@ -1594,7 +1648,8 @@ class _ProjectsPageState extends State<ProjectsPage> with SingleTickerProviderSt
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF16283C),
+                backgroundColor: AppTheme.colors.primary,
+                foregroundColor: Colors.white,
               ),
               child: const Text('Enregistrer'),
             ),
